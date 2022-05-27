@@ -1,7 +1,9 @@
 __all__ = (
     'partial', 'jax', 'reduce', 'T', 'Any', 'Callable', 'Sequence', 'Optional',
-    'f16', 'f32', 'f64', 'i16', 'i32', 'i64', 'u8', 'u16', 'u32', 'u64', 'DeviceArray', 'array', 'zeros', 'zeros_like', 'ones', 'ones_like',
-    'deg2rad', 'rad2deg', 'sum', 'exp', 'sin', 'cos', 'tan', 'hstack', 'vstack', 'stack', 'concatenate', 'eye', 'diag', 'dot', 'matmul', 'vdot',
+    'f16', 'f32', 'f64', 'i16', 'i32', 'i64', 'u8', 'u16', 'u32', 'u64', 'DeviceArray', 
+    'ndarray', 'array', 'zeros', 'zeros_like', 'ones', 'ones_like',
+    'deg2rad', 'rad2deg', 'exp', 'sin', 'cos', 'tan', 'sqrt', 'pi', 'norm', 'where', 'prod',
+    'hstack', 'vstack', 'stack', 'concatenate', 'eye', 'diag', 'dot', 'matmul', 'vdot',
     'grad', 'jit', 'jacfwd', 'jacrev', 'vmap', 'random', 'jnp', 'lax', 'jvp', 'flatten_util',
     'selu', 'elu', 'tanh', 'sigmoid', 'swish',
     'tree_map', 'tree_reduce', 'tree_leaves', 'flax', 'freeze', 'unfreeze', 'nn'
@@ -23,17 +25,25 @@ from jax.numpy import (
     uint16 as u16,
     uint32 as u32,
     uint64 as u64,
-    DeviceArray,
+    DeviceArray, ndarray,
     array, zeros, zeros_like, ones, ones_like, eye, diag,
-    deg2rad, rad2deg, sum, exp, sin, cos, tan,
-    hstack, vstack, stack, concatenate, dot, matmul, vdot
+    deg2rad, rad2deg, exp, sin, cos, tan, sqrt, pi, prod,
+    hstack, vstack, stack, concatenate, dot, matmul, vdot,
+    where
+)
 
+from jax.numpy.linalg import (
+    norm
 )
 
 import jax.numpy as jnp
+
 from jax import (
-    grad, jit, jacfwd, jacrev, vmap, random, lax, jvp, flatten_util
+    grad, jit, jacfwd, jacrev, vmap, jvp
 )
+import jax.lax as lax
+import jax.random as random
+import jax.flatten_util as flatten_util
 
 from jax.nn import (
     selu, elu, tanh, sigmoid, swish

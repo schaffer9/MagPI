@@ -1,12 +1,6 @@
-from unittest import TestCase
-
-from pinns.prelude import *
 from pinns import calc
 
-
-class JaxTestCase(TestCase):
-    def assertIsclose(self, a, b):
-        self.assertTrue(jnp.isclose(a, b, atol=1e-6).all(), f"Arrays are with shape {a.shape} are not close.")
+from . import *
 
 
 class TestCross(JaxTestCase):
