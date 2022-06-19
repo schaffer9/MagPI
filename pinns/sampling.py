@@ -11,16 +11,27 @@ def sample_domain(key, domain: Domain, n: int=1):
 
 
 @partial(jit, static_argnames=("condition", "sampling", "n"))
-def rejection_sampling(key, condition, sampling, n: int):
+def rejection_sampling(
+    key, 
+    condition, 
+    sampling, 
+    n: int, 
+    condition_kwargs: Optional[dict[str, Any]] = None,
+    sampling_kwargs: Optional[dict[str, Any]] = None,
+):
+    if condition_kwargs is None:
+        condition_kwargs = {}
+    if sampling_kwargs is None:
+        sampling_kwargs = {}
     key, subkey = random.split(key)
-    sample = sampling(subkey)
+    sample = sampling(subkey, **sampling_kwargs)
     shape = (n, *sample.shape)
     samples = jnp.empty(shape, dtype=sample.dtype)
     i = 0
-
+    
     def body(state):
         samples, i, key, sample = state
-        valid = condition(sample)
+        valid = condition(sample, **condition_kwargs)
         key, subkey = random.split(key)
         samples = lax.cond(
             valid, 
@@ -29,7 +40,7 @@ def rejection_sampling(key, condition, sampling, n: int):
             samples
         )
         i = lax.cond(valid, lambda i: i+1, lambda i: i, i)
-        sample = sampling(subkey)
+        sample = sampling(subkey, **sampling_kwargs)
         return (samples, i, key, sample)
 
     samples, *_ = lax.while_loop(

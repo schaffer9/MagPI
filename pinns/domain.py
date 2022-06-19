@@ -67,7 +67,7 @@ class Hypercube:
 class Sphere:
     dimenson: int = field(default=3, init=False, hash=False, repr=False)
     radius: float
-    origin: tuple[float, ...]
+    origin: tuple[float, float, float]
 
     def __post_init__(self):
         assert len(array(self.radius).shape) == 0, "Radius must be a scalar."
@@ -103,7 +103,7 @@ class Sphere:
 class Circle(Sphere):
     dimenson: int = field(default=2, init=False, hash=False, repr=False)
     radius: float
-    origin: tuple[float, ...]
+    origin: tuple[float, float]
 
     def __post_init__(self):
         assert len(array(self.radius).shape) == 0, "Radius must be a scalar."
@@ -119,6 +119,40 @@ class Circle(Sphere):
     def transform_bnd(self, uniform_sample: ndarray) -> ndarray:
         r, o = array(self.radius), array(self.origin)
         return transform_circle_bnd(uniform_sample, r, o)
+
+@dataclass(slots=True, frozen=True)
+class Annulus:
+    dimension: int = field(default=2, init=False, hash=False, repr=False)
+    r1: float  # inner radius
+    r2: float  # outer radius
+    origin: tuple[float, float]
+
+    def __post_init__(self):
+        assert len(array(self.r1).shape) == 0, "Radius must be a scalar."
+        assert len(array(self.r2).shape) == 0, "Radius must be a scalar."
+        assert len(array(self.origin).shape) == 1, "Origin must be `tuple[float]`."
+
+    def support(self):
+        return (array(self.r2) ** 2 - array(self.r1) ** 2) * pi
+    
+    def transform(self, uniform_sample: ndarray) -> ndarray:
+        r1, r2, o = array(self.r1), array(self.r2), array(self.origin)
+        samples = transform_annulus(uniform_sample, r1, r2, o)
+        return samples
+
+    # def transform_bnd(self, uniform_sample: ndarray) -> ndarray:
+    #     r, o = array(self.radius), array(self.origin)
+    #     return transform_sphere_bnd(uniform_sample, r, o)
+
+    # def normal_vec(self, bnd_sample: ndarray, rtol=1e-05, atol=1e-08) -> Optional[ndarray]:
+    #     r, o = array(self.radius), array(self.origin)
+    #     sample = bnd_sample - o
+
+    #     sample_norm = norm(sample, axis=-1)
+    #     on_bnd = jnp.isclose(sample_norm, r, rtol=rtol, atol=atol)
+    #     if not on_bnd.all():
+    #         return None
+    #     return sample / sample_norm
 
 
 def transform_hypercube(x: ndarray, lb: ndarray, ub: ndarray) -> ndarray:
@@ -149,13 +183,27 @@ def transform_hypercube_bnd(x: ndarray, lb: ndarray, ub: ndarray) -> ndarray:
 
 
 def transform_circle(x: ndarray, r: ndarray, o: ndarray) -> ndarray:
+    # assert x.shape[-1] == 2
+    # assert len(r.shape) == 0
+    # assert o.shape[-1] == 2
+    # x = x % 1.
+    # x = (x - 0.5) * 2
+    # x1 = x[..., 0] * sqrt(1-0.5*x[..., 1]**2)
+    # x2 = x[..., 1] * sqrt(1-0.5*x[..., 0]**2)
+    # return stack((x1, x2), -1) * r + o
+    return transform_annulus(x, array(0.), r, o)
+
+
+def transform_annulus(x: ndarray, r1: ndarray, r2: ndarray, o: ndarray) -> ndarray:
     assert x.shape[-1] == 2
-    assert len(r.shape) == 0
+    assert len(r1.shape) == 0 and len(r2.shape) == 0
     assert o.shape[-1] == 2
     x = x % 1.
-    x1 = x[..., 0] * sqrt(1-0.5*x[..., 1]**2)
-    x2 = x[..., 1] * sqrt(1-0.5*x[..., 0]**2)
-    return stack((x1, x2), -1) * r + o
+    theta = 2 * pi * x[..., 0]
+    r = sqrt(x[..., 1] * (r2 ** 2 - r1 ** 2) + r1 ** 2)
+    x1 = r * cos(theta)
+    x2 = r * sin(theta)
+    return stack((x1, x2), -1) + o
 
 
 def transform_sphere(x: ndarray, r: ndarray, o: ndarray) -> ndarray:

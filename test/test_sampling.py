@@ -19,14 +19,14 @@ class TestSampling(JaxTestCase):
         d = domain.Hypercube((0., 0.), (1., 1.))
         key = random.PRNGKey(42)
 
-        def condition(s):
+        def condition(s, a):
             return (s[..., 0] > 0.5) & (s[..., 1] > 0.5)
 
         samples = sampling.rejection_sampling(
             key, 
             condition,
             lambda k: sampling.sample_domain(k, d),
-            100
+            100, condition_kwargs={'a': 42}  # 42 is a dummy parameter
         )
 
         self.assertEqual(samples.shape, (100, 2))

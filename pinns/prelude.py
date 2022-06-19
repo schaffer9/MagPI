@@ -1,17 +1,19 @@
 __all__ = (
-    'partial', 'jax', 'reduce', 'T', 'Any', 'Callable', 'Sequence', 'Optional',
+    'partial', 'jax', 'reduce', 'wraps', 'T', 'Any', 'Callable', 'Sequence', 'Optional', 'Union',
     'f16', 'f32', 'f64', 'i16', 'i32', 'i64', 'u8', 'u16', 'u32', 'u64', 'DeviceArray', 
     'ndarray', 'array', 'zeros', 'zeros_like', 'ones', 'ones_like',
     'deg2rad', 'rad2deg', 'exp', 'sin', 'cos', 'tan', 'sqrt', 'pi', 'norm', 'where', 'prod', 'minimum', 'maximum',
     'hstack', 'vstack', 'stack', 'concatenate', 'eye', 'diag', 'dot', 'matmul', 'vdot',
     'grad', 'jit', 'jacfwd', 'jacrev', 'vmap', 'random', 'jnp', 'lax', 'jvp', 'flatten_util',
     'selu', 'elu', 'tanh', 'sigmoid', 'swish',
-    'tree_map', 'tree_reduce', 'tree_leaves', 'flax', 'freeze', 'unfreeze', 'nn'
+    'tree_map', 'tree_reduce', 'tree_leaves', 
+    'flax', 'freeze', 'unfreeze', 'nn', 'TrainState', 'serialization', 'Module', 'Dense', 'compact',
+    'flatten_dict', 'unflatten_dict', 'optax'
 )
 
-from functools import partial, reduce
+from functools import partial, reduce, wraps
 import typing as T
-from typing import Any, Callable, Sequence, Optional
+from typing import Any, Callable, Sequence, Optional, Union
 
 import jax
 from jax.numpy import (
@@ -33,13 +35,13 @@ from jax.numpy import (
 )
 
 from jax.numpy.linalg import (
-    norm
+    norm, solve
 )
 
 import jax.numpy as jnp
 
 from jax import (
-    grad, jit, jacfwd, jacrev, vmap, jvp
+    grad, jit, jacfwd, jacrev, vmap, jvp, value_and_grad
 )
 import jax.lax as lax
 import jax.random as random
@@ -56,3 +58,8 @@ from jax.tree_util import (
 import flax
 from flax.core import freeze, unfreeze
 from flax import linen as nn
+from flax.linen import Module, Dense, compact
+from flax import serialization
+from flax.training.train_state import TrainState
+from flax.traverse_util import flatten_dict, unflatten_dict
+import optax

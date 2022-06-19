@@ -9,6 +9,18 @@ __all__ = (
 )
 
 
+def apply_to_module(operator):
+    @wraps(operator)
+    def op(f, *args, **kwargs):
+        if isinstance(f, Module):
+            apply = lambda x, p, *args, **kwargs: f.apply(p, x, *args, **kwargs)
+            return operator(apply, *args, **kwargs)
+        else:
+            return operator(f, *args, **kwargs)
+    return op
+
+
+@apply_to_module
 def value_and_derivative(f, wrt, argnum=None):
     sig = signature(f)
 
@@ -35,8 +47,8 @@ def value_and_derivative(f, wrt, argnum=None):
     return df
 
 
+@apply_to_module
 def derivative(wrt, argnums=None):
-    
     if callable(wrt):
         msg = "If a function is passed directly, `argnum` must be None or an integer"
         assert not isinstance(argnums, Sequence), msg
@@ -75,8 +87,21 @@ def derivative(wrt, argnums=None):
     return inner
 
 
+def _save_grad(f):
+    def g(*args, **kwargs):
+        y = f(*args, **kwargs)
+        output_is_scalar = len(y.shape) == 0
+        output_is_1d = len(y.shape) == 1 and y.shape[0] == 1
+        assert output_is_1d or output_is_scalar, "Output of function must be a scalar"
+        if output_is_1d:
+            return y[0]
+        else:
+            return y
+    return grad(g)
+
+
 def hvp(f, primals, tangents):
-    return jvp(grad(f), primals, tangents)[1]
+    return jvp(_save_grad(f), primals, tangents)[1]
 
 
 def hessian_diag(f, primals):
@@ -86,6 +111,7 @@ def hessian_diag(f, primals):
     return jax.vmap(comp)(vs)
 
 
+@apply_to_module
 def laplace(f):
     def lap(x, *args, **kwargs):
         H_diag = hessian_diag(lambda x: f(x, *args, **kwargs), x)
@@ -94,6 +120,7 @@ def laplace(f):
     return lap
 
 
+@apply_to_module
 def div(f):
     def div_f(x, *args, **kwargs):
         Jf = jacfwd(f, 0)(x, *args, **kwargs)
@@ -101,6 +128,7 @@ def div(f):
     return div_f
 
 
+@apply_to_module
 def curl(f):
     def _curl(x, *args):
         if x.shape[0] == 2:
@@ -152,11 +180,9 @@ def cross3d(a, b):
     return stack((x, y, z))
 
 
-@partial(jit, inline=True)
 def is_2d(*args) -> bool:
     return all(map(lambda x: x.shape[-1] == 2, args))
 
 
-@partial(jit, inline=True)
 def is_3d(*args) -> bool:
     return all(map(lambda x: x.shape[-1] == 3, args))
