@@ -115,7 +115,8 @@ class TestTransforms(JaxTestCase):
         ub = array([1, 1.])
         x = array([[0], [0.75], [0.25]])
         x_trans = domain.transform_hypercube_bnd(x, lb, ub)
-        self.assertIsclose(x_trans, array([[-1, -1], [1, -1.], [-1, -1.]]))
+        print(x_trans)
+        self.assertIsclose(x_trans, array([[-1, -1], [-1, 1.], [-1, -1.]]))
 
     def test_12_transform_hypercube_bnd(self):
         lb = array([-1, -2., -3.])
@@ -127,7 +128,6 @@ class TestTransforms(JaxTestCase):
         is_on_bnd = (x_trans == lb) | (x_trans == ub)
         # all points are on the edge
         self.assertTrue(is_on_bnd.any(axis=-1).all())
-        
 
     def test_13_transform_hypercube_bnd(self):
         lb = array([-1, -2., -3., -2])
@@ -168,7 +168,7 @@ class TestDomain(JaxTestCase):
         cube = domain.Hypercube((0., 0.), (1., 1.))
         self.assertEqual(cube.support(), 1.)
         x = array([0.5, 0.3])
-        self.assertTrue(cube.includes(x))
+        self.assertTrue(cube.includes(x).all())
         self.assertIsclose(cube.transform(x), x)
 
     def test_03_transform(self):
@@ -178,8 +178,8 @@ class TestDomain(JaxTestCase):
         x_tran = cube.transform(x)
         x_bnd = cube.transform_bnd(x[:, 0])
         self.assertEqual(x_tran.shape, (10, 2))
-        self.assertTrue(cube.includes(x_tran))
-        self.assertTrue(cube.includes(x_bnd))
+        self.assertTrue(cube.includes(x_tran).all())
+        self.assertTrue(cube.includes(x_bnd).all())
     
     def test_04_normal_vec(self):
         cube = domain.Hypercube((0., 0., -1), (1., 1., 2))

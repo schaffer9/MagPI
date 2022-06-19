@@ -2,7 +2,7 @@ __all__ = (
     'partial', 'jax', 'reduce', 'T', 'Any', 'Callable', 'Sequence', 'Optional',
     'f16', 'f32', 'f64', 'i16', 'i32', 'i64', 'u8', 'u16', 'u32', 'u64', 'DeviceArray', 
     'ndarray', 'array', 'zeros', 'zeros_like', 'ones', 'ones_like',
-    'deg2rad', 'rad2deg', 'exp', 'sin', 'cos', 'tan', 'sqrt', 'pi', 'norm', 'where', 'prod',
+    'deg2rad', 'rad2deg', 'exp', 'sin', 'cos', 'tan', 'sqrt', 'pi', 'norm', 'where', 'prod', 'minimum', 'maximum',
     'hstack', 'vstack', 'stack', 'concatenate', 'eye', 'diag', 'dot', 'matmul', 'vdot',
     'grad', 'jit', 'jacfwd', 'jacrev', 'vmap', 'random', 'jnp', 'lax', 'jvp', 'flatten_util',
     'selu', 'elu', 'tanh', 'sigmoid', 'swish',
@@ -29,7 +29,7 @@ from jax.numpy import (
     array, zeros, zeros_like, ones, ones_like, eye, diag,
     deg2rad, rad2deg, exp, sin, cos, tan, sqrt, pi, prod,
     hstack, vstack, stack, concatenate, dot, matmul, vdot,
-    where
+    where, minimum, maximum
 )
 
 from jax.numpy.linalg import (

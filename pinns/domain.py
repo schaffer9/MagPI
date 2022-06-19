@@ -9,7 +9,7 @@ class Domain(T.Protocol):
     def support(self) -> ndarray:
         ...
 
-    def includes(self, sample: ndarray) -> bool:
+    def includes(self, sample: ndarray) -> ndarray:  # should return boolean array
         ...
     
     def transform(self, uniform_sample: ndarray) -> ndarray:
@@ -30,9 +30,9 @@ class Hypercube:
         lb, ub = array((self.lb, self.ub))
         return prod(ub - lb)
 
-    def includes(self, sample: ndarray) -> bool:
+    def includes(self, sample: ndarray) -> ndarray:
         lb, ub = array((self.lb, self.ub))
-        return all((lb <= sample) & (sample <= ub))
+        return (lb <= sample) & (sample <= ub)
 
     def transform(self, uniform_sample: ndarray) -> ndarray:
         lb, ub = array((self.lb, self.ub))
@@ -78,7 +78,7 @@ class Sphere:
 
     def includes(self, sample: ndarray) -> bool:
         r, o = array(self.radius), array(self.origin)
-        return all(norm(sample - o, axis=-1) < r)
+        return norm(sample - o, axis=-1) < r
     
     def transform(self, uniform_sample: ndarray) -> ndarray:
         r, o = array(self.radius), array(self.origin)
