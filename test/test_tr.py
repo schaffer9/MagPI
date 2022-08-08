@@ -47,10 +47,10 @@ class TestTR(JaxTestCase):
 
     def test_004_tr_branin_function(self):
         f = lambda x: (x[1] - 0.129 * x[0] ** 2 + 1.6 * x[0] - 6) ** 2 + 6.07 * cos(x[0]) + 10
-        x0 = array([6., 14.], dtype=jnp.float64)
-        result = jit(tr.tr, static_argnames='f')(f, x0, delta_0 = 2.,
+        x0 = array([6., 14.])
+        result = jit(tr.tr, static_argnames='f')(f, x0, delta0 = 2.,
             delta_max=2., eps_grad=0.001, maxiter=30, eps_steihaug=1e-3)
         self.assertIsclose(result.params, array([3.1415486, 2.2468324]))
         self.assertEqual(result.delta, 2.)
-        self.assertLess(result.grad_norm, 0.001)
+        self.assertLess(norm(result.grad), 0.001)
         

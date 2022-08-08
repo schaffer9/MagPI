@@ -9,25 +9,25 @@ from . import calc
 class TRResult(T.NamedTuple):
     params: Any
     delta: ndarray
-    grad_norm: ndarray
+    grad: ndarray
     iterations: int
     iterations_steihaug: int
 
 
-@partial(jit, static_argnames='f')
 def tr(
-    f, params,
-    delta_0=1, delta_min=1e-4, delta_max=2,
+    f, params, *args,
+    delta0=1., delta_min=1e-4, delta_max=2.,
     eta1=0.15, gamma1=1.2,
-    eta2=0.75, gamma2=2,
+    eta2=0.75, gamma2=2.,
     eps_grad=1e-2,
     maxiter=1000,
     maxiter_steihaug=None,
-    eps_steihaug=1e-2):
+    eps_steihaug=1e-2,
+    **kwargs
+):
     _f = f
     params, unravel = ravel_pytree(params)
-    f = lambda p: _f(unravel(p))
-
+    f = lambda p: _f(unravel(p), *args, **kwargs)
     def step(state):
         _, params, df, delta, i, iter_steihaug = state
         _hvp = lambda p: calc.hvp(f, (params,), (p,))
@@ -62,20 +62,20 @@ def tr(
             lambda: params
         )
 
-        delta = minimum(maximum(delta, delta_min), delta_max)
+        delta = maximum(minimum(delta, delta_max), delta_min)
         df = grad(f)(params)
-        break_loop = (norm(df) < eps_grad) | (i + 1 >= maxiter)
+        break_loop = (norm(df) < eps_grad) | (i + 1 >= maxiter) | (delta <= delta_min) | (norm_p == 0.)
         return (break_loop, params, df, delta, (i + 1), iter_steihaug + _iter_steihaug)
 
     _, params, df, delta, i, iter_steihaug = lax.while_loop(
         lambda state: ~state[0],
         step,
-        (False, params, grad(f)(params), delta_0, 0, 0)
+        (False, params, grad(f)(params), delta0, 0, 0)
     )
     result = TRResult(
         unravel(params),
         delta,
-        norm(df),
+        df,
         i, iter_steihaug
     )
     return result
@@ -95,7 +95,6 @@ def steihaug(df, hvp, delta, eps, maxiter=None):
         a, b, c = dot(d, d), dot(z, d), dot(z, z) - delta ** 2
         discriminant = b ** 2 - 4 * a * c
         discriminant = lax.cond(discriminant < 0.,lambda: 0., lambda: discriminant)
-        print(discriminant)
         tau1 = (-b + sqrt(discriminant)) / (2 * a)
         tau2 = (-b - sqrt(discriminant)) / (2 * a)
         tau = maximum(tau1, tau2)

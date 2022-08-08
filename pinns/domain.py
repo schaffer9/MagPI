@@ -211,6 +211,7 @@ def transform_sphere(x: ndarray, r: ndarray, o: ndarray) -> ndarray:
     assert len(r.shape) == 0
     assert o.shape[-1] == 3
     x = x % 1.
+    x = (x - 0.5) * 2
     x1, x2, x3 = x[..., 0], x[..., 1], x[..., 2]
     _x1 = x1 * sqrt(1 - 0.5*x2**2 - 0.5*x3**2 + x2**2*x3**2 / 3)
     _x2 = x2 * sqrt(1 - 0.5*x3**2 - 0.5*x1**2 + x3**2*x1**2 / 3)
@@ -223,11 +224,9 @@ def transform_sphere_bnd(x: ndarray, r: ndarray, o: ndarray) -> ndarray:
     assert len(r.shape) == 0
     assert o.shape[-1] == 3
     x = x % 1.
-    angle = 2 * pi * x
-    theta, phi = angle[..., 0], angle[..., 1]
-    x1 = sin(theta) * cos(phi)
-    x2 = sin(theta) * sin(phi)
-    x3 = cos(theta)
+    x3, phi = 2 * x[..., 0] - 1, 2 * pi * x[..., 1]
+    x1 = cos(phi) * (1 - x3 ** 2) ** 0.5
+    x2 = sin(phi) * (1 - x3 ** 2) ** 0.5
     return stack((x1, x2, x3), -1) * r + o
 
 

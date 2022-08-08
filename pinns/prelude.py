@@ -2,9 +2,10 @@ __all__ = (
     'partial', 'jax', 'reduce', 'wraps', 'T', 'Any', 'Callable', 'Sequence', 'Optional', 'Union',
     'f16', 'f32', 'f64', 'i16', 'i32', 'i64', 'u8', 'u16', 'u32', 'u64', 'DeviceArray', 
     'ndarray', 'array', 'zeros', 'zeros_like', 'ones', 'ones_like',
-    'deg2rad', 'rad2deg', 'exp', 'sin', 'cos', 'tan', 'sqrt', 'pi', 'norm', 'where', 'prod', 'minimum', 'maximum',
+    'deg2rad', 'rad2deg', 'exp', 'sin', 'cos', 'tan', 'sqrt', 'pi', 'norm', 'solve',
+    'where', 'prod', 'minimum', 'maximum', 'mean', 'meshgrid', 'linspace',
     'hstack', 'vstack', 'stack', 'concatenate', 'eye', 'diag', 'dot', 'matmul', 'vdot',
-    'grad', 'jit', 'jacfwd', 'jacrev', 'vmap', 'random', 'jnp', 'lax', 'jvp', 'flatten_util',
+    'grad', 'value_and_grad', 'jit', 'jacfwd', 'jacrev', 'vmap', 'random', 'jnp', 'lax', 'jvp', 'flatten_util',
     'selu', 'elu', 'tanh', 'sigmoid', 'swish',
     'tree_map', 'tree_reduce', 'tree_leaves', 
     'flax', 'freeze', 'unfreeze', 'nn', 'TrainState', 'serialization', 'Module', 'Dense', 'compact',
@@ -31,7 +32,7 @@ from jax.numpy import (
     array, zeros, zeros_like, ones, ones_like, eye, diag,
     deg2rad, rad2deg, exp, sin, cos, tan, sqrt, pi, prod,
     hstack, vstack, stack, concatenate, dot, matmul, vdot,
-    where, minimum, maximum
+    where, minimum, maximum, mean, meshgrid, linspace
 )
 
 from jax.numpy.linalg import (
