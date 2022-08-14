@@ -5,7 +5,7 @@ from .prelude import *
 # TODO: typing and docs
 
 __all__ = (
-    'derivative', 'value_and_derivative', 'hvp', 'curl', 'cross', 'div', 'laplace'
+    'derivative', 'value_and_derivative', 'hvp', 'curl', 'cross', 'divergence', 'laplace'
 )
 
 
@@ -121,7 +121,7 @@ def laplace(f):
 
 
 @apply_to_module
-def div(f):
+def divergence(f):
     def div_f(x, *args, **kwargs):
         Jf = jacfwd(f, 0)(x, *args, **kwargs)
         return jnp.sum(diag(Jf))

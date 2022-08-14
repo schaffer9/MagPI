@@ -1,9 +1,13 @@
 
+from .krr import krr
+from .elm import elm
+
 from .prelude import *
+
 
 Array = ndarray
 P = T.ParamSpec('P')
-Loss = T.Callable[P, T.Union[Array, tuple[Array, Any]]]
+Loss = T.Callable[..., T.Union[Array, tuple[Array, Any]]]
 
 
 @partial(jit, static_argnames="loss")

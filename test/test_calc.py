@@ -64,7 +64,7 @@ class TestDiv(JaxTestCase):
             return x**2
 
         x = array([2., 2.])
-        div = calc.div(f)(x)
+        div = calc.divergence(f)(x)
         self.assertIsclose(div, array(8.))
 
 

@@ -3,16 +3,22 @@ from .prelude import *
 Array = ndarray
 Collection = T.Mapping[str, Array]
 Params = T.Mapping[str, Collection]
+Activation = Callable[[Array], Array]
 
 
 class MLP(Module):
     layers: Sequence[int]
-    activation: Callable = tanh
+    activation: Optional[Activation] = None
 
     @compact
     def __call__(self, x):
+        if self.activation is None:
+            activation = tanh
+        else:
+            activation = self.activation
+        
         for i, layer in enumerate(self.layers[:-1]):
-            x = tanh(Dense(layer, name=f'layers_{i}')(x))
+            x = activation(Dense(layer, name=f'layers_{i}')(x))
         
         output_neurons = self.layers[-1]
         x = Dense(output_neurons, name='output_layer')(x)
@@ -21,18 +27,11 @@ class MLP(Module):
         else:
             return x
 
-    def apply(self, variables: Params, *args: Array) -> Array:
-        output = super().apply(variables, *args)
-        if isinstance(output, tuple):
-            return output[0]
-        else:
-            return output
-
 
 def mlp(
-    key: random.KeyArray, 
-    layers: Sequence[int], 
-    activation: Callable[[Array], Array] = tanh
+    key: random.KeyArray,
+    layers: Sequence[int],
+    activation: Optional[Activation] = None
 ) -> tuple[MLP, Params]:
     """Creates a Multi Layer Perceptron with the given layers and activation function.
 
@@ -48,13 +47,11 @@ def mlp(
 
     Parameters
     ----------
-    key : ndarray
+    key : KeyArray
         Random key for initialization
     layers : Sequence[int]
         Number of neurons in each layer. This must include input and output layer.
-    activation : Callable, optional
-        Activation function, by default tanh
-
+    activation : Optional[Activation], defaults to ``tanh``
     
     Returns
     -------
