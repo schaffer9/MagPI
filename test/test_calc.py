@@ -30,7 +30,7 @@ class TestDerivative(JaxTestCase):
     
     def test_02_derivative_of_function_with_multiple_inputs(self):
         g = lambda x, y: sin(x) * cos(y)
-        dg = jit(calc.derivative(1)(g))(0.5, 1.0)
+        dg = calc.derivative(1)(g)(0.5, 1.0)
         self.assertIsclose(dg, -sin(0.5) * sin(1.))
 
     def test_03_derivative_of_function_with_multiple_inputs(self):

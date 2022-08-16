@@ -9,6 +9,10 @@ __all__ = (
 )
 
 
+Array = ndarray
+Scalar = Array
+
+
 def apply_to_module(operator):
     @wraps(operator)
     def op(f, *args, **kwargs):
@@ -21,7 +25,11 @@ def apply_to_module(operator):
 
 
 @apply_to_module
-def value_and_derivative(f, wrt, argnum=None):
+def value_and_derivative(
+    f: Callable[..., Array], 
+    wrt: int, 
+    argnum: Optional[int]=None
+):
     sig = signature(f)
 
     if argnum is not None:
@@ -47,8 +55,45 @@ def value_and_derivative(f, wrt, argnum=None):
     return df
 
 
+
 @apply_to_module
 def derivative(wrt, argnums=None):
+    """This derivative operator computes the respective derivatives
+    using forward mode differentiation.
+
+    >>> f = lambda x, y: x ** 2 + y
+    >>> df = derivative(f, 0)(3., 1.)
+    >>> bool(jnp.isclose(df, 6.))
+    True
+    >>> f = lambda x, y: x ** 2 * y + x * y ** 2
+    >>> df = derivative(['x', 'y'])(f)(3., 5.)
+    >>> bool(jnp.isclose(df, 16.))
+    True
+    >>> g = lambda x, y: sin(x * y**2)
+    >>> dg = jit(derivative(g, 1))(1., 0.5)
+    >>> bool(jnp.isclose(dg, cos(0.5 ** 2)))
+    True
+    >>> g = lambda x, y: sin(y[0]) * cos(y[1]) * x
+    >>> dg = derivative([1], argnums=[1])(g)(1., array([0.5, 1.0]))
+    >>> bool(jnp.isclose(dg, -sin(0.5) * sin(1.)))
+    True
+    >>> g = lambda x, y: sin(x) @ cos(y)
+    >>> dg = derivative([0, 0], argnums=[0, 1])(g)(array([0.5, 1.0]), array([0.6, 1.0]))
+    >>> bool(jnp.isclose(dg, -cos(0.5) * sin(0.6)))
+    True
+
+    Parameters
+    ----------
+    wrt : Union[Callable[..., Array], int, str, Sequence[Union[int, str]]]
+        function, argnums, string or list of partial derivatives to compute
+    argnums : Optional[int], optional
+        if provided, the respective argument is considered a vector `wrt` should indicate the index 
+        of the partial derivative to compute
+
+    Returns
+    -------
+    Callable[..., Array]
+    """
     if callable(wrt):
         msg = "If a function is passed directly, `argnum` must be None or an integer"
         assert not isinstance(argnums, Sequence), msg
@@ -60,7 +105,7 @@ def derivative(wrt, argnums=None):
         sig = signature(f)
         df = value_and_derivative(f, argnum)
         _df = lambda *args, **kwargs: df(*args, **kwargs)[1]
-        _df.__signature__ = sig
+        _df.__signature__ = sig  # type: ignore
         return _df
     
     if isinstance(wrt, int):
@@ -101,6 +146,8 @@ def _save_grad(f):
 
 
 def hvp(f, primals, tangents):
+    """Computes the hessian vector product wrt. the first argument.
+    """
     return jvp(_save_grad(f), primals, tangents)[1]
 
 
@@ -112,7 +159,13 @@ def hessian_diag(f, primals):
 
 
 @apply_to_module
-def laplace(f):
+def laplace(f: Callable[..., Scalar]):
+    """Computes the laplacian :math:`\\Delta f` wrt. the first argument.
+
+    Parameters
+    ----------
+    f : Callable[..., Scalar]
+    """
     def lap(x, *args, **kwargs):
         H_diag = hessian_diag(lambda x: f(x, *args, **kwargs), x)
         return sum(H_diag)
@@ -121,7 +174,13 @@ def laplace(f):
 
 
 @apply_to_module
-def divergence(f):
+def divergence(f: Callable[..., Array]):
+    """Computes the divergence :math:`\\nabla \\cdot f` wrt. the first argument.
+
+    Parameters
+    ----------
+    f : Callable[..., Array]
+    """
     def div_f(x, *args, **kwargs):
         Jf = jacfwd(f, 0)(x, *args, **kwargs)
         return jnp.sum(diag(Jf))
@@ -129,7 +188,13 @@ def divergence(f):
 
 
 @apply_to_module
-def curl(f):
+def curl(f: Callable[..., Array]):
+    """Computes the curl :math:`\\nabla \\times f` wrt. the first argument.
+
+    Parameters
+    ----------
+    f : Callable[..., Array]
+    """
     def _curl(x, *args):
         if x.shape[0] == 2:
             return curl2d(f)(x, *args)
@@ -159,21 +224,32 @@ def curl2d(f):
     return jit(_f)
 
 
-def cross(a, b):
+def cross(a: Array, b: Array) -> Array:
+    """Computes the cross product of two vectors in :math:`\\mathbb{R}^2` or :math:`\\mathbb{R}^3`.
+
+    Parameters
+    ----------
+    a : Array
+    b : Array
+
+    Returns
+    -------
+    Array
+    """
     if is_2d(a, b):
         return cross2d(a, b)
     elif is_3d(a, b):
         return cross3d(a, b)
     else:
-        dim_a = a.shape()
-        dim_b = b.shape()
+        dim_a = a.shape
+        dim_b = b.shape
         raise ValueError(f"Cannot build cross product for dim {dim_a} and {dim_b}.")
 
-def cross2d(a, b):
+def cross2d(a: Array, b: Array) -> Array:
     return a[0] * b[1] - a[1] * b[0]
 
 
-def cross3d(a, b):
+def cross3d(a: Array, b: Array) -> Array:
     x = a[1] * b[2] - b[1] * a[2]
     y = b[0] * a[2] - a[0] * b[2]
     z = a[0] * b[1] - b[0] * a[1]
