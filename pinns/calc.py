@@ -9,7 +9,7 @@ __all__ = (
 )
 
 
-Array = ndarray
+Array = Any
 Scalar = Array
 
 
@@ -24,12 +24,14 @@ def apply_to_module(operator):
     return op
 
 
+Partials = int | str
+
 @apply_to_module
 def value_and_derivative(
     f: Callable[..., Array], 
-    wrt: int, 
+    wrt: Partials, 
     argnum: Optional[int]=None
-):
+) -> Callable[..., tuple[Array, Array]]:
     sig = signature(f)
 
     if argnum is not None:
@@ -55,9 +57,11 @@ def value_and_derivative(
     return df
 
 
-
 @apply_to_module
-def derivative(wrt, argnums=None):
+def derivative(
+    wrt: Callable[..., Array] | Partials | Sequence[Partials], 
+    argnums: T.Optional[int | Sequence[int | None]]=None
+) -> Callable[..., Callable | Array]:
     """This derivative operator computes the respective derivatives
     using forward mode differentiation.
 
@@ -99,13 +103,16 @@ def derivative(wrt, argnums=None):
         assert not isinstance(argnums, Sequence), msg
         if argnums is None:
             argnum = 0
+        elif isinstance(argnums, Sequence):
+            assert len(argnums) == 1
+            argnum = argnums[0]
         else:
             argnum = argnums
         f = wrt
         sig = signature(f)
         df = value_and_derivative(f, argnum)
         _df = lambda *args, **kwargs: df(*args, **kwargs)[1]
-        _df.__signature__ = sig  # type: ignore
+        setattr(_df, "__signature__", sig)
         return _df
     
     if isinstance(wrt, int):
@@ -116,15 +123,17 @@ def derivative(wrt, argnums=None):
     
     assert len(argnums) == len(wrt)
 
-    def inner(f):
+    def inner(f) -> Callable[..., Array]:
         def _df(f, ei, argnum):
             sig = signature(f)
             df = value_and_derivative(f, ei, argnum=argnum)
             derivative_f = lambda *args, **kwargs: df(*args, **kwargs)[1]
-            derivative_f.__signature__ = sig
+            setattr(derivative_f, "__signature__", sig)
             return derivative_f
 
         df = f
+        assert isinstance(wrt, Sequence)
+        assert isinstance(argnums, Sequence)
         for ei, argnum in zip(wrt, argnums):
             df = _df(df, ei, argnum)
         return df
@@ -145,13 +154,14 @@ def _save_grad(f):
     return grad(g)
 
 
-def hvp(f, primals, tangents):
-    """Computes the hessian vector product wrt. the first argument.
-    """
+def hvp(
+    f: Callable[..., Array], 
+    primals: Sequence[Array], 
+    tangents: Sequence[Array]) -> Array:
     return jvp(_save_grad(f), primals, tangents)[1]
 
 
-def hessian_diag(f, primals):
+def hessian_diag(f: Callable[..., Array], primals: Array) -> Array:
     assert len(primals.shape) == 1
     vs = jnp.eye(primals.shape[0])
     comp = lambda v: vdot(v, hvp(f, [primals], [v]))
@@ -159,7 +169,7 @@ def hessian_diag(f, primals):
 
 
 @apply_to_module
-def laplace(f: Callable[..., Scalar]):
+def laplace(f: Callable[..., Scalar]) -> Callable[..., Scalar]:
     """Computes the laplacian :math:`\\Delta f` wrt. the first argument.
 
     Parameters
@@ -168,13 +178,13 @@ def laplace(f: Callable[..., Scalar]):
     """
     def lap(x, *args, **kwargs):
         H_diag = hessian_diag(lambda x: f(x, *args, **kwargs), x)
-        return sum(H_diag)
+        return jnp.sum(H_diag)
     
     return lap
 
 
 @apply_to_module
-def divergence(f: Callable[..., Array]):
+def divergence(f: Callable[..., Array]) -> Callable[..., Array]:
     """Computes the divergence :math:`\\nabla \\cdot f` wrt. the first argument.
 
     Parameters
@@ -188,7 +198,7 @@ def divergence(f: Callable[..., Array]):
 
 
 @apply_to_module
-def curl(f: Callable[..., Array]):
+def curl(f: Callable[..., Array]) -> Callable[..., Array]:
     """Computes the curl :math:`\\nabla \\times f` wrt. the first argument.
 
     Parameters

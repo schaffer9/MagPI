@@ -1,21 +1,25 @@
 from jaxopt.linear_solve import solve_normal_cg
 from dataclasses import dataclass, field
-
 from .prelude import *
 
+Array = ndarray
 
 @dataclass(frozen=True)
 class ELM:
-    coef: ndarray
-    W: ndarray
-    b: ndarray
-    activation: Callable = field(compare=False)
+    coef: Array
+    W: Array
+    b: Array
+    activation: Callable[[Array], Array] = field(compare=False)
 
     def __call__(self, x):
         return self.activation(x @ self.W + self.b) @ self.coef
         
 
-def elm(X, y, W, b, activation=tanh, init=None, **solver_kwargs):
+def elm(X: Array, y: Array, W: Array, b: Array, 
+        activation: Optional[Callable[[Array], Array]]=None, 
+        init: Optional[Array]=None, **solver_kwargs) -> ELM:
+    if activation is None:
+        activation = tanh
     slp = vmap(lambda x: activation(W @ x + b))
     H = slp(X)
     if init is None and len(y.shape) == 1:

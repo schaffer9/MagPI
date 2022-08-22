@@ -10,7 +10,7 @@ from jax.scipy.stats.norm import ppf
 from .prelude import *
 
 Array = ndarray
-
+BoolArray = Array
 
 class Domain(T.Protocol):
     dimension: property
@@ -18,7 +18,7 @@ class Domain(T.Protocol):
     def support(self) -> Array:
         ...
 
-    def includes(self, sample: Array) -> Array:  # should return boolean array
+    def includes(self, sample: Array) -> BoolArray:
         ...
     
     def transform(self, uniform_sample: Array) -> Array:
