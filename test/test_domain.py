@@ -201,6 +201,16 @@ class TestDomain(JaxTestCase):
         cube = domain.Hypercube((0., 0., -1), (1., 1., 2))
         n = cube.normal_vec(array([-1,0,-1.]))
         self.assertIsNone(n)
+    
+    def test_007_transform_bnd_single_instance(self):
+        cube = domain.Hypercube((0., 0., 0.), (1., 1., 1.))
+        x = array([0, 0.])
+        x_bnd = cube.transform_bnd(x)
+        self.assertIsclose(x_bnd, array([0., 0., 0.]))
+
+        x = array([0.1, 0.1])
+        x_bnd = cube.transform_bnd(x)
+        self.assertIsclose(x_bnd, array([0., 0.1 * 6, 0.1]))
         
 
         

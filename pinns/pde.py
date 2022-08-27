@@ -128,7 +128,7 @@ def poisson_dirichlet_qp_mc(
     
     bnd_data = compute_bnd_data(u, g, data)
     if f is not None:
-        source_data = compute_source_data(f, lambda x: u(x) + g(x), data)
+        source_data = compute_source_data(f, u, data)
     else:
         source_data = None
 

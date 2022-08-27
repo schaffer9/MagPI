@@ -4,7 +4,7 @@ perform a uniform mapping from :math:`[0,1]^d` to the respective domain.
 """
 
 from dataclasses import dataclass, field
-
+from itertools import repeat, chain
 from jax.scipy.stats.norm import ppf
 
 from .prelude import *
@@ -175,6 +175,29 @@ def transform_hypercube(x: Array, lb: Array, ub: Array) -> Array:
     return x * (ub - lb) + lb
 
 
+# def transform_hypercube_bnd(x: Array, lb: Array, ub: Array) -> Array:
+#     assert len(lb.shape) == 1 and lb.shape[0] == ub.shape[0]
+#     dim = lb.shape[0]
+#     x = x % 1.
+#     if dim == 1:
+#         x = (x > 0.5).astype(u32)
+#         return transform_hypercube(x, lb, ub)
+#     if len(x.shape) == 0:
+#         x = x.ravel()
+#     if len(x.shape) == 1 and dim == 2:
+#         x = x[:, None]
+#     # if len(x.shape) == 1 and dim > 2:
+#     #     x = x[None, :]
+#     msg = f"Input must be {dim - 1} dimensional!"
+#     assert x.shape[-1] == dim - 1, msg
+#     idx = jnp.floor(2 * dim * x[..., 0]).astype(u32)
+#     x = x.at[..., 0].set(2 * dim * x[..., 0] - idx)
+#     bounds = (idx >= dim).astype(x.dtype)
+#     _insert = lambda x, i, v: jnp.insert(x, i, v, axis=-1)
+#     for axis in range(len(x.shape[:-1])):
+#         _insert = vmap(_insert, axis, axis)
+#     x = _insert(x, idx % dim, bounds)
+#     return transform_hypercube(x, lb, ub)
 def transform_hypercube_bnd(x: Array, lb: Array, ub: Array) -> Array:
     assert len(lb.shape) == 1 and lb.shape[0] == ub.shape[0]
     dim = lb.shape[0]
@@ -184,18 +207,37 @@ def transform_hypercube_bnd(x: Array, lb: Array, ub: Array) -> Array:
         return transform_hypercube(x, lb, ub)
     if len(x.shape) == 0:
         x = x.ravel()
-    if len(x.shape) == 1:
+    if len(x.shape) == 1 and dim == 2:
         x = x[:, None]
-    assert x.shape[-1] == dim - 1
-    idx = jnp.floor(2 * dim * x[..., 0]).astype(u32)
-    x = x.at[..., 0].set(2 * dim * x[..., 0] - idx)
-    bounds = (idx >= dim).astype(x.dtype)
-    _insert = lambda x, i, v: jnp.insert(x, i, v, axis=-1)
-    for axis in range(len(x.shape[:-1])):
-        _insert = vmap(_insert, axis, axis)
-    x = _insert(x, idx % dim, bounds)
-    return transform_hypercube(x, lb, ub)
 
+    msg = f"Input must be {dim - 1} dimensional!"
+    assert x.shape[-1] == dim - 1, msg
+    def insert_rules(lb, ub):
+        b = jnp.abs(ub - lb)
+        def support(i):
+            return jnp.prod(concatenate([b[:i], b[i+1:]]))
+
+        supports = [support(i) for i in range(len(b))]
+        supports = array(supports + supports)
+        cum_supports = jnp.cumsum(supports) / jnp.sum(supports)
+        vals = list(chain(repeat(0., len(b)), repeat(1., len(b))))
+        return supports / jnp.sum(supports), cum_supports, array(vals)
+        
+    supports, cum_supports, vals = insert_rules(lb, ub)
+    print(supports, cum_supports, vals)
+
+    def insert(x):
+        i = jnp.argmax(x[0] < cum_supports)
+        l = supports[i]
+        x = lax.cond(
+            i == 0,
+            lambda: x.at[0].set(x[0] / l),
+            lambda: x.at[0].set((x[0] - cum_supports[i-1]) / l)
+        )
+        return jnp.insert(x, i % dim, vals[i])
+
+    x = jnp.apply_along_axis(insert, -1, x)
+    return transform_hypercube(x, lb, ub)
 
 def transform_circle(x: Array, r: Array, o: Array) -> Array:
     return transform_annulus(x, array(0.), r, o)
