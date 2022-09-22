@@ -224,7 +224,6 @@ def transform_hypercube_bnd(x: Array, lb: Array, ub: Array) -> Array:
         return supports / jnp.sum(supports), cum_supports, array(vals)
         
     supports, cum_supports, vals = insert_rules(lb, ub)
-    print(supports, cum_supports, vals)
 
     def insert(x):
         i = jnp.argmax(x[0] < cum_supports)
