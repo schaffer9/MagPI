@@ -21,14 +21,12 @@ def simpson(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
 
 
 def gauss2(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
-    def t(x):
-        return (a + b) / 2 + x * (b - a) / 2
+    t = lambda x: (a + b) / 2 + x * (b - a) / 2
     return (b - a) / 2 * (f(t(-1 / sqrt(3))) + f(t(1 / sqrt(3))))
 
 
 def gauss3(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
-    def t(x):
-        return (a + b) / 2 + x * (b - a) / 2
+    t = lambda x: (a + b) / 2 + x * (b - a) / 2
     return (b - a) / 2 * (
         8 / 9 * f(t(0.)) + 
         5 / 9 * f(t(-sqrt(1 / 5))) + 
@@ -37,8 +35,7 @@ def gauss3(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
 
 
 def gauss4(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
-    def t(x):
-        return (a + b) / 2 + x * (b - a) / 2
+    t = lambda x: (a + b) / 2 + x * (b - a) / 2
     u, v = sqrt(3 / 7 - 2 / 7 * sqrt(6 / 5)), sqrt(3 / 7 + 2 / 7 * sqrt(6 / 5))
     w1, w2 = (18 + sqrt(30)) / 36, (18 - sqrt(30)) / 36
     return (b - a) / 2 * (
@@ -50,8 +47,7 @@ def gauss4(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
 
 
 def gauss5(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
-    def t(x):
-        return (a + b) / 2 + x * (b - a) / 2
+    t = lambda x: (a + b) / 2 + x * (b - a) / 2
     u = 1 / 3 * sqrt(5 - 2 * sqrt(10 / 7))
     v = 1 / 3 * sqrt(5 + 2 * sqrt(10 / 7))
     w0 = 128 / 225
@@ -78,7 +74,7 @@ def integrate(
 
     Examples
     --------
-    This integrates $f$ over the domain $[0, 1]$
+    This integrates ``f`` over the domain :math:`[0, 1]`
         >>> f = lambda x: 2 * x
         >>> d = array([0, 1])
         >>> float(integrate(f, d, method=midpoint))
@@ -88,14 +84,14 @@ def integrate(
         >>> f = lambda x: sin(x)
         >>> d = linspace(0, pi, 30)
         >>> F = integrate(f, d)
-        >>> bool(jnp.isclose(F, -cos(pi) + 1))
+        >>> bool(jnp.isclose(F, 2))
         True
     
     For multivariate functions, the domain can be a list indicating a
     rectangular domain. Also additional parameters can be passed using 
-    ``*args`` and ``*kwargs``. In this example :math:`x_0` is integrated over
-    :math:`[-1, 1]`, :math:`x_1` over :math:`[0, 1]`, :math:`a=1` and :math:`b=2`
-
+    ``*args`` and ``*kwargs``.  This example integrates :math:`\\int_{-1}^{1}\\int_{0}^{1} a x_0^2 + b x_1 dx_1 dx_0`
+    with :math:`a=1` and :math:`b=2`
+    
         >>> f = lambda x, a, b: a * x[0] ** 2 + b * x[1]
         >>> d = [
         ...     linspace(-1, 1, 2),
@@ -129,10 +125,8 @@ def integrate(
     def g(*int_args):
         return f(stack(int_args), *args, **kwargs)
 
-    def _integrate(f, support):
-        a = support[:-1]
-        b = support[1:]
-        return sum(vmap(method, (None, 0, 0))(f, a, b))
+    def _integrate(f, domain):
+        return sum(vmap(method, (None, 0, 0))(f, domain[:-1], domain[1:]))
 
     def _int(f, s):
         return lambda *args: _integrate(partial(f, *args), s)
@@ -190,11 +184,11 @@ def integrate_disk(
         p = stack([x, y]) + o
         return f(p, *args, **kwargs) * r
     
-    support = [
+    domain = [
         jnp.linspace(0, r, n[0]),
         jnp.linspace(0, 2 * pi, n[1]),
     ]
-    return integrate(g, support, *args, method=method, **kwargs)
+    return integrate(g, domain, *args, method=method, **kwargs)
 
 
 def integrate_sphere(
