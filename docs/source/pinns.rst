@@ -13,7 +13,12 @@ pinns.calc module
 
 .. automodule:: pinns.calc
    :members:
-   :undoc-members:
+
+pinns.integrate module
+----------------------
+
+.. automodule:: pinns.integrate
+   :members:
 
 pinns.domain module
 -------------------
