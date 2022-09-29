@@ -3,29 +3,29 @@ from pinns.prelude import *
 Array = Any
 Scalar = Array
 Origin = Array
-Integrand = Callable[..., Scalar]
-QuadRule = Callable[[Integrand, Scalar, Scalar], Scalar]
+Integrand = Callable[..., Array]
+QuadRule = Callable[[Integrand, Scalar, Scalar], Array]
 
 
-def midpoint(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
+def midpoint(f: Integrand, a: Scalar, b: Scalar) -> Array:
     return (b - a) * f((a + b) / 2)
 
 
-def trap(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
+def trap(f: Integrand, a: Scalar, b: Scalar) -> Array:
     return (b - a) / 2 * (f(a) + f(b))
 
 
-def simpson(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
+def simpson(f: Integrand, a: Scalar, b: Scalar) -> Array:
     m = (a + b) / 2
     return (b - a) / 6 * (f(a) + 4 * f(m) + f(b))
 
 
-def gauss2(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
+def gauss2(f: Integrand, a: Scalar, b: Scalar) -> Array:
     t = lambda x: (a + b) / 2 + x * (b - a) / 2
     return (b - a) / 2 * (f(t(-1 / sqrt(3))) + f(t(1 / sqrt(3))))
 
 
-def gauss3(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
+def gauss3(f: Integrand, a: Scalar, b: Scalar) -> Array:
     t = lambda x: (a + b) / 2 + x * (b - a) / 2
     return (b - a) / 2 * (
         8 / 9 * f(t(0.)) + 
@@ -34,7 +34,7 @@ def gauss3(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
     )
 
 
-def gauss4(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
+def gauss4(f: Integrand, a: Scalar, b: Scalar) -> Array:
     t = lambda x: (a + b) / 2 + x * (b - a) / 2
     u, v = sqrt(3 / 7 - 2 / 7 * sqrt(6 / 5)), sqrt(3 / 7 + 2 / 7 * sqrt(6 / 5))
     w1, w2 = (18 + sqrt(30)) / 36, (18 - sqrt(30)) / 36
@@ -46,7 +46,7 @@ def gauss4(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
     )
 
 
-def gauss5(f: Integrand, a: Scalar, b: Scalar) -> Scalar:
+def gauss5(f: Integrand, a: Scalar, b: Scalar) -> Array:
     t = lambda x: (a + b) / 2 + x * (b - a) / 2
     u = 1 / 3 * sqrt(5 - 2 * sqrt(10 / 7))
     v = 1 / 3 * sqrt(5 + 2 * sqrt(10 / 7))
@@ -68,7 +68,7 @@ def integrate(
     *args, 
     method: QuadRule=simpson, 
     **kwargs
-) -> Scalar:
+) -> Array:
     """Integrates over the given domain with the provided quadrature
     rule. The domain can either be an array or a list of arrays.
 
@@ -114,7 +114,7 @@ def integrate(
         
     Returns
     -------
-    Scalar
+    Array
     """
     if not isinstance(domain, (list, tuple)):
         assert len(domain.shape) > 0
@@ -146,7 +146,7 @@ def integrate_disk(
     *args,
     method: QuadRule=simpson,
     **kwargs
-) -> Scalar:
+) -> Array:
     """Integrates over a disk of radius ``r`` and origin ``o``.
 
     Examples
@@ -170,7 +170,7 @@ def integrate_disk(
 
     Returns
     -------
-    Scalar
+    Array
     """
     if not isinstance(n, tuple):
         n = (n, n)
@@ -199,7 +199,7 @@ def integrate_sphere(
     *args, 
     method: QuadRule=simpson, 
     **kwargs
-) -> Scalar:
+) -> Array:
     """Integrates over a sphere of radius ``r`` and origin ``o``.
 
     Parameters
@@ -216,7 +216,7 @@ def integrate_sphere(
 
     Returns
     -------
-    Scalar
+    Array
     """
     if not isinstance(n, tuple):
         n = (n, n, n)
