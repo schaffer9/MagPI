@@ -4,90 +4,63 @@ Array = Any
 Scalar = Array
 Origin = Array
 Integrand = Callable[..., Array]
-QuadRule = Callable[[Array], tuple[Array, Array]]
+QuadRule = Callable[[Integrand, Scalar, Scalar], Array]
 
 
-def midpoint(domain: Array) -> Array:
-    w = (domain[1:] - domain[:-1])
-    nodes = (domain[1:] + domain[:-1]) / 2
-    return w, nodes
+def midpoint(f: Integrand, a: Scalar, b: Scalar) -> Array:
+    return (b - a) * f((a + b) / 2)
 
 
-def trap(domain: Array) -> tuple[Array, Array]:
-    a, b = zeros(len(domain)), zeros(len(domain))
-    d = domain[1:] - domain[:-1]
-    a = a.at[:-1].set(d)
-    b = b.at[1:].set(d)
-    w = (a + b) / 2
-    return w, domain
+def trap(f: Integrand, a: Scalar, b: Scalar) -> Array:
+    return (b - a) / 2 * (f(a) + f(b))
 
 
-def simpson(domain: Array) -> tuple[Array, Array]:
-    n = len(domain) + len(domain) - 1
-    def weights(a, b):
-        return (b - a) / 6 * array([1, 4, 1])
-
-    _w = vmap(weights)(domain[:-1], domain[1:])
-    w = zeros(n)
-    w = w.at[0].set(_w[0, 0])
-    w = w.at[-1].set(_w[-1, -1])
-    w = w.at[1::2].set(_w[:, 1])
-    w = w.at[2:-1:2].set(_w[:-1, 2] + _w[1:, 0])
-    m = (domain[:-1] + domain[1:]) / 2
-    i = jnp.arange(1, len(domain))
-    nodes = jnp.insert(domain, i, m)
-    return w, nodes
+def simpson(f: Integrand, a: Scalar, b: Scalar) -> Array:
+    m = (a + b) / 2
+    return (b - a) / 6 * (f(a) + 4 * f(m) + f(b))
 
 
-def gauss2(domain: Array) -> tuple[Array, Array]:
-    def weights_nodes(a, b):
-        t = lambda x: (a + b) / 2 + x * (b - a) / 2
-        w = (b - a) / 2
-        return stack([w, w]), stack([t(-1 / sqrt(3)), t(1 / sqrt(3))])
-    w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
-    return jnp.ravel(w), jnp.ravel(nodes)
+def gauss2(f: Integrand, a: Scalar, b: Scalar) -> Array:
+    t = lambda x: (a + b) / 2 + x * (b - a) / 2
+    return (b - a) / 2 * (f(t(-1 / sqrt(3))) + f(t(1 / sqrt(3))))
 
 
-def gauss3(domain: Array) -> tuple[Array, Array]:
-    def weights_nodes(a, b):
-        t = lambda x: (a + b) / 2 + x * (b - a) / 2
-        w = (b - a) / 2
-        return (
-            w * stack([5 / 9, 8 / 9, 5 / 9]), 
-            stack([t(-sqrt(3 / 5)), t(0.), t(sqrt(3 / 5))])
-        )
-    w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
-    return jnp.ravel(w), jnp.ravel(nodes)
-
-def gauss4(domain: Array) -> tuple[Array, Array]:
-    def weights_nodes(a, b):
-        t = lambda x: (a + b) / 2 + x * (b - a) / 2
-        w = (b - a) / 2
-        u, v = sqrt(3 / 7 - 2 / 7 * sqrt(6 / 5)), sqrt(3 / 7 + 2 / 7 * sqrt(6 / 5))
-        w1, w2 = (18 + sqrt(30)) / 36, (18 - sqrt(30)) / 36
-        return (
-            w * stack([w1, w1, w2, w2]), 
-            stack([t(u), t(-u), t(v), t(-v)])
-        )
-    w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
-    return jnp.ravel(w), jnp.ravel(nodes)
+def gauss3(f: Integrand, a: Scalar, b: Scalar) -> Array:
+    t = lambda x: (a + b) / 2 + x * (b - a) / 2
+    return (b - a) / 2 * (
+        8 / 9 * f(t(0.)) + 
+        5 / 9 * f(t(-sqrt(1 / 5))) + 
+        5 / 9 * f(t(sqrt(1 / 5)))
+    )
 
 
-def gauss5(domain: Array) -> tuple[Array, Array]:
-    def weights_nodes(a, b):
-        t = lambda x: (a + b) / 2 + x * (b - a) / 2
-        w = (b - a) / 2
-        u = 1 / 3 * sqrt(5 - 2 * sqrt(10 / 7))
-        v = 1 / 3 * sqrt(5 + 2 * sqrt(10 / 7))
-        w0 = 128 / 225
-        w1 = (322 + 13 * sqrt(70)) / 900
-        w2 = (322 - 13 * sqrt(70)) / 900
-        return (
-            w * stack([w0, w1, w1, w2, w2]), 
-            stack([t(0), t(u), t(-u), t(v), t(-v)])
-        )
-    w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
-    return jnp.ravel(w), jnp.ravel(nodes)
+def gauss4(f: Integrand, a: Scalar, b: Scalar) -> Array:
+    t = lambda x: (a + b) / 2 + x * (b - a) / 2
+    u, v = sqrt(3 / 7 - 2 / 7 * sqrt(6 / 5)), sqrt(3 / 7 + 2 / 7 * sqrt(6 / 5))
+    w1, w2 = (18 + sqrt(30)) / 36, (18 - sqrt(30)) / 36
+    return (b - a) / 2 * (
+        w1 * f(t(u)) + 
+        w1 * f(t(-u)) + 
+        w2 * f(t(v)) + 
+        w2 * f(t(-v))
+    )
+
+
+def gauss5(f: Integrand, a: Scalar, b: Scalar) -> Array:
+    t = lambda x: (a + b) / 2 + x * (b - a) / 2
+    u = 1 / 3 * sqrt(5 - 2 * sqrt(10 / 7))
+    v = 1 / 3 * sqrt(5 + 2 * sqrt(10 / 7))
+    w0 = 128 / 225
+    w1 = (322 + 13 * sqrt(70)) / 900
+    w2 = (322 - 13 * sqrt(70)) / 900
+    return (b - a) / 2 * (
+        w0 * f(t(0.)) + 
+        w1 * f(t(u)) + 
+        w1 * f(t(-u)) + 
+        w2 * f(t(v)) + 
+        w2 * f(t(-v))
+    )
+
 
 def integrate(
     f: Integrand, 
@@ -149,29 +122,20 @@ def integrate(
         if len(domain.shape) == 1:
             domain = [domain]
 
-    w, nodes = zip(*(method(d) for d in domain))
-    W = stack(jnp.meshgrid(*w), axis=-1)
-    X = stack(jnp.meshgrid(*nodes), axis=-1)
-    X = X.reshape(-1, len(domain))
-    W = W.reshape(-1, len(domain))
-    W = jnp.prod(W, axis=-1)
-    def g(x):
-        return f(x, *args, **kwargs)
-    F = vmap(g)(X)
-    out_dim = len(F.shape[1:])
-    return jnp.sum(W[(..., *([None] * out_dim))] * F, 0)
-    # if X.shape[-1] == 1:
-    #     X = X[:, 0]
-    # W = jnp.prod(W, axis=-1)
-    # def g(x):
-    #     return f(x, *args, **kwargs)
-    # _f = g
-    # axis = tuple(range(len(domain)))
-    # for i in axis:
-    #     _f = vmap(_f, i, i)
-    # F = _f(X)
-    # out_dim = len(F.shape[len(axis):])
-    # return jnp.sum(W[(..., *([None] * out_dim))] * F, axis)
+    def g(*int_args):
+        return f(stack(int_args), *args, **kwargs)
+
+    def _integrate(f, domain):
+        return jnp.sum(vmap(method, (None, 0, 0))(f, domain[:-1], domain[1:]))
+
+    def _int(f, s):
+        return lambda *args: _integrate(partial(f, *args), s)
+    
+    _f = g
+    for s in reversed(domain):
+        _f = _int(_f, s)
+
+    return _f()
 
 
 def integrate_disk(

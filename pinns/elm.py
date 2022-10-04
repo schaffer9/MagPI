@@ -1,15 +1,15 @@
 from jaxopt.linear_solve import solve_normal_cg
-from dataclasses import dataclass, field
+from flax.struct import dataclass, field
 from .prelude import *
 
 Array = ndarray
 
-@dataclass(frozen=True)
+@dataclass#(frozen=True)
 class ELM:
     coef: Array
     W: Array
     b: Array
-    activation: Callable[[Array], Array] = field(compare=False)
+    activation: Callable[[Array], Array] = field(pytree_node=False)#field(compare=False)
 
     def __call__(self, x):
         return self.activation(x @ self.W + self.b) @ self.coef
