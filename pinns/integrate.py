@@ -24,6 +24,7 @@ def trap(domain: Array) -> tuple[Array, Array]:
 
 def simpson(domain: Array) -> tuple[Array, Array]:
     n = len(domain) + len(domain) - 1
+
     def weights(a, b):
         return (b - a) / 6 * array([1, 4, 1])
 
@@ -53,20 +54,22 @@ def gauss3(domain: Array) -> tuple[Array, Array]:
         t = lambda x: (a + b) / 2 + x * (b - a) / 2
         w = (b - a) / 2
         return (
-            w * stack([5 / 9, 8 / 9, 5 / 9]), 
+            w * stack([5 / 9, 8 / 9, 5 / 9]),
             stack([t(-sqrt(3 / 5)), t(0.), t(sqrt(3 / 5))])
         )
     w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
     return jnp.ravel(w), jnp.ravel(nodes)
 
+
 def gauss4(domain: Array) -> tuple[Array, Array]:
     def weights_nodes(a, b):
         t = lambda x: (a + b) / 2 + x * (b - a) / 2
         w = (b - a) / 2
-        u, v = sqrt(3 / 7 - 2 / 7 * sqrt(6 / 5)), sqrt(3 / 7 + 2 / 7 * sqrt(6 / 5))
+        u, v = (sqrt(3 / 7 - 2 / 7 * sqrt(6 / 5)), 
+                sqrt(3 / 7 + 2 / 7 * sqrt(6 / 5)))
         w1, w2 = (18 + sqrt(30)) / 36, (18 - sqrt(30)) / 36
         return (
-            w * stack([w1, w1, w2, w2]), 
+            w * stack([w1, w1, w2, w2]),
             stack([t(u), t(-u), t(v), t(-v)])
         )
     w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
@@ -83,17 +86,18 @@ def gauss5(domain: Array) -> tuple[Array, Array]:
         w1 = (322 + 13 * sqrt(70)) / 900
         w2 = (322 - 13 * sqrt(70)) / 900
         return (
-            w * stack([w0, w1, w1, w2, w2]), 
+            w * stack([w0, w1, w1, w2, w2]),
             stack([t(0), t(u), t(-u), t(v), t(-v)])
         )
     w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
     return jnp.ravel(w), jnp.ravel(nodes)
 
+
 def integrate(
-    f: Integrand, 
-    domain: Array | list[Array], 
-    *args, 
-    method: QuadRule=simpson, 
+    f: Integrand,
+    domain: Array | list[Array],
+    *args,
+    method: QuadRule = simpson,
     **kwargs
 ) -> Array:
     """Integrates over the given domain with the provided quadrature
@@ -113,12 +117,13 @@ def integrate(
         >>> F = integrate(f, d)
         >>> bool(jnp.isclose(F, 2))
         True
-    
+
     For multivariate functions, the domain can be a list indicating a
-    rectangular domain. Also additional parameters can be passed using 
-    ``*args`` and ``*kwargs``.  This example integrates :math:`\\int_{-1}^{1}\\int_{0}^{1} a x_0^2 + b x_1 dx_1 dx_0`
+    rectangular domain. Also additional parameters can be passed using
+    ``*args`` and ``*kwargs``.  This example integrates
+    :math:`\\int_{-1}^{1}\\int_{0}^{1} a x_0^2 + b x_1 dx_1 dx_0`
     with :math:`a=1` and :math:`b=2`
-    
+
         >>> f = lambda x, a, b: a * x[0] ** 2 + b * x[1]
         >>> d = [
         ...     linspace(-1, 1, 2),
@@ -134,11 +139,10 @@ def integrate(
     domain : Array | list[Array]
         nodal points for each dimension
     method : QuadRule, optional
-        Quadrature rule method. The midpoint rule can be written as
-        ``lambda f, a, b: (b - a) * f((a + b) / 2)``. The module provides
-        ``trap, midpoint, simpson`` and ``gauss2, gauss3, gauss4, gauss5``
-        for Gauss-Legendre quadrature.
-        
+        The quadrature rule is a function `Callable[[Array], tuple[Array, Array]]` which 
+        should return a tuple `(wieghts, nodes)` of the method 
+        in 1d, by default simpson.
+
     Returns
     -------
     Array
@@ -155,6 +159,7 @@ def integrate(
     X = X.reshape(-1, len(domain))
     W = W.reshape(-1, len(domain))
     W = jnp.prod(W, axis=-1)
+
     def g(x):
         return f(x, *args, **kwargs)
     F = vmap(g)(X)
@@ -180,7 +185,7 @@ def integrate_disk(
     o: Origin,
     n: int | tuple[int, int],
     *args,
-    method: QuadRule=simpson,
+    method: QuadRule = simpson,
     **kwargs
 ) -> Array:
     """Integrates over a disk of radius ``r`` and origin ``o``.
@@ -219,7 +224,7 @@ def integrate_disk(
         y = r * sin(phi)
         p = stack([x, y]) + o
         return f(p, *args, **kwargs) * r
-    
+
     domain = [
         jnp.linspace(0, r, n[0]),
         jnp.linspace(0, 2 * pi, n[1]),
@@ -228,12 +233,12 @@ def integrate_disk(
 
 
 def integrate_sphere(
-    f: Integrand, 
-    r: Scalar, 
-    o: Origin, 
-    n: int | tuple[int, int, int], 
-    *args, 
-    method: QuadRule=simpson, 
+    f: Integrand,
+    r: Scalar,
+    o: Origin,
+    n: int | tuple[int, int, int],
+    *args,
+    method: QuadRule = simpson,
     **kwargs
 ) -> Array:
     """Integrates over a sphere of radius ``r`` and origin ``o``.
@@ -266,7 +271,7 @@ def integrate_sphere(
         z = r * cos(phi)
         p = stack([x, y, z]) + o
         return f(p, *args, **kwargs) * r ** 2 * sin(phi)
-    
+
     domain = [
         jnp.linspace(0, r, n[0]),
         jnp.linspace(0, pi, n[1]),
