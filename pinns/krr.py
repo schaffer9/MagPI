@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from flax.struct import dataclass, field
 from jaxopt.linear_solve import solve_cg
 
 from .prelude import *
@@ -17,7 +17,7 @@ def pairwise_kernel(k, x, y):
     return vmap(vmap(k, (None, 0)), (0, None))(x, y)
 
 
-@dataclass(frozen=True)
+@dataclass
 class KRR:
     coef: ndarray
     support: ndarray

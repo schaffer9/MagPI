@@ -2,29 +2,37 @@ from jaxopt.linear_solve import solve_normal_cg
 from flax.struct import dataclass, field
 from .prelude import *
 
-Array = ndarray
+Array = Any
+# Single hidden layer feedforward network
+SLFN = Callable[[Array], Array]
 
-@dataclass#(frozen=True)
+
+@dataclass
 class ELM:
     coef: Array
-    W: Array
-    b: Array
-    activation: Callable[[Array], Array] = field(pytree_node=False)#field(compare=False)
+    slfn: Callable[[Array], Array] = field(compare=False)
 
     def __call__(self, x):
-        return self.activation(x @ self.W + self.b) @ self.coef
-        
+        return self.slfn(x) @ self.coef
 
-def elm(X: Array, y: Array, W: Array, b: Array, 
-        activation: Optional[Callable[[Array], Array]]=None, 
-        init: Optional[Array]=None, **solver_kwargs) -> ELM:
-    if activation is None:
-        activation = tanh
-    slp = vmap(lambda x: activation(W @ x + b))
-    H = slp(X)
-    if init is None and len(y.shape) == 1:
-        init = tree_map(lambda W: zeros((W.shape[0],)), W)
-    elif init is None and len(y.shape) > 1:
-        init = tree_map(lambda W, y: zeros((W.shape[0], y.shape[-1])), W, y)
-    p = solve_normal_cg(lambda x: H @ x, y, init=init, **solver_kwargs)
-    return ELM(p, jnp.transpose(W), b, activation)
+
+# def elm_from_weights(X: Array, y: Array, W: Array, b: Array, 
+#                      activation: Optional[Callable[[Array], Array]] = None, 
+#                      **solver_kwargs) -> ELM:
+#     if activation is None:
+#         activation = tanh
+#     slfn = lambda x: activation(W @ x + b)
+#     return elm(slfn, X, y, **solver_kwargs)
+
+
+def elm(slfn: SLFN, X: Array, y: Array, **solver_kwargs) -> ELM:
+    H = vmap(slfn)(X)
+    if "init" in solver_kwargs.keys():
+        init = init
+    else:
+        if len(y.shape) > 1:
+            init = tree_map(lambda H, y: zeros((H.shape[-1], y.shape[-1])), H, y)
+        else:
+            init = tree_map(lambda H: zeros((H.shape[-1],)), H)
+    params = solve_normal_cg(lambda x: H @ x, y, init=init, **solver_kwargs)
+    return ELM(params, slfn)
