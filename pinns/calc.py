@@ -146,40 +146,50 @@ def _save_grad(f):
         y = f(*args, **kwargs)
         output_is_scalar = len(y.shape) == 0
         output_is_1d = len(y.shape) == 1 and y.shape[0] == 1
-        assert output_is_1d or output_is_scalar, "Output of function must be a scalar"
         if output_is_1d:
             return y[0]
+        elif output_is_scalar:
+            return y
         else:
             return y
-    return grad(g)
+        # assert output_is_1d or output_is_scalar, "Output of function must be a scalar"
+        # if output_is_1d:
+        #     return y[0]
+        # else:
+        #     return y
+    #return grad(g)
+    return jacrev(g)
 
 
 def hvp(
     f: Callable[..., Array], 
     primals: Sequence[Array], 
-    tangents: Sequence[Array]) -> Array:
-    return jvp(_save_grad(f), primals, tangents)[1]
+    tangents: Sequence[Array]
+) -> Array:
+    #return jvp(_save_grad(f), primals, tangents)[1]
+    return jvp(jacfwd(f), primals, tangents)[1]
 
 
 def hessian_diag(f: Callable[..., Array], primals: Array) -> Array:
     assert len(primals.shape) == 1
     vs = jnp.eye(primals.shape[0])
-    comp = lambda v: vdot(v, hvp(f, [primals], [v]))
+    comp = lambda v: hvp(f, [primals], [v]) @ v #vdot(v, hvp(f, [primals], [v]))
     return jax.vmap(comp)(vs)
 
 
 @apply_to_module
 def laplace(f: Callable[..., Scalar]) -> Callable[..., Scalar]:
     """Computes the laplacian :math:`\\Delta f` wrt. the first argument.
-
+    If `f` is a vector valued function, the laplacian of each output is
+    computed.
+    
     Parameters
     ----------
     f : Callable[..., Scalar]
     """
     def lap(x, *args, **kwargs):
         H_diag = hessian_diag(lambda x: f(x, *args, **kwargs), x)
-        return jnp.sum(H_diag)
-    
+        return jnp.sum(H_diag, axis=0)
     return lap
 
 

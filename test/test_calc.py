@@ -58,6 +58,7 @@ class TestDerivative(JaxTestCase):
         dg = jit(calc.derivative(g, 1))(1., 0.5)
         self.assertIsclose(dg, cos(0.5 ** 2))
 
+
 class TestDiv(JaxTestCase):
     def test_div_batch(self):
         def f(x):
@@ -66,7 +67,7 @@ class TestDiv(JaxTestCase):
         x = array([2., 2.])
         div = calc.divergence(f)(x)
         self.assertIsclose(div, array(8.))
-
+    
 
 class TestCurl(JaxTestCase):
     def test_curl2d(self):
@@ -97,3 +98,26 @@ class TestLaplace(JaxTestCase):
         x = array([[1., 1., 2.], [1., 1., 2.]])
         lap = vmap(calc.laplace(f))(x)
         self.assertIsclose(lap, array([16., 16.]))
+
+    def test_laplace_on_vector_valued_function(self):
+        """This should give the laplace of each 
+        individual output of the function
+        """
+        
+        def f(x):
+            o = x[0]**2 + x[1]**2 + x[2]**3
+            return stack([o, 2 * o], axis=-1)
+        
+        x = array([1., 1., 2.])
+        lap = calc.laplace(f)(x)
+        self.assertIsclose(lap, array([16., 32.]))
+
+    def test_laplace_on_matrix_function(self):
+
+        def f(x):
+            o = x[0]**2 + x[1]**2 + x[2]**3
+            return array([[o, 2 * o], [o, 3 * o]])
+
+        x = array([1., 1., 2.])
+        lap = calc.laplace(f)(x)
+        self.assertIsclose(lap, array([[16., 32.], [16., 48]]))
