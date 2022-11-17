@@ -141,24 +141,24 @@ def derivative(
     return inner
 
 
-def _save_grad(f):
-    def g(*args, **kwargs):
-        y = f(*args, **kwargs)
-        output_is_scalar = len(y.shape) == 0
-        output_is_1d = len(y.shape) == 1 and y.shape[0] == 1
-        if output_is_1d:
-            return y[0]
-        elif output_is_scalar:
-            return y
-        else:
-            return y
-        # assert output_is_1d or output_is_scalar, "Output of function must be a scalar"
-        # if output_is_1d:
-        #     return y[0]
-        # else:
-        #     return y
-    #return grad(g)
-    return jacrev(g)
+# def _save_grad(f):
+#     def g(*args, **kwargs):
+#         y = f(*args, **kwargs)
+#         output_is_scalar = len(y.shape) == 0
+#         output_is_1d = len(y.shape) == 1 and y.shape[0] == 1
+#         if output_is_1d:
+#             return y[0]
+#         elif output_is_scalar:
+#             return y
+#         else:
+#             return y
+#         # assert output_is_1d or output_is_scalar, "Output of function must be a scalar"
+#         # if output_is_1d:
+#         #     return y[0]
+#         # else:
+#         #     return y
+#     #return grad(g)
+#     return jacrev(g)
 
 
 def hvp(
@@ -173,7 +173,11 @@ def hvp(
 def hessian_diag(f: Callable[..., Array], primals: Array) -> Array:
     assert len(primals.shape) == 1
     vs = jnp.eye(primals.shape[0])
-    comp = lambda v: hvp(f, [primals], [v]) @ v #vdot(v, hvp(f, [primals], [v]))
+    # comp = lambda v: hvp(f, [primals], [v]) @ v #vdot(v, hvp(f, [primals], [v]))
+    comp = lambda v: tree_map(
+        lambda a: a @ v, 
+        hvp(f, [primals], [v])
+    )
     return jax.vmap(comp)(vs)
 
 
@@ -189,7 +193,8 @@ def laplace(f: Callable[..., Scalar]) -> Callable[..., Scalar]:
     """
     def lap(x, *args, **kwargs):
         H_diag = hessian_diag(lambda x: f(x, *args, **kwargs), x)
-        return jnp.sum(H_diag, axis=0)
+        # return jnp.sum(H_diag, axis=0)
+        return tree_map(lambda d: jnp.sum(d, axis=0), H_diag)
     return lap
 
 

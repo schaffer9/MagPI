@@ -121,3 +121,15 @@ class TestLaplace(JaxTestCase):
         x = array([1., 1., 2.])
         lap = calc.laplace(f)(x)
         self.assertIsclose(lap, array([[16., 32.], [16., 48]]))
+        
+    def test_laplace_on_pytree(self):
+
+        def f(x):
+            o = x[0]**2 + x[1]**2 + x[2]**3
+            return o, 2 * o
+
+        x = array([1., 1., 2.])
+        lap = calc.laplace(f)(x)
+        self.assertTrue(isinstance(lap, tuple))
+        self.assertIsclose(lap[0], 16.)
+        self.assertIsclose(lap[1], 32.)
