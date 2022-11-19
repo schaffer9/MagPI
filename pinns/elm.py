@@ -28,7 +28,7 @@ class ELM:
 def elm(slfn: SLFN, X: Array, y: Array, **solver_kwargs) -> ELM:
     H = vmap(slfn)(X)
     if "init" in solver_kwargs.keys():
-        init = init
+        init = solver_kwargs["init"]
     else:
         if len(y.shape) > 1:
             init = tree_map(lambda H, y: zeros((H.shape[-1], y.shape[-1])), H, y)

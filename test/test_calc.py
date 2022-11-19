@@ -5,8 +5,8 @@ from . import *
 
 class TestCross(JaxTestCase):
     def test_cross2d(self):
-        a = array([[1,0], [0, 1]])
-        b = array([[0,1], [1, 0]])
+        a = array([[1, 0], [0, 1]])
+        b = array([[0, 1], [1, 0]])
         self.assertIsclose(jit(vmap(calc.cross))(a, b), array([1, -1]))
 
     def test_cross3d(self):
@@ -27,7 +27,7 @@ class TestDerivative(JaxTestCase):
         g = lambda x: sin(x)
         dg = jit(calc.derivative(g))(0.5)
         self.assertIsclose(dg, cos(0.5))
-    
+
     def test_02_derivative_of_function_with_multiple_inputs(self):
         g = lambda x, y: sin(x) * cos(y)
         dg = calc.derivative(1)(g)(0.5, 1.0)
@@ -37,7 +37,7 @@ class TestDerivative(JaxTestCase):
         g = lambda x, y: sin(x) * cos(y)
         dg = calc.derivative([1, 0])(g)(0.5, 1.0)
         self.assertIsclose(dg, -cos(0.5) * sin(1.))
-    
+
     def test_04_derivative_with_named_variables(self):
         g = lambda x, y: sin(x) * cos(y)
         dg = jit(calc.derivative(['x', 'y', 'y'])(g))(0.5, 1.0)
@@ -47,7 +47,7 @@ class TestDerivative(JaxTestCase):
         g = lambda x, y: sin(x) * cos(y)
         dg = jit(calc.derivative([[0., 1.]])(g))(0.5, 1.0)
         self.assertIsclose(dg, -sin(0.5) * sin(1.))
-    
+
     def test_06_vector_input(self):
         g = lambda x: sin(x[0]) * cos(x[1])
         dg = jit(calc.derivative([1], argnums=0)(g))(array([0.5, 1.0]))
@@ -67,7 +67,7 @@ class TestDiv(JaxTestCase):
         x = array([2., 2.])
         div = calc.divergence(f)(x)
         self.assertIsclose(div, array(8.))
-    
+
 
 class TestCurl(JaxTestCase):
     def test_curl2d(self):
@@ -103,11 +103,11 @@ class TestLaplace(JaxTestCase):
         """This should give the laplace of each 
         individual output of the function
         """
-        
+
         def f(x):
             o = x[0]**2 + x[1]**2 + x[2]**3
             return stack([o, 2 * o], axis=-1)
-        
+
         x = array([1., 1., 2.])
         lap = calc.laplace(f)(x)
         self.assertIsclose(lap, array([16., 32.]))
@@ -121,7 +121,7 @@ class TestLaplace(JaxTestCase):
         x = array([1., 1., 2.])
         lap = calc.laplace(f)(x)
         self.assertIsclose(lap, array([[16., 32.], [16., 48]]))
-        
+
     def test_laplace_on_pytree(self):
 
         def f(x):
