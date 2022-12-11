@@ -7,6 +7,13 @@ Array = Any
 SLFN = Callable[[Array], Array]
 
 
+@jit
+def solve_svd(A, b):
+    u, s, vh = jax.scipy.linalg.svd(A, full_matrices=False, lapack_driver="gesvd")# jnp.linalg.svd(A, full_matrices=False)
+    u = u * (1 / s)
+    return vh.T @ (u.T @ b)
+
+
 @dataclass
 class ELM:
     coef: Array
@@ -34,5 +41,6 @@ def elm(slfn: SLFN, X: Array, y: Array, **solver_kwargs) -> ELM:
             init = tree_map(lambda H, y: zeros((H.shape[-1], y.shape[-1])), H, y)
         else:
             init = tree_map(lambda H: zeros((H.shape[-1],)), H)
-    params = solve_normal_cg(lambda x: H @ x, y, init=init, **solver_kwargs)
+    # params = solve_normal_cg(lambda x: H @ x, y, init=init, **solver_kwargs)
+    params = solve_svd(H, y)
     return ELM(params, slfn)

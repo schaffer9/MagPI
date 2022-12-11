@@ -41,7 +41,9 @@ def scatter_interpolate(
         [zeros(len(x0)), ones(len(x1)), zeros(s[1]), zeros(1)]
     )
     params = solve_lu(lambda x: A @ x, b)
-    return lambda x: concatenate([phi(x, X), x, ones(1)]) @ params
+    p1, p2, p3 = params[:s[0]], params[s[0]:s[0] + s[1]], params[-1]
+    # return lambda x: concatenate([phi(x, X), x, ones(1)]) @ params
+    return lambda x: phi(x, X) @ p1 + x @ p2 + p3
 
 
 def shape_function(
