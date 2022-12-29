@@ -102,14 +102,14 @@ def make_batches(rng, x, y, batch_size):
     return x[perms], y[perms]
 
 
-def train_nn(loss, state, batch_fn, key, epochs=200, stop_condition=None):
+def train_nn(loss, state, batch_fn, key, epochs=200, stop_condition=None, **loss_kwargs):
     def init_metric(m):
         arr = zeros((epochs,))
         arr = arr.at[:].set(jnp.nan)
         return arr.at[0].set(mean(m))
 
     key, subkey = random.split(key)
-    state, aux_init = run_epoch(state, loss, batch_fn(subkey))
+    state, aux_init = run_epoch(state, loss, batch_fn(subkey), **loss_kwargs)
     aux_init = tree_map(init_metric, aux_init)
 
     # def body(epoch, loop_state):
@@ -129,7 +129,7 @@ def train_nn(loss, state, batch_fn, key, epochs=200, stop_condition=None):
         epoch, state, hist, key = loop_state
         key, subkey = random.split(key)
         batches = batch_fn(subkey)
-        state, _aux = run_epoch(state, loss, batches)
+        state, _aux = run_epoch(state, loss, batches, **loss_kwargs)
         aux = tree_map(lambda m, v: m.at[epoch].set(mean(v)), hist, _aux)
         return epoch + 1, state, aux, key
 
