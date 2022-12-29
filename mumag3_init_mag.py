@@ -5,7 +5,7 @@ from pinns.model import mlp
 from pinns.opt import train_nn
 
 
-def main(epochs=2000, batch_size=50, samples_dom=13, lr=1e-4):
+def main(epochs=2000, batch_size=50, samples_dom=13, lr=1e-4, mag_layers=3, mag_units=50):
     domain = Hypercube((-0.5, -0.5, -0.5), (0.5, 0.5, 0.5))
     x_dom = array(Sobol(3, seed=0).random_base2(samples_dom))
     x_dom = domain.transform(x_dom)
@@ -34,7 +34,7 @@ def main(epochs=2000, batch_size=50, samples_dom=13, lr=1e-4):
         return unit_vec(mag)
 
     key, subkey = random.split(random.PRNGKey(42), 2)
-    mag_model, params = mlp(subkey, [4, 50, 50, 50, 3])
+    mag_model, params = mlp(subkey, [4] + [mag_units] * mag_layers + [3])
     tx = optax.adam(lr)
     init_state = TrainState.create(
         apply_fn=mag_model.apply,

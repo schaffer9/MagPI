@@ -7,6 +7,7 @@
 #SBATCH --time=1-0		# MINUTES, DAYS-HOURS
 #
 # OPTIONAL
+#SBATCH --gres=gpu:2
 #SBATCH --export=None
 #SBATCH --job-name="mumag3"	# default is batch script name
 #SBATCH --exclude=Nd		# do not grant resouces on those nodes
