@@ -27,7 +27,6 @@ def main(
     alpha0=1.,
     output_dir=".",
 ):
-    
     domain = Hypercube((-0.5, -0.5, -0.5), (0.5, 0.5, 0.5))
     x_dom = array(Sobol(3, seed=0).random_base2(samples_dom))
     x_dom = domain.transform(x_dom)
@@ -199,6 +198,7 @@ def main(
             *hists)
         return state, full_hist
 
+    print("train flower state")
     key, train_key = random.split(key)
     flower_state, hist_flower = train_mag(train_key,
                                           init_state_flower,
@@ -207,7 +207,8 @@ def main(
                                           batch_size=batch_size,
                                           alpha=float(alpha0),
                                           increase_penalty_after=increase_penalty_after)
-
+    print("flower state finished")
+    print("train vortex state")
     key, train_key = random.split(key)
     vortex_state, hist_vortex = train_mag(train_key,
                                           init_state_vortex,
@@ -223,10 +224,10 @@ def main(
             f.write(model_bytes)
 
     makedirs(output_dir, exist_ok=True)
-    save(flower_state, join_path(output_dir, "init_state_flower.data"))
-    save(hist_flower, join_path(output_dir, "hist_flower_init.data"))
-    save(vortex_state, join_path(output_dir, "init_state_vortex.data"))
-    save(hist_vortex, join_path(output_dir, "hist_vortex_init.data"))
+    save(flower_state, join_path(output_dir, "state_flower.data"))
+    save(hist_flower, join_path(output_dir, "hist_flower.data"))
+    save(vortex_state, join_path(output_dir, "state_vortex.data"))
+    save(hist_vortex, join_path(output_dir, "hist_vortex.data"))
 
 
 if __name__ == '__main__':
