@@ -151,7 +151,50 @@ class TestTransforms(JaxTestCase):
         is_on_bnd = (x_trans == lb) | (x_trans == ub)
         self.assertTrue(is_on_bnd.any(axis=-1).all())
         
-
+    def test_15_affine_plane3d(self):
+        a = array([1., 1., 1])
+        b = array([2., 1., 1])
+        c = array([1., 2., 1])
+        B, offset = domain.affine_plane3d(a, b, c)
+        self.assertIsclose(offset, a)
+        #print(B @ array([0, 0, 1.]) + offset, a)
+        self.assertIsclose(B @ array([0, 0, 1.]) + offset, a)
+        self.assertIsclose(B @ array([1, 0, 1.]) + offset, b)
+        self.assertIsclose(B @ array([0, 1, 1.]) + offset, c)
+        # self.assertIsclose(B_inv @ a - offset, array([0, 0, 1.]))
+        # self.assertIsclose(B_inv @ b - offset, array([1, 0, 1.]))
+        # self.assertIsclose(B_inv @ c - offset, array([0, 1, 1.]))
+    
+    def test_16_affine(self):
+        a = array([1, 0, 0.])
+        b = array([0, 1, 0.])
+        c = array([0, 0, 1.])
+        B, offset = domain.affine((a, b, c), (a*2, b*2, c*2), zeros(3))
+        self.assertIsclose(B @ array([0, 0, 0.]) + offset, array([0, 0, 0.]))
+        self.assertIsclose(B @ a + offset, a*2)
+        self.assertIsclose(B @ b + offset, b*2)
+        self.assertIsclose(B @ c + offset, c*2)
+        # self.assertIsclose(B_inv @ array([0, 0, 0.]) - offset, array([0, 0, 0.]))
+        # self.assertIsclose(B_inv @ (2*a) - offset, a)
+        # self.assertIsclose(B_inv @ (2*b) - offset, b)
+        # self.assertIsclose(B_inv @ (2*c) - offset, c)
+        self.assertIsclose(jnp.linalg.det(B), 8)
+        
+    def test_17_affine_plane3d(self):
+        a = array([0., 0., 0])
+        b = array([0., 2., 0])
+        c = array([0., 2., 1])
+        B, offset = domain.affine_plane3d(a, b, c)
+        #self.assertIsclose(offset, a)
+        self.assertIsclose(B @ array([0, 0, 1.]) + offset, a)
+        self.assertIsclose(B @ array([1, 0, 1.]) + offset, b)
+        self.assertIsclose(B @ array([0, 1, 1.]) + offset, c)
+        # print(B_inv @ a - offset, array([0, 0, 1.]))
+        # self.assertIsclose(B_inv @ a - offset, array([0, 0, 1.]))
+        # self.assertIsclose(B_inv @ b - offset, array([1, 0, 1.]))
+        # self.assertIsclose(B_inv @ c - offset, array([0, 1, 1.]))
+        # self.assertIsclose(jnp.linalg.det(B), 2)
+    
 class TestDomain(JaxTestCase):
     def test_00_hypercube_init(self):
         cube = domain.Hypercube((1,), (2,))
@@ -212,6 +255,25 @@ class TestDomain(JaxTestCase):
         x_bnd = cube.transform_bnd(x)
         self.assertIsclose(x_bnd, array([0., 0.1 * 6, 0.1]))
         
-
+    def test_008_transform_rect2d(self):
+        rect = domain.Rect2d((0., 0.), (1., 2.))
+        x = array([0., 0.])
+        x_dom = rect.transform(x)
+        self.assertIsclose(x_dom, x)
+        
+        s = rect.support()
+        self.assertIsclose(s, 2.)
+        
+    # def test_009_transform_rect3d(self):
+    #     rect = domain.Rect2d((0., 0., 0), (1., 2., 3.))
+    #     x = array([1., 1., 1.])
+    #     x_dom = rect.transform(x)
+    #     self.assertIsclose(x_dom, array([1., 2., 3.]))
+        
+    #     s = rect.support()
+    #     self.assertIsclose(s, 2.)
+        
+    
+    
         
     

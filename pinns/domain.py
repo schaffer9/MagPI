@@ -3,9 +3,12 @@ This module contains some useful transformations. All transformations
 perform a uniform mapping from :math:`[0,1]^d` to the respective domain.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import MISSING
+
+from flax.struct import dataclass, field
 from itertools import repeat, chain
 from jax.scipy.stats.norm import ppf
+from jaxopt.linear_solve import solve_lu
 
 from .prelude import *
 
@@ -25,7 +28,7 @@ class Domain(T.Protocol):
         ...
     
 
-@dataclass(slots=True, frozen=True)
+@dataclass
 class Hypercube:
     lb: tuple[float, ...]
     ub: tuple[float, ...]
@@ -33,7 +36,6 @@ class Hypercube:
 
     def __post_init__(self):
         assert len(self.lb) == len(self.ub)
-        #object.__setattr__(self, 'dimension', len(self.lb))
 
     def support(self) -> Array:
         lb, ub = array((self.lb, self.ub))
@@ -70,6 +72,74 @@ class Hypercube:
             return n
         else:
             return None
+        
+
+# @dataclass(slots=True, frozen=True)
+class Rect2d(Hypercube):
+    lb: tuple[float, ...]
+    ub: tuple[float, ...]
+    dimension = property(lambda self: 2)
+    
+    def __post_init__(self):
+        assert len(self.lb) == 2
+        assert len(self.ub) == 2
+    
+    
+@dataclass
+class Rect3d(Hypercube):
+    lb: tuple[float, ...]
+    ub: tuple[float, ...]
+    dimension = property(lambda self: len(self.lb))
+    B: Array = field(repr=False)
+    B_inv: Array = field(repr=False)
+    b: Array = field(repr=False)
+    
+    def __post_init__(self):
+        assert len(self.lb) == 3
+        assert len(self.ub) == 3
+        if self.B is MISSING:
+            a = array(self.lb)
+            b = array(self.ub)
+            c = array([self.ub[0], self.ub[1], self.lb[2]])
+            self.B, self.B_inv, self.b = affine_plane3d(a, b, c)
+
+    def support(self) -> Array:
+        lb, ub = array((self.lb, self.ub))
+        return prod(ub - lb)
+    
+    def transform(self, samples: Array) -> Array:
+        lb, ub = array((self.lb, self.ub))
+        samples = where(samples > 1., samples % 1., samples)
+        return samples * (ub - lb) + lb
+
+
+
+def affine_plane3d(a: Array, b: Array, c: Array) -> tuple[Array, Array, Array]:
+    assert len(a) == len(b) == len(c) == 3
+    return affine(
+        (array([0, 0, 1.]), array([1, 0, 1.]), array([0, 1, 1.])),
+        (a, b, c), a
+    )
+    # X_ref = array([[0, 0, 1], [1, 0, 1], [0, 1, 1.]]).T
+    # X = array([a, b, c]).T
+    # B = (X - a) @ jnp.linalg.inv(X_ref)
+    # B_inv = (X_ref + a) @ jnp.linalg.inv(X)
+    return B, a
+
+
+def affine(x_ref: tuple[Array, ...], x: tuple[Array, ...], o: Array) -> tuple[Array, Array, Array]:
+    d = len(o)
+    assert len(x_ref) == len(x)
+    assert all(len(x[i]) == len(x_ref[i]) for i in range(d))
+    X_ref = array(x_ref).T
+    X = array(x).T
+    #B = (X - o) @ jnp.linalg.inv(X_ref)
+    #B_inv = (X_ref + o) @ jnp.linalg.inv(X)
+    B = solve_lu(lambda x: X_ref.T @ x, (X - o).T).T
+    #B_inv = solve_lu(lambda x: X.T @ x, (X_ref + o).T).T
+    return B, o
+    
+    
 
 
 class _Spherical:
@@ -90,7 +160,7 @@ class _Spherical:
         return sample / sample_norm
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass
 class Sphere(_Spherical):
     radius: float
     origin: tuple[float, float, float]
@@ -113,7 +183,7 @@ class Sphere(_Spherical):
         return transform_sphere_bnd(uniform_sample, r, o)
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass
 class Disk(_Spherical):
     radius: float
     origin: tuple[float, float]
@@ -135,7 +205,7 @@ class Disk(_Spherical):
         return transform_circle_bnd(uniform_sample, r, o)
 
 
-@dataclass(slots=True, frozen=True)
+@dataclass
 class Annulus:
     r1: float  # inner radius
     r2: float  # outer radius
