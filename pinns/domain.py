@@ -15,18 +15,16 @@ from .prelude import *
 Array = ndarray
 BoolArray = Array
 
+
 class Domain(T.Protocol):
     dimension: property
 
     def support(self) -> Array:
         ...
 
-    def includes(self, sample: Array) -> BoolArray:
-        ...
-    
     def transform(self, uniform_sample: Array) -> Array:
         ...
-    
+
 
 @dataclass
 class Hypercube:
@@ -62,89 +60,74 @@ class Hypercube:
         ).all(axis=-1)
         if not in_domain.any():
             return None
-        on_lb = jnp.isclose(bnd_sample, lb, rtol=rtol, atol=atol).astype(bnd_sample.dtype)
-        on_ub = jnp.isclose(bnd_sample, ub, rtol=rtol, atol=atol).astype(bnd_sample.dtype)
-        on_lb = where(jnp.cumsum(on_lb, axis = -1) > 1, 0., on_lb)
-        on_ub = where(jnp.cumsum(on_ub, axis = -1) > 1, 0., on_ub)
+        on_lb = jnp.isclose(bnd_sample, lb, rtol=rtol, atol=atol).astype(
+            bnd_sample.dtype
+        )
+        on_ub = jnp.isclose(bnd_sample, ub, rtol=rtol, atol=atol).astype(
+            bnd_sample.dtype
+        )
+        on_lb = where(jnp.cumsum(on_lb, axis=-1) > 1, 0.0, on_lb)
+        on_ub = where(jnp.cumsum(on_ub, axis=-1) > 1, 0.0, on_ub)
         n = on_ub - on_lb
-        
-        if (norm(n, axis=-1) == 1.).all():
+
+        if (norm(n, axis=-1) == 1.0).all():
             return n
         else:
             return None
-        
 
-# @dataclass(slots=True, frozen=True)
-class Rect2d(Hypercube):
-    lb: tuple[float, ...]
-    ub: tuple[float, ...]
-    dimension = property(lambda self: 2)
-    
-    def __post_init__(self):
-        assert len(self.lb) == 2
-        assert len(self.ub) == 2
-    
-    
+
 @dataclass
-class Rect3d(Hypercube):
-    lb: tuple[float, ...]
-    ub: tuple[float, ...]
-    dimension = property(lambda self: len(self.lb))
-    B: Array = field(repr=False)
-    B_inv: Array = field(repr=False)
-    b: Array = field(repr=False)
-    
+class Parallelogram:
+    a: tuple[float, ...]
+    b: tuple[float, ...]
+    c: tuple[float, ...]
+    B: Array = field(repr=False, init=False)
+    dimension = property(lambda self: len(self.a))
+
     def __post_init__(self):
-        assert len(self.lb) == 3
-        assert len(self.ub) == 3
-        if self.B is MISSING:
-            a = array(self.lb)
-            b = array(self.ub)
-            c = array([self.ub[0], self.ub[1], self.lb[2]])
-            self.B, self.B_inv, self.b = affine_plane3d(a, b, c)
+        assert len(self.a) == len(self.b) == len(self.c)
+        B, _ = affine_plane(*array([self.a, self.b, self.c]))
+        object.__setattr__(self, "B", B)
 
     def support(self) -> Array:
-        lb, ub = array((self.lb, self.ub))
-        return prod(ub - lb)
-    
+        a, b, c = array(self.a), array(self.b), array(self.c)
+        d = stack([b - a, c - a])
+        return sqrt(jnp.linalg.det(d @ d.T))
+
     def transform(self, samples: Array) -> Array:
-        lb, ub = array((self.lb, self.ub))
-        samples = where(samples > 1., samples % 1., samples)
-        return samples * (ub - lb) + lb
+        assert samples.shape[-1] == 2
+        samples = where(samples > 1, samples % 1., samples)
+        a = array(self.a)
+        if len(samples.shape) == 1:
+            return self.B @ samples + a
+        else:
+            return samples @ self.B.T + a
+
+    def transform_bnd(self, samples: Array) -> Array:
+        a, b, c = array([self.a, self.b, self.c])
+        return transform_polyline(
+            samples,
+            (a, a + b, a + b + c, c, a)
+        )
 
 
-
-def affine_plane3d(a: Array, b: Array, c: Array) -> tuple[Array, Array, Array]:
-    assert len(a) == len(b) == len(c) == 3
-    return affine(
-        (array([0, 0, 1.]), array([1, 0, 1.]), array([0, 1, 1.])),
-        (a, b, c), a
-    )
-    # X_ref = array([[0, 0, 1], [1, 0, 1], [0, 1, 1.]]).T
-    # X = array([a, b, c]).T
-    # B = (X - a) @ jnp.linalg.inv(X_ref)
-    # B_inv = (X_ref + a) @ jnp.linalg.inv(X)
-    return B, a
+def linear_map(X_ref: Array, X: Array) -> Array:
+    assert X_ref.shape[0] == X.shape[0]
+    B = solve_lu(lambda x: X_ref @ x, X)
+    return B.T
 
 
-def affine(x_ref: tuple[Array, ...], x: tuple[Array, ...], o: Array) -> tuple[Array, Array, Array]:
-    d = len(o)
-    assert len(x_ref) == len(x)
-    assert all(len(x[i]) == len(x_ref[i]) for i in range(d))
-    X_ref = array(x_ref).T
-    X = array(x).T
-    #B = (X - o) @ jnp.linalg.inv(X_ref)
-    #B_inv = (X_ref + o) @ jnp.linalg.inv(X)
-    B = solve_lu(lambda x: X_ref.T @ x, (X - o).T).T
-    #B_inv = solve_lu(lambda x: X.T @ x, (X_ref + o).T).T
-    return B, o
-    
-    
+def affine_plane(a: Array, b: Array, c: Array) -> tuple[Array, Array, Array]:
+    X_ref = array([[0, 0, 1], [1, 0, 1], [0, 1, 1.0]])
+    X = stack([a, b, c])
+    B = linear_map(X_ref, X)
+    return B[..., :-1], B[..., -1]
 
 
 class _Spherical:
     radius: float
     origin: tuple[float, ...]
+
     def includes(self, sample: Array) -> bool:
         r, o = array(self.radius), array(self.origin)
         return norm(sample - o, axis=-1) < r
@@ -173,7 +156,6 @@ class Sphere(_Spherical):
     def support(self):
         return 4 / 3 * array(self.radius) ** 3 * pi
 
-
     def transform(self, uniform_sample: Array) -> Array:
         r, o = array(self.radius), array(self.origin)
         return transform_sphere(uniform_sample, r, o)
@@ -195,7 +177,7 @@ class Disk(_Spherical):
 
     def support(self):
         return array(self.radius) ** 2 * pi
-    
+
     def transform(self, uniform_sample: Array) -> Array:
         r, o = array(self.radius), array(self.origin)
         return transform_circle(uniform_sample, r, o)
@@ -219,80 +201,46 @@ class Annulus:
 
     def support(self):
         return (array(self.r2) ** 2 - array(self.r1) ** 2) * pi
-    
+
     def transform(self, uniform_sample: Array) -> Array:
         r1, r2, o = array(self.r1), array(self.r2), array(self.origin)
         samples = transform_annulus(uniform_sample, r1, r2, o)
         return samples
 
-    # def transform_bnd(self, uniform_sample: Array) -> Array:
-    #     r, o = array(self.radius), array(self.origin)
-    #     return transform_sphere_bnd(uniform_sample, r, o)
-
-    # def normal_vec(self, bnd_sample: Array, rtol=1e-05, atol=1e-08) -> Optional[Array]:
-    #     r, o = array(self.radius), array(self.origin)
-    #     sample = bnd_sample - o
-
-    #     sample_norm = norm(sample, axis=-1)
-    #     on_bnd = jnp.isclose(sample_norm, r, rtol=rtol, atol=atol)
-    #     if not on_bnd.all():
-    #         return None
-    #     return sample / sample_norm
-
 
 def transform_hypercube(x: Array, lb: Array, ub: Array) -> Array:
-    x = where(x > 1., x % 1., x)
+    x = where(x > 1.0, x % 1.0, x)
     return x * (ub - lb) + lb
 
 
-# def transform_hypercube_bnd(x: Array, lb: Array, ub: Array) -> Array:
-#     assert len(lb.shape) == 1 and lb.shape[0] == ub.shape[0]
-#     dim = lb.shape[0]
-#     x = x % 1.
-#     if dim == 1:
-#         x = (x > 0.5).astype(u32)
-#         return transform_hypercube(x, lb, ub)
-#     if len(x.shape) == 0:
-#         x = x.ravel()
-#     if len(x.shape) == 1 and dim == 2:
-#         x = x[:, None]
-#     # if len(x.shape) == 1 and dim > 2:
-#     #     x = x[None, :]
-#     msg = f"Input must be {dim - 1} dimensional!"
-#     assert x.shape[-1] == dim - 1, msg
-#     idx = jnp.floor(2 * dim * x[..., 0]).astype(u32)
-#     x = x.at[..., 0].set(2 * dim * x[..., 0] - idx)
-#     bounds = (idx >= dim).astype(x.dtype)
-#     _insert = lambda x, i, v: jnp.insert(x, i, v, axis=-1)
-#     for axis in range(len(x.shape[:-1])):
-#         _insert = vmap(_insert, axis, axis)
-#     x = _insert(x, idx % dim, bounds)
-#     return transform_hypercube(x, lb, ub)
 def transform_hypercube_bnd(x: Array, lb: Array, ub: Array) -> Array:
     assert len(lb.shape) == 1 and lb.shape[0] == ub.shape[0]
     dim = lb.shape[0]
-    x = x % 1.
+    x = x % 1.0
     if dim == 1:
         x = (x > 0.5).astype(u32)
         return transform_hypercube(x, lb, ub)
-    if len(x.shape) == 0:
+    scalar_input = len(x.shape) == 0
+    if scalar_input:
         x = x.ravel()
     if len(x.shape) == 1 and dim == 2:
         x = x[:, None]
 
     msg = f"Input must be {dim - 1} dimensional!"
     assert x.shape[-1] == dim - 1, msg
+
     def insert_rules(lb, ub):
         b = jnp.abs(ub - lb)
+
         def support(i):
-            return jnp.prod(concatenate([b[:i], b[i+1:]]))
+            return jnp.prod(concatenate([b[:i], b[i + 1 :]]))
 
         supports = [support(i) for i in range(len(b))]
         supports = array(supports + supports)
         cum_supports = jnp.cumsum(supports) / jnp.sum(supports)
-        vals = list(chain(repeat(0., len(b)), repeat(1., len(b))))
+        vals = list(chain(repeat(0.0, len(b)), repeat(1.0, len(b))))
         return supports / jnp.sum(supports), cum_supports, array(vals)
-        
+
     supports, cum_supports, vals = insert_rules(lb, ub)
 
     def insert(x):
@@ -301,22 +249,24 @@ def transform_hypercube_bnd(x: Array, lb: Array, ub: Array) -> Array:
         x = lax.cond(
             i == 0,
             lambda: x.at[0].set(x[0] / l),
-            lambda: x.at[0].set((x[0] - cum_supports[i-1]) / l)
+            lambda: x.at[0].set((x[0] - cum_supports[i - 1]) / l),
         )
         return jnp.insert(x, i % dim, vals[i])
 
     x = jnp.apply_along_axis(insert, -1, x)
-    return transform_hypercube(x, lb, ub)
+    x = transform_hypercube(x, lb, ub)
+    return x[0] if scalar_input else x
+
 
 def transform_circle(x: Array, r: Array, o: Array) -> Array:
-    return transform_annulus(x, array(0.), r, o)
+    return transform_annulus(x, array(0.0), r, o)
 
 
 def transform_annulus(x: Array, r1: Array, r2: Array, o: Array) -> Array:
     assert x.shape[-1] == 2
     assert len(r1.shape) == 0 and len(r2.shape) == 0
     assert o.shape[-1] == 2
-    x = x % 1.
+    x = x % 1.0
     theta = 2 * pi * x[..., 0]
     r = sqrt(x[..., 1] * (r2 ** 2 - r1 ** 2) + r1 ** 2)
     x1 = r * cos(theta)
@@ -328,12 +278,12 @@ def transform_sphere(x: Array, r: Array, o: Array) -> Array:
     assert x.shape[-1] == 3
     assert len(r.shape) == 0
     assert o.shape[-1] == 3
-    x = x % 1.
+    x = x % 1.0
     u = 2 * x[..., 0] - 1
     phi = 2 * pi * x[..., 1]
     rad = x[..., 2] ** (1 / 3)
-    x1 = rad * cos(phi) * sqrt(1 - u**2)
-    x2 = rad * sin(phi) * sqrt(1 - u**2)
+    x1 = rad * cos(phi) * sqrt(1 - u ** 2)
+    x2 = rad * sin(phi) * sqrt(1 - u ** 2)
     x3 = rad * u
     return stack((x1, x2, x3), -1) * r + o
 
@@ -342,7 +292,7 @@ def transform_sphere_bnd(x: Array, r: Array, o: Array) -> Array:
     assert x.shape[-1] == 2
     assert len(r.shape) == 0
     assert o.shape[-1] == 3
-    x = x % 1.
+    x = x % 1.0
     x3, phi = 2 * x[..., 0] - 1, 2 * pi * x[..., 1]
     x1 = cos(phi) * (1 - x3 ** 2) ** 0.5
     x2 = sin(phi) * (1 - x3 ** 2) ** 0.5
@@ -352,33 +302,28 @@ def transform_sphere_bnd(x: Array, r: Array, o: Array) -> Array:
 def transform_circle_bnd(s: Array, r: Array, o: Array) -> Array:
     assert len(r.shape) == 0
     assert len(o.shape) == 1 and o.shape[0] == 2
-    s = s % 1.
+    s = s % 1.0
     phi = 4 * pi * s.squeeze()
     x1 = cos(phi)
     x2 = sin(phi)
     return stack((x1, x2), -1) * r + o
 
 
-@partial(jit, static_argnames=('a', 'b', 'c'))
 def transform_triangle(
-    x: Array, 
-    a: tuple[float, ...], b: tuple[float, ...], c: tuple[float, ...]
+    x: Array, a: Array, b: Array, c: Array
 ) -> Array:
     assert x.shape[-1] == 2
-    i, j, k = array(a), array(b), array(c)
+    i, j, k = a, b, c
     assert i.shape == j.shape == k.shape
-    x = x % 1.
-    x = where(norm(x, 1, -1, keepdims=True) > 1., 1. - x, x)[..., None]
-    d1 = (j - i)
-    d2 = (k - i)
+    x = x % 1.0
+    x = where(norm(x, 1, -1, keepdims=True) > 1.0, 1.0 - x, x)[..., None]
+    d1 = j - i
+    d2 = k - i
     return i + x[..., 0] * d1 + x[..., 1] * d2
 
 
-@partial(jit, static_argnames='points')
-def transform_polyline(
-    s: Array, points: tuple[tuple[float, float], ...]
-) -> Array:
-    line = array(points)
+def transform_polyline(s: Array, points: tuple[Array]) -> Array:
+    line = stack(points)
     assert len(s.shape) == 0 or len(s.shape) == 1
     segments = norm(line[1:] - line[:-1], axis=1)
     length = jnp.sum(segments)
@@ -386,8 +331,7 @@ def transform_polyline(
     s = s % 1
     s = (s * length).ravel()
     idx = jnp.argmax(s[:, None] <= cumlengths, axis=-1)
-    
-    p1, p2 = line[idx], line[idx + 1]
-    d = (cumlengths[idx] - s)
-    return p2 + (p1 - p2) * d[:, None] / (norm(p1 - p2, axis=-1, keepdims=True))
 
+    p1, p2 = line[idx], line[idx + 1]
+    d = cumlengths[idx] - s
+    return p2 + (p1 - p2) * d[:, None] / (norm(p1 - p2, axis=-1, keepdims=True))
