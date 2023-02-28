@@ -3,7 +3,7 @@ __all__ = (
     'f16', 'f32', 'f64', 'i16', 'i32', 'i64', 'u8', 'u16', 'u32', 'u64', 'DeviceArray', 
     'ndarray', 'array', 'zeros', 'zeros_like', 'ones', 'ones_like',
     'deg2rad', 'rad2deg', 'exp', 'sin', 'cos', 'tan', 'sqrt', 'pi', 'norm', 'solve',
-    'where', 'prod', 'minimum', 'maximum', 'mean', 'meshgrid', 'linspace',
+    'where', 'prod', 'minimum', 'maximum', 'mean', 'meshgrid', 'linspace', 'cross',
     'hstack', 'vstack', 'stack', 'concatenate', 'eye', 'diag', 'dot', 'matmul', 'vdot',
     'grad', 'value_and_grad', 'jit', 'jacfwd', 'jacrev', 'vmap', 'random', 'jnp', 'lax', 'jvp', 'flatten_util',
     'selu', 'elu', 'tanh', 'sigmoid', 'swish',
@@ -32,7 +32,7 @@ from jax.numpy import (
     array, zeros, zeros_like, ones, ones_like, eye, diag,
     deg2rad, rad2deg, exp, sin, cos, tan, sqrt, pi, prod,
     hstack, vstack, stack, concatenate, dot, matmul, vdot,
-    where, minimum, maximum, mean, meshgrid, linspace
+    where, minimum, maximum, mean, meshgrid, linspace, cross
 )
 
 from jax.numpy.linalg import (

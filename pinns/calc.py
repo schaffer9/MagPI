@@ -227,36 +227,36 @@ def curl2d(f):
     return jit(_f)
 
 
-def cross(a: Array, b: Array) -> Array:
-    """Computes the cross product of two vectors in :math:`\\mathbb{R}^2` or :math:`\\mathbb{R}^3`.
+# def cross(a: Array, b: Array) -> Array:
+#     """Computes the cross product of two vectors in :math:`\\mathbb{R}^2` or :math:`\\mathbb{R}^3`.
 
-    Parameters
-    ----------
-    a : Array
-    b : Array
+#     Parameters
+#     ----------
+#     a : Array
+#     b : Array
 
-    Returns
-    -------
-    Array
-    """
-    if is_2d(a, b):
-        return cross2d(a, b)
-    elif is_3d(a, b):
-        return cross3d(a, b)
-    else:
-        dim_a = a.shape
-        dim_b = b.shape
-        raise ValueError(f"Cannot build cross product for dim {dim_a} and {dim_b}.")
+#     Returns
+#     -------
+#     Array
+#     """
+#     if is_2d(a, b):
+#         return cross2d(a, b)
+#     elif is_3d(a, b):
+#         return cross3d(a, b)
+#     else:
+#         dim_a = a.shape
+#         dim_b = b.shape
+#         raise ValueError(f"Cannot build cross product for dim {dim_a} and {dim_b}.")
 
-def cross2d(a: Array, b: Array) -> Array:
-    return a[0] * b[1] - a[1] * b[0]
+# def cross2d(a: Array, b: Array) -> Array:
+#     return a[0] * b[1] - a[1] * b[0]
 
 
-def cross3d(a: Array, b: Array) -> Array:
-    x = a[1] * b[2] - b[1] * a[2]
-    y = b[0] * a[2] - a[0] * b[2]
-    z = a[0] * b[1] - b[0] * a[1]
-    return stack((x, y, z))
+# def cross3d(a: Array, b: Array) -> Array:
+#     x = a[1] * b[2] - b[1] * a[2]
+#     y = b[0] * a[2] - a[0] * b[2]
+#     z = a[0] * b[1] - b[0] * a[1]
+#     return stack((x, y, z))
 
 
 def is_2d(*args) -> bool:
