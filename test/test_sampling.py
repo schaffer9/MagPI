@@ -4,33 +4,31 @@ from . import *
 
 
 class TestSampling(JaxTestCase):
-    def test_00_sample_uniform(self):
-        d = domain.Hypercube((0.,), (1.,))
-        key = random.PRNGKey(42)
-        k1, k2 = random.split(key)
-        sample1 = sampling.sample_domain(k1, d)
-        sample2 = sampling.sample_domain(k2, d)
-        
-        self.assertEqual(sample1.shape, (1, ))
-        self.assertEqual(sample2.shape, (1, ))
-        self.assertFalse(jnp.isclose(sample1, sample2).any())
-
-    def test_01_rejection_sampling(self):
-        d = domain.Hypercube((0., 0.), (1., 1.))
-        key = random.PRNGKey(42)
-
-        def condition(s, a):
-            return (s[..., 0] > 0.5) & (s[..., 1] > 0.5)
-
+    def test_01_rejection_sampling_withing_circle(self):
+        pdf = lambda x: lax.cond(norm(x) <= 1., lambda: 1. / pi, lambda: 0.)
+        sample_fn = lambda key: random.uniform(key, (2, )) * 2 - 1
         samples = sampling.rejection_sampling(
-            key, 
-            condition,
-            lambda k: sampling.sample_domain(k, d),
-            100, condition_kwargs={'a': 42}  # 42 is a dummy parameter
+            random.PRNGKey(42),
+            pdf, 
+            sample_fn, 
+            1024,
+            4
         )
+        self.assertTrue(all(norm(samples, axis=-1) <= 1.))
 
-        self.assertEqual(samples.shape, (100, 2))
-        self.assertTrue((samples > 0.5).all())
-        self.assertTrue((samples < 1.).all())
-
-    
+    def test_02_rejection_sample_as_pytree(self):
+        _norm = lambda x: sqrt(x[0] ** 2 + x[1] ** 2)
+        pdf = lambda x: lax.cond(_norm(x) <= 1., lambda: 1. / pi, lambda: 0.)
+        
+        def sample_fn(key):
+            sample = random.uniform(key, (2, )) * 2 - 1
+            return sample[0], sample[1]
+        
+        samples = sampling.rejection_sampling(
+            random.PRNGKey(42),
+            pdf, 
+            sample_fn, 
+            1024,
+            4
+        )
+        self.assertTrue(all(vmap(_norm)(samples) <= 1.))

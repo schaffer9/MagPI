@@ -156,27 +156,12 @@ def integrate(
     w, nodes = zip(*(method(d) for d in domain))
     W = stack(jnp.meshgrid(*w), axis=-1)
     X = stack(jnp.meshgrid(*nodes), axis=-1)
-    X = X.reshape(-1, len(domain))
-    W = W.reshape(-1, len(domain))
     W = jnp.prod(W, axis=-1)
 
     def g(x):
         return f(x, *args, **kwargs)
-    F = vmap(g)(X)
-    out_dim = len(F.shape[1:])
-    return jnp.sum(W[(..., *([None] * out_dim))] * F, 0)
-    # if X.shape[-1] == 1:
-    #     X = X[:, 0]
-    # W = jnp.prod(W, axis=-1)
-    # def g(x):
-    #     return f(x, *args, **kwargs)
-    # _f = g
-    # axis = tuple(range(len(domain)))
-    # for i in axis:
-    #     _f = vmap(_f, i, i)
-    # F = _f(X)
-    # out_dim = len(F.shape[len(axis):])
-    # return jnp.sum(W[(..., *([None] * out_dim))] * F, axis)
+    F = jnp.apply_along_axis(g, -1, X)
+    return jnp.tensordot(W, F, len(domain))
 
 
 def integrate_disk(
@@ -184,6 +169,9 @@ def integrate_disk(
     r: Scalar,
     o: Origin,
     n: int | tuple[int, int],
+    r_inner: float = 0,
+    phi1: float = 0,
+    phi2: float = 2 * pi,
     *args,
     method: QuadRule = simpson,
     **kwargs
@@ -206,6 +194,9 @@ def integrate_disk(
         origin
     n : int | tuple[int, int]
         Nodes in each dimension.
+    r_inner: float
+    phi1: float
+    phi2: float
     method : QuadRule, optional
         Quadrature rule, by default simpson
 
@@ -226,8 +217,8 @@ def integrate_disk(
         return f(p, *args, **kwargs) * r
 
     domain = [
-        jnp.linspace(0, r, n[0]),
-        jnp.linspace(0, 2 * pi, n[1]),
+        jnp.linspace(r_inner, r, n[0]),
+        jnp.linspace(phi1, phi2, n[1]),
     ]
     return integrate(g, domain, *args, method=method, **kwargs)
 
@@ -237,6 +228,11 @@ def integrate_sphere(
     r: Scalar,
     o: Origin,
     n: int | tuple[int, int, int],
+    r_inner: float = 0,
+    phi1: float = 0,
+    phi2: float = pi,
+    theta1: float = 0,
+    theta2: float = 2 * pi,
     *args,
     method: QuadRule = simpson,
     **kwargs
@@ -252,6 +248,11 @@ def integrate_sphere(
         origin
     n : int | tuple[int, int, int]
         Nodes in each dimension.
+    r_inner: float
+    phi1: float
+    phi2: float
+    theta1: float
+    theta2: float
     method : QuadRule, optional
         Quadrature rule, by default simpson
 
@@ -273,8 +274,8 @@ def integrate_sphere(
         return f(p, *args, **kwargs) * r ** 2 * sin(phi)
 
     domain = [
-        jnp.linspace(0, r, n[0]),
-        jnp.linspace(0, pi, n[1]),
-        jnp.linspace(0, 2 * pi, n[2]),
+        jnp.linspace(r_inner, r, n[0]),
+        jnp.linspace(phi1, phi2, n[1]),
+        jnp.linspace(theta1, theta2, n[2]),
     ]
     return integrate(g, domain, *args, method=method, **kwargs)

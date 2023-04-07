@@ -43,11 +43,11 @@ class TrainStep(T.Protocol):
 def step_fn(loss: Loss):
     def train_step(state: TrainState, batch: Batch) -> tuple[TrainState, Array, Metric]:
         def _loss(*args: P.args, **kwargs: P.kwargs) -> tuple[Array, Metric]:
-            _loss = loss(*args, **kwargs)
-            if isinstance(_loss, tuple):
-                return _loss
+            _l = loss(*args, **kwargs)
+            if isinstance(_l, tuple):
+                return _l
             else:
-                return _loss, {"loss": _loss}
+                return _l, {"loss": _l}
         (l, aux), grads = jax.value_and_grad(_loss, has_aux=True)(state.params, *batch.data)
         return state.apply_gradients(grads=grads), l, aux
 

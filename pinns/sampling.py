@@ -1,52 +1,49 @@
 from .prelude import *
-
-from .domain import Domain
-
-@partial(jit, static_argnames="domain")
-def sample_domain(key, domain: Domain, n: int=1):
-    assert n >= 1
-    d = (domain.dimension, ) if n == 1 else (n, domain.dimension)
-    uniform_sample = random.uniform(key, d)
-    return domain.transform(uniform_sample)
+from chex import ArrayTree
 
 
-@partial(jit, static_argnames=("condition", "sampling", "n"))
+Sample = ArrayTree
+PDF = Callable[[Sample], float]
+SampleFn = Callable[[random.KeyArray], Sample]
+
+
 def rejection_sampling(
-    key, 
-    condition, 
-    sampling, 
+    key: random.KeyArray, 
+    pdf: PDF, 
+    sample_fn: SampleFn, 
     n: int, 
-    condition_kwargs: Optional[dict[str, Any]] = None,
-    sampling_kwargs: Optional[dict[str, Any]] = None,
+    m: int,
 ):
-    if condition_kwargs is None:
-        condition_kwargs = {}
-    if sampling_kwargs is None:
-        sampling_kwargs = {}
-    key, subkey = random.split(key)
-    sample = sampling(subkey, **sampling_kwargs)
-    shape = (n, *sample.shape)
-    samples = jnp.empty(shape, dtype=sample.dtype)
-    i = 0
+    """Draws `n` samples according to the given PDF. It takes on average
+    `m` iterations for each sample. Samples are drawn in parallel.
+
+    Parameters
+    ----------
+    key : random.KeyArray
+    pdf : PDF
+    sample_fn : SampleFn
+    n : int
+    m : int
+    """
     
-    def body(state):
-        samples, i, key, sample = state
-        valid = condition(sample, **condition_kwargs)
-        key, subkey = random.split(key)
-        samples = lax.cond(
-            valid, 
-            lambda samples: samples.at[i].set(sample), 
-            lambda samples: samples,
-            samples
-        )
-        i = lax.cond(valid, lambda i: i+1, lambda i: i, i)
-        sample = sampling(subkey, **sampling_kwargs)
-        return (samples, i, key, sample)
-
-    samples, *_ = lax.while_loop(
-        lambda state: state[1] < n,
-        body,
-        (samples, i, key, sample)
-    )
-
-    return samples
+    def draw_sample(key):
+        key, samplekey, valkey = random.split(key, 3)
+        sample = sample_fn(samplekey)
+        p = random.uniform(valkey)
+        
+        def body(state):
+            key, p, sample = state
+            key, samplekey, valkey = random.split(key, 3)
+            p = random.uniform(valkey)
+            sample = sample_fn(samplekey)
+            return key, p, sample
+        
+        def not_valid(state):
+            _, p, sample = state
+            return p > (pdf(sample) / m)
+        
+        _, _, sample = lax.while_loop(not_valid, body, (key, p, sample))
+        return sample
+    
+    keys = random.split(key, n)
+    return vmap(draw_sample)(keys)

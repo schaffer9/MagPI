@@ -1,15 +1,14 @@
 from .prelude import *
 
 from jaxopt.linear_solve import solve_lu
+from chex import Array
 
-
-Array = Any
-Nodes = Array
-Partition = list[Nodes]
+Samples = Array
+PartitionPart = list[Samples]
 Interpolation = Callable[[Array], Array]
 
 
-def max_dist(x0: Nodes, x1: Nodes) -> float:
+def max_dist(x0: Samples, x1: Samples) -> float:
     def _max_dist(x, y):
         d = norm(x - y, axis=-1)
         return jnp.sort(d)[-1]
@@ -18,8 +17,8 @@ def max_dist(x0: Nodes, x1: Nodes) -> float:
 
 
 def scatter_interpolate(
-    x0: Nodes, 
-    x1: Nodes, 
+    x0: Samples, 
+    x1: Samples, 
     r: float | None = None
 ) -> Interpolation:  
     if r is None:
@@ -47,11 +46,40 @@ def scatter_interpolate(
 
 
 def shape_function(
-    p1: Partition, 
-    p2: Partition,
+    p1: PartitionPart, 
+    p2: PartitionPart,
     mu: int | None = None,
     r: float | None = None
 ) -> Interpolation:
+    """Creates a indicator function which is zero on the boundary as in [1]_. 
+    `p1` and `p2` should cover the respective boundary domain. 
+    A spline function is trained for each subset in `p1` to the
+    respective subset in `p2` and vice versa. The samples from each
+    subset should not overlap and the opposing set should not be neighboring
+    each other.
+    
+    Parameters
+    ----------
+    p1 : Partition
+    p2 : Partition
+    mu : int | None, optional
+        the exponent to compute the final indicator function, by 
+        default it is the number of subsets on the boundary domain
+    r : float | None, optional
+        the shape parameter of the spline function should be the minimum radius of the circle
+        which includes all sample points, if not given it is computed for each subset.
+
+    Returns
+    -------
+    Interpolation
+
+    Notes
+    -----
+    .. [1] Sheng, Hailong, and Chao Yang. "PFNN: A penalty-free neural network 
+        method for solving a class of second-order boundary-value problems on 
+        complex geometries." Journal of Computational Physics 428 (2021): 110085.
+
+    """
     if mu is None:
         mu = len(p1) + len(p2)
     lks = (
@@ -67,7 +95,19 @@ def shape_function(
     return _l
 
 
-def octal_partition(x: Nodes) -> tuple[Partition, Partition]:
+def octal_partitioning(x: Samples) -> tuple[PartitionPart, PartitionPart]:
+    """If all samples are between -1 and 1, this function will create a
+    partitioning of the domain where each octant is mapped to the
+    opposing one.
+
+    Parameters
+    ----------
+    x : Samples
+
+    Returns
+    -------
+    tuple[PartitionPart, PartitionPart]
+    """
     assert x.shape[1] == 3, "Nodes must be three dimensional"
     p1 = [
         x[(x[:, 0] >= 0) & (x[:, 1] >= 0) & (x[:, 2] >= 0)],
