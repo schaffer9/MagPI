@@ -1,6 +1,6 @@
 __all__ = (
     'partial', 'jax', 'reduce', 'wraps', 'T', 'Any', 'Callable', 'Sequence', 'Optional', 'Union',
-    'f16', 'f32', 'f64', 'i16', 'i32', 'i64', 'u8', 'u16', 'u32', 'u64', 'DeviceArray', 
+    'f16', 'f32', 'f64', 'i16', 'i32', 'i64', 'u8', 'u16', 'u32', 'u64', 'Array', 
     'ndarray', 'array', 'zeros', 'zeros_like', 'ones', 'ones_like',
     'deg2rad', 'rad2deg', 'exp', 'sin', 'cos', 'tan', 'sqrt', 'pi', 'norm', 'solve',
     'where', 'prod', 'minimum', 'maximum', 'mean', 'meshgrid', 'linspace', 'cross',
@@ -28,7 +28,7 @@ from jax.numpy import (
     uint16 as u16,
     uint32 as u32,
     uint64 as u64,
-    DeviceArray, ndarray,
+    ndarray,
     array, zeros, zeros_like, ones, ones_like, eye, diag,
     deg2rad, rad2deg, exp, sin, cos, tan, sqrt, pi, prod,
     hstack, vstack, stack, concatenate, dot, matmul, vdot,
@@ -42,7 +42,7 @@ from jax.numpy.linalg import (
 import jax.numpy as jnp
 
 from jax import (
-    grad, jit, jacfwd, jacrev, vmap, jvp, value_and_grad
+    Array, grad, jit, jacfwd, jacrev, vmap, jvp, value_and_grad
 )
 import jax.lax as lax
 import jax.random as random
