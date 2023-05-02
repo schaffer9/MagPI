@@ -86,23 +86,14 @@ class Quaternion:
         return quanternion_exp(b * self)
         
     def __truediv__(self, other: Scalar) -> 'Quaternion':
+        # TODO: implement Quaternion div. There is left and right division
         return self * (1 / other)
-    
-    # def __rtruediv__(self, other: Scalar) -> 'Quaternion':
-    #     return self * (1 / other)
 
     def reciprocal(self) -> 'Quaternion':
         return self.conj() * (1 / abs(self) ** 2)
     
     def conj(self) -> 'Quaternion':
         return self.__class__(self.real, -self.imag)
-    
-    def exp(self, p) -> 'Quaternion':
-        z = exp(self.real)
-        r = norm(self.imag)
-        a = z * cos(r)
-        q = z * sgn(self.imag) * sin(r)
-        return self.__class__(a, q)
 
     def tree_flatten(self):
         children = (self._a, self._q)  # arrays / dynamic values
@@ -115,6 +106,9 @@ class Quaternion:
     
 
 def quanternion_exp(q: Quaternion) -> Quaternion:
+    """
+    https://math.stackexchange.com/q/939288
+    """
     z = exp(q.real)
     r = norm(q.imag)
     a = z * cos(r)

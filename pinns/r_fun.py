@@ -6,10 +6,10 @@ from .quaternions import (
 )
 
 
-Scalar = Array | float
-Vec = Array | list[float] | float
-Vec2d = Array | tuple[float, float]
-Vec3d = Array | tuple[float, float, float]
+Scalar = Array | float | int
+Vec = Array | list[Scalar] | Scalar | tuple[Scalar, ...]
+Vec2d = Array | tuple[Scalar, Scalar]
+Vec3d = Array | tuple[Scalar, Scalar, Scalar]
 
 
 class ADF(T.Protocol):
@@ -25,109 +25,101 @@ class ADF(T.Protocol):
 
 
 class RFun:
-    conjunction = NotImplemented
-    disjunction = NotImplemented
 
-    def __init__(self, f: ADF):
-        self._f = f
+    def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        raise NotADirectoryError
+    
+    def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        raise NotADirectoryError
+    
+    def negate(self, adf: ADF) -> ADF:
+        return lambda x: -adf(x)
+
+    def union(self, adf1: ADF, adf2: ADF) -> ADF:
+        return self.disjunction(adf1, adf2)
+    
+    def intersection(self, adf1: ADF, adf2: ADF) -> ADF:
+        return self.conjunction(adf1, adf2)
+
+    def equivalence(self, adf1: ADF, adf2: ADF) -> ADF:
+        return self.negate(self.xor(adf1, adf2))
+
+    def implication(self, adf1: ADF, adf2: ADF) -> ADF:
+        return self.union(self.negate(adf1), adf2)
+
+    def difference(self, adf1: ADF, adf2: ADF) -> ADF:
+        return self.intersection(adf1, self.negate(adf2))
+    
+    def xor(self, adf1: ADF, adf2: ADF) -> ADF:
+        adf1, adf2 = self.union(adf1, adf2), self.negate(self.intersection(adf1, adf2))
+        return self.intersection(adf1, adf2)
+    
+
+class RAlpha(RFun):
+    def __init__(self, alpha: Callable[[Scalar, Scalar], Scalar] = 0):
+        self.alpha = alpha
+
+    def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        def op(a, b):
+            alpha = self.alpha(a, b)
+            return 1 / (1 + alpha) * (a + b - sqrt(a ** 2 + b ** 2 - 2 * alpha * a * b))
         
-    def __call__(self, x: Array) -> Scalar:
-        return self._f(x)
-
-    def __and__(self, other: 'RFun') -> 'RFun':
-        def op(x):
-            return self.conjunction(self(x), other(x))
-        return self.__class__(op)
-
-    def __or__(self, other: 'RFun') -> 'RFun':
-        def op(x):
-            return self.disjunction(self(x), other(x))
-        return self.__class__(op)
-
-    def __xor__(self, other: 'RFun') -> 'RFun':
-        return (self | other) & ~(self & other)
-
-    def __invert__(self) -> 'RFun':
-        def op(x):
-            return -self(x)
-        return self.__class__(op)
+        return lambda x: op(adf1(x), adf2(x))
     
-    def __add__(self, other: Union['RFun', Scalar]) -> 'RFun':
-        def op(x):
-            if isinstance(other, self.__class__):
-                return self(x) + other(x)
-            else:
-                return self(x) + other
-        return self.__class__(op)
+    def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        def op(a, b):
+            alpha = self.alpha(a, b)
+            return 1 / (1 + alpha) * (a + b + sqrt(a ** 2 + b ** 2 - 2 * alpha * a * b))
+        
+        return lambda x: op(adf1(x), adf2(x))
+
+
+class RAlphaM(RFun):
+    def __init__(self, m: Scalar, alpha: Callable[[Scalar, Scalar], Scalar] = 0):
+        self.m = m
+        self.alpha = alpha
+
+    def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        def op(a, b):
+            alpha = self.alpha(a, b)
+            r = a ** 2 + b ** 2
+            return 1 / (1 + alpha) * (a + b - sqrt(r - 2 * alpha * a * b)) * r ** (self.m / 2)
+        
+        return lambda x: op(adf1(x), adf2(x))
     
-    def __radd__(self, other: Union['RFun', Scalar]) -> 'RFun':
-        return self + other
+    def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        def op(a, b):
+            alpha = self.alpha(a, b)
+            r = a ** 2 + b ** 2
+            return 1 / (1 + alpha) * (a + b + sqrt(r - 2 * alpha * a * b)) * r ** (self.m / 2)
+        
+        return lambda x: op(adf1(x), adf2(x))
+
+class RP(RFun):
+    def __init__(self, p: int):
+        assert p % 2 == 0, "`p` must be an even integer"
+        self.p = p
+
+    def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        def op(a, b):
+            return a + b - (a ** self.p + b ** self.p) ** (1 / self.p)
+        
+        return lambda x: op(adf1(x), adf2(x))
     
-    def __sub__(self, other: Union['RFun', Scalar]) -> 'RFun':
-        return self + (-other)
-    
-    def __rsub__(self, other: Union['RFun', Scalar]) -> 'RFun':
-        return self - other
-    
-    def __mul__(self, other: Union['RFun', Scalar]) -> 'RFun':
-        def op(x):
-            if isinstance(other, self.__class__):
-                return self(x) * other(x)
-            else:
-                return self(x) * other
-        return self.__class__(op)
-    
-    def __rmul__(self, other: Union['RFun', Scalar]) -> 'RFun':
-        return self * other
-    
-    def __truediv__(self, other: Union['RFun', Scalar]) -> 'RFun':
-        def op(x):
-            if isinstance(other, self.__class__):
-                return self(x) / other(x)
-            else:
-                return self(x) / other
-        return self.__class__(op)
-    
-    def __rtruediv__(self, other: Union['RFun', Scalar]) -> 'RFun':
-        def op(x):
-            return other / self(x)
-        return self.__class__(op)
+    def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        def op(a, b):
+            return a + b + (a ** self.p + b ** self.p) ** (1 / self.p)
+        
+        return lambda x: op(adf1(x), adf2(x))
 
-    def normalize_1st_order(self) -> 'RFun':
-        def op(x):
-            return self(x) / sqrt(self(x) ** 2 + norm(grad(self)(x)) ** 2)
-        return self.__class__(op)
-
-    def translate(self, y: Vec) -> 'RFun':
-        return translate(self, y)
-    
-    def scale(self, scaling_factor: Scalar) -> 'RFun':
-        return scale(self, scaling_factor)
+r1 = RAlpha(lambda a, b: 1)  # min, max
+r0 = RAlpha(lambda a, b: 0)  # analytic everywhere but the origin and normalized to first order
+rp2 = RP(2)  # same as r0
+rp4 = RP(4)  # analytic everywhere and normalized to 3rd order.
 
 
-def rp_conjunction(a, b, p=2):
-    return a + b - (a ** p + b ** p) ** (1 / p)
-
-
-def rp_disjunction(a, b, p=2):
-    return a + b + (a ** p + b ** p) ** (1 / p)
-
-
-class Rp2Fun(RFun):
-    """
-    """
-    conjunction = partial(rp_conjunction, p=2)
-    disjunction = partial(rp_disjunction, p=2)
-
-
-class Rp4Fun(RFun):
-    """
-    """
-    conjunction = partial(rp_conjunction, p=4)
-    disjunction = partial(rp_disjunction, p=4)
-    
-
-def cuboid(l: Vec, centering: bool = False, r_func: type[RFun] = Rp2Fun) -> RFun:
+def cuboid(l: Vec, centering: bool = False, normalize: int = 1) -> ADF:
+    assert normalize % 2 == 1, "Only odd degrees of normalization allowed for cuboid"
     l = array(l)
     
     if centering:
@@ -137,26 +129,39 @@ def cuboid(l: Vec, centering: bool = False, r_func: type[RFun] = Rp2Fun) -> RFun
         lb = zeros_like(l)
         ub = l
     
-    @compose(r_func.conjunction)
+    # use a RP function to compute the intersection for all 6 sides
+    p = normalize + 1
+    _intersection = compose(lambda a, b: a + b - (a ** p + b ** p) ** (1 / p))
+    @_intersection
     def adf(x):
-        a = ub - x
-        b = x - lb
+        a = (ub - x).ravel()
+        b = (x - lb).ravel()
         return concatenate([a, b])
     
-    return r_func(adf)
+    return adf
 
 
-def cube(l: Scalar, dim: int=3, centering: bool = False, r_func: type[RFun] = Rp2Fun) -> RFun:
-    return cuboid([l] * dim, centering, r_func)
+def cube(l: Scalar, centering: bool = False, normalize: int = 1) -> RFun:
+    return cuboid(l, centering, normalize)
 
 
-def sphere(r: Scalar, origin: Vec = 0., r_func: type[RFun] = Rp2Fun) -> RFun:
-    def adf(x):
-        return (r ** 2 - norm(x - origin) ** 2) / (2 * r)
-    return r_func(adf)
+def sphere(r: Scalar) -> ADF:
+    return lambda x: (r ** 2 - norm(x) ** 2) / (2 * r)
 
+def cylinder(r: Scalar, h: None | Scalar = None):
+    s = sphere(r)
+    adf = lambda x: s(x[:2])
+    if h is not None:
+        _cube = cube(h, centering=False)
+        def cut_fn(x):
+            x = x.at[:2].set(x[:2] - r)
+            return _cube(x)
+        adf = r0.intersection(cut_fn, adf)
+    
+    return adf
+        
 
-def compose(func):
+def compose(func: Callable[[Scalar, Scalar], Scalar]) -> Callable[..., ADF]:
     def composition(*adf):
         def _adf(x):
             d = concatenate(tree_leaves(tree_map(lambda df: df(x).ravel(), adf)))
@@ -165,23 +170,24 @@ def compose(func):
     return composition
 
 
-def translate(adf: RFun, y: Vec) -> 'RFun':
+def translate(adf: ADF, y: Vec) -> ADF:
     y = array(y)
-    def op(x):
-        return adf(x - y)
-    return adf.__class__(op)
+    return lambda x: adf(x - y)
 
 
-def scale(adf: RFun, scaling_factor: Scalar) -> RFun:
+def scale(adf: ADF, scaling_factor: Scalar) -> ADF:
     scaling_factor = array(scaling_factor).ravel()
     assert scaling_factor.shape == (1,), "`scaling_factor` must be a scalar to preserve normalization"
     scaling_factor = scaling_factor[0]
-    def op(x):
-        return adf(x / scaling_factor) * scaling_factor    
-    return adf.__class__(op)
+    return lambda x: adf(x / scaling_factor) * scaling_factor    
 
 
-def rotate2d(adf: RFun, angle: Scalar, o: Vec2d = (0., 0.)) -> RFun:
+def scale_without_normalization(adf, scaling_factor) -> ADF:
+    scaling_factor = array(scaling_factor).ravel()
+    return lambda x: adf(x / scaling_factor)
+
+
+def rotate2d(adf: ADF, angle: Scalar, o: Vec2d = (0., 0.)) -> ADF:
     o = array(o)
     _adf = translate(adf, -o)
     M = array([[cos(angle), -sin(angle)], 
@@ -189,13 +195,14 @@ def rotate2d(adf: RFun, angle: Scalar, o: Vec2d = (0., 0.)) -> RFun:
     def rot_op(x):
         assert x.shape == (2,), f"Cannot rotate vector of size {x.shape} in 2d. Please pass a 2d vector."
         return _adf(M @ x)
-    return translate(adf.__class__(rot_op), o)
+    
+    return translate(rot_op, o)
     
 
-def rotate3d(adf: RFun, 
+def rotate3d(adf: ADF, 
              angle: Scalar | Vec3d, 
              rot_axis: None | Vec3d = None, 
-             o: Vec3d = (0., 0., 0.)) -> RFun:
+             o: Vec3d = (0., 0., 0.)) -> ADF:
     o = array(o)
     _adf = translate(adf, -o)
 
@@ -216,33 +223,35 @@ def rotate3d(adf: RFun,
         assert x.shape == (3,), f"Cannot rotate vector of size {x.shape} in 3d. Please pass a 3d vector."
         x = quaternion_rotation(x, rot_quaternion)
         return _adf(x)
-    return translate(adf.__class__(rot_op), o)
+    return translate(rot_op, o)
 
 
-def reflect(adf: RFun,
+def reflect(adf: ADF,
             normal_vec: Vec2d,
-            o: Vec = 0.) -> RFun:
-    o = array(o)
-    n = array(normal_vec)
-    n = n / norm(n)
+            o: Vec = 0.) -> ADF:
+    o, n = array(o), array(normal_vec)
     _adf = translate(adf, -o)
     def ref_op(x):
-        x = x - 2 * (x @ n) / norm(n) * n
+        x = x - 2 * (x @ n) / (norm(n) ** 2) * n
         return _adf(x)
-    return translate(adf.__class__(ref_op), o)
+    return translate(ref_op, o)
 
 
-def union(adf1: RFun, adf2: RFun) -> RFun:
-    return adf1 | adf2
+def project(adf: ADF,
+            normal_vec: Vec2d,
+            o: Vec = 0.) -> ADF:
+    o, n = array(o), array(normal_vec)
+    _adf = translate(adf, -o)
+    def proj_op(x):
+        x = x - (x @ n) / (norm(n) ** 2) * n
+        return _adf(x)
+    return translate(proj_op, o)
 
-def intersection(adf1: RFun, adf2: RFun) -> RFun:
-    return adf1 & adf2
 
-def equivalence(adf1: RFun, adf2: RFun) -> RFun:
-    return ~(adf1 ^ adf2)
-
-def material_conditional(adf1: RFun, adf2: RFun) -> RFun:
-    return ~adf1 | adf2
-
-def difference(adf1: RFun, adf2: RFun) -> RFun:
-    return adf1 & ~adf2
+def normalize_1st_order(adf: ADF) -> ADF:
+    df = jacfwd(adf)
+    def normalize(x):
+        y = adf(x)
+        dy = df(x)
+        return y / sqrt(y ** 2 * norm(dy) ** 2)
+    return normalize
