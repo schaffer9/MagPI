@@ -148,18 +148,18 @@ def cube(l: Scalar, centering: bool = False, normalize: int = 1) -> RFun:
 def sphere(r: Scalar) -> ADF:
     return lambda x: (r ** 2 - norm(x) ** 2) / (2 * r)
 
-def cylinder(r: Scalar, h: None | Scalar = None):
+
+def cylinder(r: Scalar):
     s = sphere(r)
-    adf = lambda x: s(x[:2])
-    if h is not None:
-        _cube = cube(h, centering=False)
-        def cut_fn(x):
-            x = x.at[:2].set(x[:2] - r)
-            return _cube(x)
-        adf = r0.intersection(cut_fn, adf)
-    
+    return lambda x: s(x[:2])
+
+
+def ellipsoid(l: Vec):
+    adf = sphere(1.)
+    adf = scale_without_normalization(adf, l)
+    adf = normalize_1st_order(adf)
     return adf
-        
+
 
 def compose(func: Callable[[Scalar, Scalar], Scalar]) -> Callable[..., ADF]:
     def composition(*adf):
@@ -190,8 +190,8 @@ def scale_without_normalization(adf, scaling_factor) -> ADF:
 def rotate2d(adf: ADF, angle: Scalar, o: Vec2d = (0., 0.)) -> ADF:
     o = array(o)
     _adf = translate(adf, -o)
-    M = array([[cos(angle), -sin(angle)], 
-              [sin(angle), cos(angle)]])
+    M = array([[cos(angle), sin(angle)], 
+               [-sin(angle), cos(angle)]])
     def rot_op(x):
         assert x.shape == (2,), f"Cannot rotate vector of size {x.shape} in 2d. Please pass a 2d vector."
         return _adf(M @ x)
@@ -206,7 +206,7 @@ def rotate3d(adf: ADF,
     o = array(o)
     _adf = translate(adf, -o)
 
-    angle = array(angle)
+    angle = -array(angle)
     if angle.shape == ():
         if rot_axis is None:
             msg = "If only the angle is specified, the rotation axis must be provided"
@@ -253,5 +253,5 @@ def normalize_1st_order(adf: ADF) -> ADF:
     def normalize(x):
         y = adf(x)
         dy = df(x)
-        return y / sqrt(y ** 2 * norm(dy) ** 2)
+        return y / sqrt(y ** 2 + norm(dy) ** 2)
     return normalize
