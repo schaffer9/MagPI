@@ -3,16 +3,12 @@ This module contains some useful transformations. All transformations
 perform a uniform mapping from :math:`[0,1]^d` to the respective domain.
 """
 
-from dataclasses import MISSING
-
 from flax.struct import dataclass, field
 from itertools import repeat, chain
-from jax.scipy.stats.norm import ppf
 from jaxopt.linear_solve import solve_lu
 
 from .prelude import *
 
-Array = ndarray
 BoolArray = Array
 
 
@@ -96,7 +92,7 @@ class Parallelogram:
 
     def transform(self, samples: Array) -> Array:
         assert samples.shape[-1] == 2
-        samples = where(samples > 1, samples % 1., samples)
+        samples = where(samples > 1, samples % 1.0, samples)
         a = array(self.a)
         if len(samples.shape) == 1:
             return self.B @ samples + a
@@ -105,10 +101,7 @@ class Parallelogram:
 
     def transform_bnd(self, samples: Array) -> Array:
         a, b, c = array([self.a, self.b, self.c])
-        return transform_polyline(
-            samples,
-            (a, a + b, a + b + c, c, a)
-        )
+        return transform_polyline(samples, (a, a + b, a + b + c, c, a))
 
 
 def linear_map(X_ref: Array, X: Array) -> Array:
@@ -218,7 +211,7 @@ def transform_hypercube_bnd(x: Array, lb: Array, ub: Array) -> Array:
     dim = lb.shape[0]
     x = x % 1.0
     if dim == 1:
-        x = (x > 0.5).astype(u32)
+        x = (x > 0.5).astype(jnp.uint32)
         return transform_hypercube(x, lb, ub)
     scalar_input = len(x.shape) == 0
     if scalar_input:
@@ -268,7 +261,7 @@ def transform_annulus(x: Array, r1: Array, r2: Array, o: Array) -> Array:
     assert o.shape[-1] == 2
     x = x % 1.0
     theta = 2 * pi * x[..., 0]
-    r = sqrt(x[..., 1] * (r2 ** 2 - r1 ** 2) + r1 ** 2)
+    r = sqrt(x[..., 1] * (r2**2 - r1**2) + r1**2)
     x1 = r * cos(theta)
     x2 = r * sin(theta)
     return stack((x1, x2), -1) + o
@@ -282,8 +275,8 @@ def transform_sphere(x: Array, r: Array, o: Array) -> Array:
     u = 2 * x[..., 0] - 1
     phi = 2 * pi * x[..., 1]
     rad = x[..., 2] ** (1 / 3)
-    x1 = rad * cos(phi) * sqrt(1 - u ** 2)
-    x2 = rad * sin(phi) * sqrt(1 - u ** 2)
+    x1 = rad * cos(phi) * sqrt(1 - u**2)
+    x2 = rad * sin(phi) * sqrt(1 - u**2)
     x3 = rad * u
     return stack((x1, x2, x3), -1) * r + o
 
@@ -294,8 +287,8 @@ def transform_sphere_bnd(x: Array, r: Array, o: Array) -> Array:
     assert o.shape[-1] == 3
     x = x % 1.0
     x3, phi = 2 * x[..., 0] - 1, 2 * pi * x[..., 1]
-    x1 = cos(phi) * (1 - x3 ** 2) ** 0.5
-    x2 = sin(phi) * (1 - x3 ** 2) ** 0.5
+    x1 = cos(phi) * (1 - x3**2) ** 0.5
+    x2 = sin(phi) * (1 - x3**2) ** 0.5
     return stack((x1, x2, x3), -1) * r + o
 
 
@@ -309,9 +302,7 @@ def transform_circle_bnd(s: Array, r: Array, o: Array) -> Array:
     return stack((x1, x2), -1) * r + o
 
 
-def transform_triangle(
-    x: Array, a: Array, b: Array, c: Array
-) -> Array:
+def transform_triangle(x: Array, a: Array, b: Array, c: Array) -> Array:
     assert x.shape[-1] == 2
     i, j, k = a, b, c
     assert i.shape == j.shape == k.shape

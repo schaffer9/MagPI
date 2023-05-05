@@ -1,16 +1,15 @@
 from .prelude import *
 
-Array = ndarray
 Collection = T.Mapping[str, Array]
 Params = T.Mapping[str, Collection]
 Activation = Callable[[Array], Array]
 
 
-class MLP(Module):
+class MLP(nn.Module):
     layers: Sequence[int]
     activation: Optional[Activation] = None
 
-    @compact
+    @nn.compact
     def __call__(self, x):
         if self.activation is None:
             activation = tanh
@@ -18,10 +17,10 @@ class MLP(Module):
             activation = self.activation
         
         for i, layer in enumerate(self.layers[:-1]):
-            x = activation(Dense(layer, name=f'layers_{i}')(x))
+            x = activation(nn.Dense(layer, name=f'layers_{i}')(x))
         
         output_neurons = self.layers[-1]
-        x = Dense(output_neurons, name='output_layer')(x)
+        x = nn.Dense(output_neurons, name='output_layer')(x)
         if output_neurons == 1:
             return x[..., 0]
         else:

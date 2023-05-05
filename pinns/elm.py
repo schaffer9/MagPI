@@ -2,7 +2,6 @@ from jaxopt.linear_solve import solve_normal_cg
 from flax.struct import dataclass, field
 from .prelude import *
 
-Array = Any
 # Single hidden layer feedforward network
 SLFN = Callable[[Array], Array]
 

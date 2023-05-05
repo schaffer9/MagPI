@@ -8,8 +8,8 @@ from . import calc
 
 class TRResult(T.NamedTuple):
     params: Any
-    delta: ndarray
-    grad: ndarray
+    delta: Array
+    grad: Array
     iterations: int
     iterations_steihaug: int
 

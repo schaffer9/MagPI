@@ -2,12 +2,12 @@ import dataclasses
 
 import chex
 from flax.struct import dataclass, field
+from flax.training import train_state
 
 from pinns.prelude import *
 
 
-Array = chex.Array
-P = T.ParamSpec('P')
+P = T.ParamSpec("P")
 PyTree = chex.ArrayTree
 Metric = Array | tuple[Array, ...] | dict[str, Array]
 Params = PyTree
@@ -19,7 +19,9 @@ class State(T.Protocol):
     params: Params
     tx: optax.GradientTransformation
     opt_state: optax.OptState
-    def replace(self, /, **changes) -> "State": ...
+
+    def replace(self, /, **changes) -> "State":
+        ...
 
 
 @dataclass
@@ -29,7 +31,9 @@ class Batch:
     data: PyTree = field(repr=False)
 
     def __getitem__(self, item):
-        assert hasattr(self.data, "__getitem__"), "`data` has not impolemented `__getitem__`."
+        assert hasattr(
+            self.data, "__getitem__"
+        ), "`data` has not impolemented `__getitem__`."
         return self.data.__getitem__(item)
 
 
@@ -37,18 +41,26 @@ BatchFn = Callable[[random.KeyArray, State], Sequence[Batch]]
 
 
 class TrainStep(T.Protocol):
-    def __call__(self, state: State, batch: Batch, **kwargs: Any) -> tuple[State, Array, Metric]: ...
+    def __call__(
+        self, state: State, batch: Batch, **kwargs: Any
+    ) -> tuple[State, Array, Metric]:
+        ...
 
 
 def step_fn(loss: Loss):
-    def train_step(state: TrainState, batch: Batch) -> tuple[TrainState, Array, Metric]:
+    def train_step(
+        state: train_state.TrainState, batch: Batch
+    ) -> tuple[train_state.TrainState, Array, Metric]:
         def _loss(*args: P.args, **kwargs: P.kwargs) -> tuple[Array, Metric]:
             _l = loss(*args, **kwargs)
             if isinstance(_l, tuple):
                 return _l
             else:
                 return _l, {"loss": _l}
-        (l, aux), grads = jax.value_and_grad(_loss, has_aux=True)(state.params, *batch.data)
+
+        (l, aux), grads = jax.value_and_grad(_loss, has_aux=True)(
+            state.params, *batch.data
+        )
         return state.apply_gradients(grads=grads), l, aux
 
     return train_step
@@ -100,6 +112,7 @@ def run_epoch(
         if hasattr(state, "on_batch_end"):
             state = state.on_batch_end(loss, _aux)
         return state, aux
+
     state, aux = lax.fori_loop(1, batches, body, (state, aux_init))
     return state, aux
 
@@ -119,22 +132,29 @@ def axis_size(tree: PyTree, axis: int = 0) -> bool:
     return axis_size[0]
 
 
-def batches_without_replacement(key: random.KeyArray, X: PyTree, batch_size: int) -> PyTree:
+def batches_without_replacement(
+    key: random.KeyArray, X: PyTree, batch_size: int
+) -> PyTree:
     N = axis_size(X)
     batches = N // batch_size
     perms = jax.random.permutation(key, N)
-    perms = perms[:batches * batch_size]
+    perms = perms[: batches * batch_size]
     perms = perms.reshape((batches, batch_size))
     return tree_map(lambda x: x[perms], X)
 
 
 def batches_with_replacement(
-    key: random.KeyArray, X: PyTree, 
-    batches: int, batch_size: int, replace_within_batch=True) -> PyTree:
+    key: random.KeyArray,
+    X: PyTree,
+    batches: int,
+    batch_size: int,
+    replace_within_batch=True,
+) -> PyTree:
     N = axis_size(X)
 
     def choose_batch(key, batch_size):
         return random.choice(key, N, (batch_size,), replace_within_batch)
+
     keys = random.split(key, batches)
     perms = vmap(choose_batch, (0, None))(keys, batch_size)
     return tree_map(lambda x: x[perms], X)
@@ -142,10 +162,8 @@ def batches_with_replacement(
 
 def make_batches(data: PyTree, batch_size: int) -> BatchFn:
     def _make_batches(key: random.KeyArray, state: State):
-        return tree_map(
-            lambda X: batches_without_replacement(key, X, batch_size),
-            data
-        )
+        return tree_map(lambda X: batches_without_replacement(key, X, batch_size), data)
+
     return _make_batches
 
 
@@ -155,9 +173,8 @@ def train_model(
     train_step: TrainStep,
     epochs: int,
     batch_fn: BatchFn,
-    compile: bool = False
+    compile: bool = False,
 ) -> tuple[State, PyTree]:
-    
     def init_metric(m):
         arr = zeros((epochs,))
         arr = arr.at[:].set(jnp.nan)
@@ -172,7 +189,7 @@ def train_model(
         key, subkey = random.split(key)
         batches = batch_fn(subkey, state)
         state, aux = run_epoch(state, train_step, batches)
-        aux = tree_map(lambda v: mean(v), aux) 
+        aux = tree_map(lambda v: mean(v), aux)
         hist = tree_map(lambda m, a: m.at[epoch].set(a), hist, aux)
         loss, metric = aux
         if hasattr(state, "on_epoch_end"):
@@ -184,22 +201,24 @@ def train_model(
         loss, metric = aux
         epochs_complete = epoch >= epochs
         epoch_complete = epochs_complete
-        
+
         if hasattr(state, "stop_training"):
             stop_training = state.stop_training(loss, metric)
         else:
             stop_training = False
         return ~(epoch_complete | stop_training)
-    
+
     if compile:
-        finished_epochs, state, aux, _ = lax.while_loop(cond, body, (1, state, aux_init, key))
+        finished_epochs, state, aux, _ = lax.while_loop(
+            cond, body, (1, state, aux_init, key)
+        )
         _hist = aux
     else:
         train_state = (1, state, aux_init, key)
         while cond(train_state):
             train_state = body(train_state)
         finished_epochs, state, aux, _ = train_state
-        _hist = tree_map(lambda a: a[:finished_epochs], aux)    
+        _hist = tree_map(lambda a: a[:finished_epochs], aux)
     return state, _hist
 
 
@@ -237,10 +256,7 @@ class AdaptableScaleState(T.NamedTuple):
     scale: chex.Array
 
 
-def adaptable_scale(
-    init_scale: float
-) -> optax.GradientTransformation:
-
+def adaptable_scale(init_scale: float) -> optax.GradientTransformation:
     def init_fn(params):
         del params
         return AdaptableScaleState(array(init_scale))
@@ -254,7 +270,7 @@ def adaptable_scale(
 
 
 @dataclass
-class AdaptableLrTrainState(TrainState):
+class AdaptableLrTrainState(train_state.TrainState):
     patience: int = field(default=0)
     min_scale: float = field(default=1e-5)
     decrease_factor: float = field(default=0.5)
@@ -267,7 +283,7 @@ class AdaptableLrTrainState(TrainState):
         assert self.mode in ["min", "max"], "`mode` must be `min` or `max`"
 
     @classmethod
-    def create(cls, *, apply_fn, params, tx, patience=0, mode='min', **kwargs):
+    def create(cls, *, apply_fn, params, tx, patience=0, mode="min", **kwargs):
         """Creates a new instance with `step=0` and initialized `opt_state`."""
         tx = optax.chain(tx, adaptable_scale(1.0))
         opt_state = tx.init(params)
@@ -283,36 +299,34 @@ class AdaptableLrTrainState(TrainState):
             best=array(best),
             **kwargs,
         )
-    
+
     @property
     def scale(self) -> Array:
         scale_state = self.opt_state[1]
         assert isinstance(scale_state, AdaptableScaleState)
         return scale_state.scale
-    
+
     def reduce_lr(self) -> "AdaptableLrTrainState":
-        opt_state = (self.opt_state[0], 
-                     AdaptableScaleState(self.scale * self.decrease_factor))
+        opt_state = (
+            self.opt_state[0],
+            AdaptableScaleState(self.scale * self.decrease_factor),
+        )
         return self.replace(opt_state=opt_state)
-    
+
     def on_epoch_end(self, loss: Array, metric: Metric) -> "AdaptableLrTrainState":
         loss = loss if self.mode == "min" else -loss
-        
+
         def on_improvement():
             return self.replace(best=loss, counter=0)
-        
+
         def on_fail():
             return lax.cond(
                 self.counter >= self.patience,
                 lambda: self.reduce_lr().replace(counter=0),
-                lambda: self.replace(counter=self.counter + 1)
+                lambda: self.replace(counter=self.counter + 1),
             )
-        
-        return lax.cond(
-            loss < self.best,
-            on_improvement,
-            on_fail
-        )
-    
+
+        return lax.cond(loss < self.best, on_improvement, on_fail)
+
     def stop_training(self, loss: Array, metric: Metric) -> Array:
         return array(self.stop_training_on_lr_min) & (self.scale <= self.min_scale)

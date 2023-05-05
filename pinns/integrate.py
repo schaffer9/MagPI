@@ -1,6 +1,5 @@
 from pinns.prelude import *
 
-Array = Any
 Scalar = Array
 Origin = Array
 Integrand = Callable[..., Array]

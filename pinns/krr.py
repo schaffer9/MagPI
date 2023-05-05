@@ -19,8 +19,8 @@ def pairwise_kernel(k, x, y):
 
 @dataclass
 class KRR:
-    coef: ndarray
-    support: ndarray
+    coef: Array
+    support: Array
     kernel: Callable = field(compare=False)
 
     def __call__(self, x):

@@ -5,32 +5,37 @@ from .prelude import *
 # TODO: typing and docs
 
 __all__ = (
-    'derivative', 'value_and_derivative', 'hvp', 'curl', 'cross', 'divergence', 'laplace'
+    "derivative",
+    "value_and_derivative",
+    "hvp",
+    "curl",
+    "cross",
+    "divergence",
+    "laplace",
 )
 
 
-Array = Any
 Scalar = Array
 
 
 def apply_to_module(operator):
     @wraps(operator)
     def op(f, *args, **kwargs):
-        if isinstance(f, Module):
+        if isinstance(f, nn.Module):
             apply = lambda x, p, *args, **kwargs: f.apply(p, x, *args, **kwargs)
             return operator(apply, *args, **kwargs)
         else:
             return operator(f, *args, **kwargs)
+
     return op
 
 
 Partials = int | str
 
+
 @apply_to_module
 def value_and_derivative(
-    f: Callable[..., Array], 
-    wrt: Partials, 
-    argnum: Optional[int]=None
+    f: Callable[..., Array], wrt: Partials, argnum: Optional[int] = None
 ) -> Callable[..., tuple[Array, Array]]:
     sig = signature(f)
 
@@ -40,27 +45,32 @@ def value_and_derivative(
 
     if isinstance(wrt, str):
         arg_names = list(sig.parameters.keys())
-        assert wrt in arg_names, f"Argument `{wrt}` is not a valid attribute name for the function."
+        assert (
+            wrt in arg_names
+        ), f"Argument `{wrt}` is not a valid attribute name for the function."
         wrt = arg_names.index(wrt)
 
     def df(*args, **kwargs):
         if isinstance(wrt, int) and argnum is None:
-            ei = [ones_like(x) if i == wrt else zeros_like(x) for i, x in enumerate(args)]
+            ei = [
+                ones_like(x) if i == wrt else zeros_like(x) for i, x in enumerate(args)
+            ]
         elif isinstance(wrt, int) and argnum is not None:
             ei = [zeros_like(x) for x in args]
-            ei[argnum] = ei[argnum].at[wrt].set(1.)
+            ei[argnum] = ei[argnum].at[wrt].set(1.0)
         else:
             ei = wrt
         _f = lambda *args: f(*args, **kwargs)
         primals, tangents = jax.jvp(_f, list(args), ei)
         return primals, tangents
+
     return df
 
 
 @apply_to_module
 def derivative(
-    wrt: Callable[..., Array] | Partials | Sequence[Partials], 
-    argnums: T.Optional[int | Sequence[int | None]]=None
+    wrt: Callable[..., Array] | Partials | Sequence[Partials],
+    argnums: T.Optional[int | Sequence[int | None]] = None,
 ) -> Callable[..., Callable | Array]:
     """This derivative operator computes the respective derivatives
     using forward mode differentiation.
@@ -91,7 +101,7 @@ def derivative(
     wrt : Union[Callable[..., Array], int, str, Sequence[Union[int, str]]]
         function, argnums, string or list of partial derivatives to compute
     argnums : Optional[int], optional
-        if provided, the respective argument is considered a vector `wrt` should indicate the index 
+        if provided, the respective argument is considered a vector `wrt` should indicate the index
         of the partial derivative to compute
 
     Returns
@@ -114,13 +124,13 @@ def derivative(
         _df = lambda *args, **kwargs: df(*args, **kwargs)[1]
         setattr(_df, "__signature__", sig)
         return _df
-    
+
     if isinstance(wrt, int):
         wrt = [wrt]
 
     if not isinstance(argnums, Sequence):
         argnums = [argnums for _ in wrt]
-    
+
     assert len(argnums) == len(wrt)
 
     def inner(f) -> Callable[..., Array]:
@@ -142,22 +152,24 @@ def derivative(
 
 
 def hvp(
-    f: Callable[..., Array], 
-    primals: Sequence[Array], 
-    tangents: Sequence[Array]
+    f: Callable[..., Array], primals: Sequence[Array], tangents: Sequence[Array]
 ) -> Array:
     return jvp(jacfwd(f), primals, tangents)[1]
 
 
 def hessian_diag(f: Callable[..., Array], primals: Array) -> Array:
-    assert len(primals.shape) == 1
+    primals = _to_array(primals)
+    primals = primals
+    is_1d = primals.shape == ()
+    primals = primals.ravel()
+    
     vs = jnp.eye(primals.shape[0])
-    # comp = lambda v: hvp(f, [primals], [v]) @ v #vdot(v, hvp(f, [primals], [v]))
-    comp = lambda v: tree_map(
-        lambda a: a @ v, 
-        hvp(f, [primals], [v])
-    )
-    return jax.vmap(comp)(vs)
+    comp = lambda v: tree_map(lambda a: a @ v, hvp(f, [primals], [v]))
+    diag_entries = jax.vmap(comp)(vs)
+    if is_1d:
+        return diag_entries[0]
+    else:
+        return diag_entries
 
 
 @apply_to_module
@@ -165,14 +177,16 @@ def laplace(f: Callable[..., Scalar]) -> Callable[..., Scalar]:
     """Computes the laplacian :math:`\\Delta f` wrt. the first argument.
     If `f` is a vector valued function, the laplacian of each output is
     computed.
-    
+
     Parameters
     ----------
     f : Callable[..., Scalar]
     """
+
     def lap(x, *args, **kwargs):
         H_diag = hessian_diag(lambda x: f(x, *args, **kwargs), x)
         return tree_map(lambda d: jnp.sum(d, axis=0), H_diag)
+
     return lap
 
 
@@ -184,9 +198,11 @@ def divergence(f: Callable[..., Array]) -> Callable[..., Array]:
     ----------
     f : Callable[..., Array]
     """
+
     def div_f(x, *args, **kwargs):
         Jf = jacfwd(f, 0)(x, *args, **kwargs)
         return jnp.sum(diag(Jf))
+
     return div_f
 
 
@@ -198,6 +214,7 @@ def curl(f: Callable[..., Array]) -> Callable[..., Array]:
     ----------
     f : Callable[..., Array]
     """
+
     def _curl(x, *args):
         if x.shape[0] == 2:
             return curl2d(f)(x, *args)
@@ -205,17 +222,22 @@ def curl(f: Callable[..., Array]) -> Callable[..., Array]:
             return curl3d(f)(x, *args)
         else:
             raise ValueError("Dimension must be 2 or 3.")
+
     return _curl
 
 
 def curl3d(f):
-    def _f(x, *args, ):
+    def _f(
+        x,
+        *args,
+    ):
         J = jacfwd(f, 0)(x, *args)
         x = J[2, 1] - J[1, 2]
         y = J[0, 2] - J[2, 0]
         z = J[1, 0] - J[0, 1]
         c = jnp.stack((x, y, z))
         return c
+
     return _f
 
 
@@ -224,39 +246,8 @@ def curl2d(f):
         J = jacfwd(f, 0)(x, *args)
         c = J[1, 0] - J[0, 1]
         return c
+
     return jit(_f)
-
-
-# def cross(a: Array, b: Array) -> Array:
-#     """Computes the cross product of two vectors in :math:`\\mathbb{R}^2` or :math:`\\mathbb{R}^3`.
-
-#     Parameters
-#     ----------
-#     a : Array
-#     b : Array
-
-#     Returns
-#     -------
-#     Array
-#     """
-#     if is_2d(a, b):
-#         return cross2d(a, b)
-#     elif is_3d(a, b):
-#         return cross3d(a, b)
-#     else:
-#         dim_a = a.shape
-#         dim_b = b.shape
-#         raise ValueError(f"Cannot build cross product for dim {dim_a} and {dim_b}.")
-
-# def cross2d(a: Array, b: Array) -> Array:
-#     return a[0] * b[1] - a[1] * b[0]
-
-
-# def cross3d(a: Array, b: Array) -> Array:
-#     x = a[1] * b[2] - b[1] * a[2]
-#     y = b[0] * a[2] - a[0] * b[2]
-#     z = a[0] * b[1] - b[0] * a[1]
-#     return stack((x, y, z))
 
 
 def is_2d(*args) -> bool:
@@ -265,3 +256,10 @@ def is_2d(*args) -> bool:
 
 def is_3d(*args) -> bool:
     return all(map(lambda x: x.shape[-1] == 3, args))
+
+
+def _to_array(a: Array | Sequence[float | int] | float | int) -> Array:
+    if not isinstance(a, Array):
+        return array(a)
+    else:
+        return a
