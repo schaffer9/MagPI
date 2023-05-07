@@ -21,19 +21,6 @@ where higher order normal derivatives are zero.
 """
 ADF = T.Annotated[Callable[[Array | Scalar], Scalar], _annotation]
 
-# class ADF(T.Protocol):
-#     """
-#     ADF stands for Approximate distance function. It is
-#     positive inside the respective domain, zero on the boundary
-#     and negative outside the domain. When normalized to first order
-#     the normal derivative has a magnitude of one everywhere on the
-#     boundary. Higher order normalization yields a function
-#     where higher order normal derivatives are zero.
-#     """
-
-#     def __call__(self, x: Array) -> Scalar:
-#         ...
-
 
 class RFun:
     def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:

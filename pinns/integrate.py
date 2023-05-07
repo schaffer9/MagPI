@@ -6,8 +6,8 @@ Integrand = Callable[..., Array]
 QuadRule = Callable[[Array], tuple[Array, Array]]
 
 
-def midpoint(domain: Array) -> Array:
-    w = (domain[1:] - domain[:-1])
+def midpoint(domain: Array) -> tuple[Array, Array]:
+    w = domain[1:] - domain[:-1]
     nodes = (domain[1:] + domain[:-1]) / 2
     return w, nodes
 
@@ -44,6 +44,7 @@ def gauss2(domain: Array) -> tuple[Array, Array]:
         t = lambda x: (a + b) / 2 + x * (b - a) / 2
         w = (b - a) / 2
         return stack([w, w]), stack([t(-1 / sqrt(3)), t(1 / sqrt(3))])
+
     w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
     return jnp.ravel(w), jnp.ravel(nodes)
 
@@ -54,8 +55,9 @@ def gauss3(domain: Array) -> tuple[Array, Array]:
         w = (b - a) / 2
         return (
             w * stack([5 / 9, 8 / 9, 5 / 9]),
-            stack([t(-sqrt(3 / 5)), t(0.), t(sqrt(3 / 5))])
+            stack([t(-sqrt(3 / 5)), t(0.0), t(sqrt(3 / 5))]),
         )
+
     w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
     return jnp.ravel(w), jnp.ravel(nodes)
 
@@ -64,13 +66,10 @@ def gauss4(domain: Array) -> tuple[Array, Array]:
     def weights_nodes(a, b):
         t = lambda x: (a + b) / 2 + x * (b - a) / 2
         w = (b - a) / 2
-        u, v = (sqrt(3 / 7 - 2 / 7 * sqrt(6 / 5)), 
-                sqrt(3 / 7 + 2 / 7 * sqrt(6 / 5)))
+        u, v = (sqrt(3 / 7 - 2 / 7 * sqrt(6 / 5)), sqrt(3 / 7 + 2 / 7 * sqrt(6 / 5)))
         w1, w2 = (18 + sqrt(30)) / 36, (18 - sqrt(30)) / 36
-        return (
-            w * stack([w1, w1, w2, w2]),
-            stack([t(u), t(-u), t(v), t(-v)])
-        )
+        return (w * stack([w1, w1, w2, w2]), stack([t(u), t(-u), t(v), t(-v)]))
+
     w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
     return jnp.ravel(w), jnp.ravel(nodes)
 
@@ -86,8 +85,9 @@ def gauss5(domain: Array) -> tuple[Array, Array]:
         w2 = (322 - 13 * sqrt(70)) / 900
         return (
             w * stack([w0, w1, w1, w2, w2]),
-            stack([t(0), t(u), t(-u), t(v), t(-v)])
+            stack([t(0), t(u), t(-u), t(v), t(-v)]),
         )
+
     w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
     return jnp.ravel(w), jnp.ravel(nodes)
 
@@ -138,8 +138,8 @@ def integrate(
     domain : Array | list[Array]
         nodal points for each dimension
     method : QuadRule, optional
-        The quadrature rule is a function `Callable[[Array], tuple[Array, Array]]` which 
-        should return a tuple `(wieghts, nodes)` of the method 
+        The quadrature rule is a function `Callable[[Array], tuple[Array, Array]]` which
+        should return a tuple `(wieghts, nodes)` of the method
         in 1d, by default simpson.
 
     Returns
@@ -159,6 +159,7 @@ def integrate(
 
     def g(x):
         return f(x, *args, **kwargs)
+
     F = jnp.apply_along_axis(g, -1, X)
     return jnp.tensordot(W, F, len(domain))
 
@@ -270,7 +271,7 @@ def integrate_sphere(
         y = r * sin(phi) * sin(theta)
         z = r * cos(phi)
         p = stack([x, y, z]) + o
-        return f(p, *args, **kwargs) * r ** 2 * sin(phi)
+        return f(p, *args, **kwargs) * r**2 * sin(phi)
 
     domain = [
         jnp.linspace(r_inner, r, n[0]),

@@ -4,7 +4,7 @@ from jaxopt.linear_solve import solve_cg
 from .prelude import *
 
 __all__ = (
-    "krr", "KRR", "rbf"
+    "krr", "KRR", "rbf", "pairwise_kernel"
 )
 
 

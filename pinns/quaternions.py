@@ -105,12 +105,12 @@ class Quaternion:
 
 
 def quanternion_exp(q: Quaternion) -> Quaternion:
-    """_summary_
+    """
+    Computes :math:`\\exp(q)`
 
     Parameters
     ----------
     q : Quaternion
-        _description_
 
     Returns
     -------
@@ -124,6 +124,16 @@ def quanternion_exp(q: Quaternion) -> Quaternion:
 
 
 def quanternion_log(q: Quaternion) -> Quaternion:
+    """Computes :math:`\\log(p)`
+
+    Parameters
+    ----------
+    q : Quaternion
+
+    Returns
+    -------
+    Quaternion
+    """
     r = abs(q)
     a = log(r)
     p = sgn(q.imag) * arg(q)
@@ -145,6 +155,18 @@ def sgn(v: Array) -> Array:
 
 
 def quaternion_rotation(x: Vec, q: Quaternion) -> Array:
+    """Computes the quaternion rotation :math:`q^{-1} p q`.
+
+    Parameters
+    ----------
+    x : Vec
+        3d Vector
+    q : Quaternion
+
+    Returns
+    -------
+    Array
+    """
     x = _to_array(x)
     qinv = q.reciprocal()
     p = Quaternion(zeros((), dtype=x.dtype), x)
@@ -152,6 +174,17 @@ def quaternion_rotation(x: Vec, q: Quaternion) -> Array:
 
 
 def quaternion_reflection(x: Vec, normal_vec: Vec) -> Array:
+    """Computes the reflection over the plane normal to the given normal vecor.
+
+    Parameters
+    ----------
+    x : Vec
+    normal_vec : Vec
+
+    Returns
+    -------
+    Array
+    """
     x = _to_array(x)
     normal_vec = _to_array(normal_vec)
     n = normal_vec / norm(normal_vec)
@@ -162,6 +195,17 @@ def quaternion_reflection(x: Vec, normal_vec: Vec) -> Array:
 
 
 def from_euler_angles(angles: Vec) -> Quaternion:
+    """Returns the unit quaternion of the euler angles
+    :math:`\\phi_x,\\phi_y,\\phi_z`
+
+    Parameters
+    ----------
+    angles : Vec
+        3d vector of euler angles.
+    Returns
+    -------
+    Quaternion
+    """
     angles = _to_array(angles)
     angles = angles / 2
     s = sin(angles)
@@ -176,6 +220,18 @@ def from_euler_angles(angles: Vec) -> Quaternion:
 
 
 def from_axis_angle(angle: Scalar, axis: Vec) -> Quaternion:
+    """Returns the unit quaternion of the given angle-axis representation
+
+    Parameters
+    ----------
+    angle : Scalar
+    axis : Vec
+        3d Vector of the rotation
+
+    Returns
+    -------
+    Quaternion
+    """
     axis = _to_array(axis)
     angle = angle / 2
     return Quaternion(cos(angle), axis * sin(angle))

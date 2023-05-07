@@ -55,12 +55,6 @@ pinns.opt module
    :members:
    :undoc-members:
 
-pinns.pde module
-----------------
-
-.. automodule:: pinns.pde
-   :members:
-   :undoc-members:
 
 pinns.sampling module
 ---------------------
@@ -75,3 +69,18 @@ pinns.tr module
 .. automodule:: pinns.tr
    :members:
    :undoc-members:
+
+pinns.quaternions module
+------------------------
+
+.. automodule:: pinns.quaternions
+   :members:
+   :undoc-members:
+
+pinns.r_fun module
+------------------
+
+.. automodule:: pinns.r_fun
+   :members:
+   :undoc-members:
+
