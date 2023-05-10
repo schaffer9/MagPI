@@ -67,6 +67,16 @@ __all__ = (
     "flax",
     "nn",
     "optax",
+    "jaxopt",
+    "tree_add",
+    "tree_sum",
+    "tree_sub",
+    "tree_div",
+    "tree_mul",
+    "tree_dot",
+    "tree_vdot",
+    "tree_scalar_mul",
+    "tree_add_scalar_mul",
 )
 
 from functools import partial, reduce, wraps
@@ -122,7 +132,18 @@ import jax.flatten_util as flatten_util
 from jax.nn import selu, elu, tanh, sigmoid, swish
 
 from jax.tree_util import tree_map, tree_reduce, tree_leaves
-
+import jaxopt
+from jaxopt.tree_util import (
+    tree_add, 
+    tree_sum, 
+    tree_sub, 
+    tree_div, 
+    tree_mul, 
+    tree_dot,
+    tree_vdot,
+    tree_scalar_mul,
+    tree_add_scalar_mul,
+)
 import flax
 from flax import linen as nn
 import optax
