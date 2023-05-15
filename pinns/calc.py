@@ -2,6 +2,7 @@ from inspect import signature
 
 from .prelude import *
 
+import chex
 # TODO: typing and docs
 
 __all__ = (
@@ -155,6 +156,35 @@ def hvp(
     f: Callable[..., Array], primals: Sequence[Array], tangents: Sequence[Array]
 ) -> Array:
     return jvp(jacfwd(f), primals, tangents)[1]
+
+
+def hvp_forward_over_reverse(
+    f: Callable, 
+    primals: Sequence[chex.ArrayTree], 
+    tangents: Sequence[chex.ArrayTree], 
+    *args: Any, 
+    value_and_grad: bool = False, 
+    has_aux: bool = False, 
+    **kwargs: Any
+):
+    """Computes the hessian vector product of a Scalar valued
+    function in forward-over-reverse mode.
+
+    Args:
+        f (Callable):
+        primals Sequence[chex.ArrayTree]:
+        tangents Sequence[chex.ArrayTree]:
+        value_and_grad (bool, optional): Defaults to False.
+        has_aux (bool, optional): Defaults to False.
+    """
+    def grad_f(p):
+        if value_and_grad:
+            _, _grad_f = f(p, *args, **kwargs)
+        else:
+            _, _grad_f = jax.value_and_grad(f, has_aux=has_aux)(p, *args, **kwargs)
+        return _grad_f
+
+    return jvp(grad_f, primals, tangents)[1]
 
 
 def hessian_diag(f: Callable[..., Array], primals: Array) -> Array:

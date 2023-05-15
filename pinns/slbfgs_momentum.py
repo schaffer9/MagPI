@@ -4,6 +4,7 @@
 # todo: full gradient approximation...
 # todo: better datafeed
 
+
 from dataclasses import dataclass
 
 import chex
@@ -45,11 +46,11 @@ class SLBFGS(jaxopt_base.IterativeSolver):
     has_aux: bool = False
 
     maxiter: int = 100
-    tol: float = 1e-5
+    tol: float = 1e-4
     history_size: int = 10
-    batch_size_gradient: int = 32  # | None = None
-    batch_size_hessian: int = 64  # | None = None
-    inner_iterations: int = 30  # | None = None
+    batch_size_gradient: int | None = None
+    batch_size_hessian: int | None = None
+    inner_iterations: int | None = None
     update_each: int = 10
     stepsize: float = 1e-2
     use_gamma: bool = True
@@ -120,7 +121,6 @@ class SLBFGS(jaxopt_base.IterativeSolver):
             rho_history=state.rho_history,
             param_history=state.param_history,
             inner_params=params,
-            new_params_sum=tree_map(zeros_like, params),
             grad_f=state.grad,
             gamma=state.gamma,
         )
@@ -135,7 +135,6 @@ class SLBFGS(jaxopt_base.IterativeSolver):
             last = iter_state["last"]
             last_param = iter_state["last_param"]
             param_history = iter_state["param_history"]
-            new_params_sum = iter_state["new_params_sum"]
             grad_f = iter_state["grad_f"]
             gamma = iter_state["gamma"]
 
@@ -152,7 +151,6 @@ class SLBFGS(jaxopt_base.IterativeSolver):
             d = inv_hessian_product(vrg, s_history, y_history, rho_history, gamma, last)
 
             inner_params = tree_add_scalar_mul(inner_params, -self.stepsize, d)
-            new_params_sum = tree_add(new_params_sum, inner_params)
             last_param = (last_param + 1) % self.update_each
             param_history = update_history(param_history, inner_params, last_param)
             iters = state.iter_num * self.inner_iterations + iter_inner
@@ -191,7 +189,6 @@ class SLBFGS(jaxopt_base.IterativeSolver):
                     rho_history=update_history(rho_history, rho, last),
                     param_history=param_history,
                     inner_params=inner_params,
-                    new_params_sum=new_params_sum,
                     grad_f=state.grad,
                     gamma=gamma,
                 )
@@ -207,7 +204,6 @@ class SLBFGS(jaxopt_base.IterativeSolver):
                     rho_history=rho_history,
                     param_history=param_history,
                     inner_params=inner_params,
-                    new_params_sum=new_params_sum,
                     grad_f=state.grad,
                     gamma=gamma,
                 )
@@ -224,9 +220,10 @@ class SLBFGS(jaxopt_base.IterativeSolver):
             jit=jit,
         )
     
-        params = tree_scalar_mul(
-            1 / self.inner_iterations, iter_state["new_params_sum"]
-        )
+        params = iter_state["inner_params"]
+        # params = tree_scalar_mul(
+        #     1 / self.inner_iterations, iter_state["new_params_sum"]
+        # )
         (new_loss, aux), grad_f = self._value_and_grad_with_aux(
             params, self.dataset, *args, **kwargs
         )
@@ -271,15 +268,15 @@ class SLBFGS(jaxopt_base.IterativeSolver):
         )
 
         self.dataset_size = dataset_size(self.dataset)
-        # if self.batch_size_gradient is None:
-        #     self.batch_size_gradient = int(sqrt(self.dataset_size))
+        if self.batch_size_gradient is None:
+            self.batch_size_gradient = int(sqrt(self.dataset_size))
 
-        # if self.batch_size_hessian is None:
-        #     self.batch_size_hessian = self.batch_size_gradient * self.update_each
-        # self.batch_size_hessian = min(self.batch_size_hessian, self.dataset_size)
+        if self.batch_size_hessian is None:
+            self.batch_size_hessian = self.batch_size_gradient * self.update_each
+        self.batch_size_hessian = min(self.batch_size_hessian, self.dataset_size)
 
-        # if self.inner_iterations is None:
-        #     self.inner_iterations = int(self.dataset_size / self.batch_size_gradient)
+        if self.inner_iterations is None:
+            self.inner_iterations = int(self.dataset_size / self.batch_size_gradient)
 
 
 def param_mean(param_history: chex.ArrayTree) -> chex.ArrayTree:
@@ -320,6 +317,10 @@ def _make_funs_with_aux(fun: Callable, value_and_grad: bool, has_aux: bool):
     return fun_, grad_fun, value_and_grad_fun
 
 
+# def hvp(f, primals, tangents):
+#     return jvp(grad(f), primals, tangents)[1]
+
+
 def hvp(f, primals, tangents, *args, value_and_grad=False, has_aux=False, **kwargs):
     def grad_f(p):
         if value_and_grad:
@@ -329,6 +330,14 @@ def hvp(f, primals, tangents, *args, value_and_grad=False, has_aux=False, **kwar
         return _grad_f
 
     return jvp(grad_f, primals, tangents)[1]
+
+
+# todo: two loop recursion with pytrees
+# todo: make memories
+# todo: RAR
+# todo: momentum for x
+# todo: other variance reduction strategies
+# todo: add tol and break
 
 
 def inv_hessian_product_leaf(

@@ -12,7 +12,8 @@ class TestTR(JaxTestCase):
         x0 = array(2.)
         df = 2 * x0
         hvp = lambda x: 2 * x
-        iterations, p = tr.steihaug(df, hvp, delta=2., maxiter=10, eps=1e-7)
+        converged, iterations, p = tr.steihaug(df, hvp, tr_radius=2., maxiter=10)
+        self.assertTrue(converged)
         self.assertIsclose(x0 + p, 0.)
         self.assertIsclose(abs(p), 2.)
         self.assertEqual(iterations, 1)
@@ -21,36 +22,67 @@ class TestTR(JaxTestCase):
         x0 = array(2.)
         df = 2 * x0
         hvp = lambda x: 2 * x
-        iterations, p = tr.steihaug(df, hvp, delta=1., maxiter=10, eps=1e-7)
+        converged, iterations, p = tr.steihaug(df, hvp, tr_radius=1., maxiter=10)
+        self.assertTrue(converged)
         self.assertIsclose(x0 + p, 1.)
         self.assertIsclose(abs(p), 1.)
         self.assertEqual(iterations, 1)
 
     def test_002_steihaug_eps_reached(self):
-        x0 = array(2.)
+        x0 = array(0.)
         df = 2 * x0
         hvp = lambda x: 2 * x
-        iterations, p = tr.steihaug(df, hvp, delta=1., maxiter=10, eps=5)
-        self.assertIsclose(x0 + p, 2.)
+        converged, iterations, p = tr.steihaug(df, hvp, tr_radius=2., maxiter=10, eps_max=1e-4)
+        self.assertTrue(converged)
+        self.assertIsclose(x0 + p, 0.)
         self.assertIsclose(abs(p), 0.)
         self.assertEqual(iterations, 0)
 
     def test_003_steihaug_2d(self):
-        x0 = array([1., 1.])
-        f = lambda x: array([0., 0.]) @ x + x @ array([[1., 0], [0., 1.]]) @ x
+        x0 = (array([1., 1.]), )
+        f = lambda x: array([0., 0.]) @ x[0] + x[0] @ array([[1., 0], [0., 1.]]) @ x[0]
         df = grad(f)(x0)
-        hvp = lambda x: calc.hvp(f, (x0,), (x,))
-        iterations, p = jit(tr.steihaug, static_argnames="hvp")(df, hvp, delta=3, maxiter=2, eps=1e-7)
-        self.assertIsclose(x0 + p, array([0., 0.]))
-        self.assertIsclose(p, array([-1., -1.]))
+        #hvp = lambda x: calc.hvp(f, (x0,), (x,))
+        hvp = lambda x: calc.hvp_forward_over_reverse(f, (x0,), (x,))
+        steihaug = jit(tr.steihaug, static_argnames=("hvp", "maxiter"))
+        converged, iterations, p = steihaug(df, hvp, tr_radius=3, maxiter=2)
+        self.assertTrue(converged)
+        self.assertIsclose(x0[0] + p[0], array([0., 0.]))
+        self.assertIsclose(p[0], array([-1., -1.]))
         self.assertEqual(iterations, 1)
 
     def test_004_tr_branin_function(self):
         f = lambda x: (x[1] - 0.129 * x[0] ** 2 + 1.6 * x[0] - 6) ** 2 + 6.07 * cos(x[0]) + 10
         x0 = array([6., 14.])
-        result = jit(tr.tr, static_argnames='f')(f, x0, delta0 = 2.,
-            delta_max=2., eps_grad=0.001, maxiter=30, eps_steihaug=1e-3)
-        self.assertIsclose(result.params, array([3.1415486, 2.2468324]))
-        self.assertEqual(result.delta, 2.)
-        self.assertLess(norm(result.grad), 0.001)
         
+        solver = tr.TR(
+            f, 
+            init_tr_radius=1.,
+            max_tr_radius=2.,
+            tol=1e-4,
+            maxiter=30,
+            eps_steihaug=1e-2,
+            maxiter_steihaug=2
+        )
+        params, state = jit(solver.run)(x0)
+        self.assertIsclose(params, array([3.1415927, 2.2466307]))
+        self.assertEqual(state.tr_radius, 2.)
+        self.assertLess(tree_l2_norm(state.grad), 0.001)
+    
+    def test_005_tr_with_pytree_params(self):
+        f = lambda x: (x['params'][1] - 0.129 * x['params'][0] ** 2 + 1.6 * x['params'][0] - 6) ** 2 + 6.07 * cos(x['params'][0]) + 10
+        x0 = {'params': array([6., 14.])}
+        
+        solver = tr.TR(
+            f, 
+            init_tr_radius=1.,
+            max_tr_radius=2.,
+            tol=1e-4,
+            maxiter=30,
+            eps_steihaug=1e-2,
+            maxiter_steihaug=2
+        )
+        params, state = jit(solver.run)(x0)
+        self.assertIsclose(params['params'], array([3.1415927, 2.2466307]))
+        self.assertEqual(state.tr_radius, 2.)
+        self.assertLess(tree_l2_norm(state.grad), 0.001)

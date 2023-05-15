@@ -10,6 +10,7 @@ __all__ = (
     "Optional",
     "Union",
     "Array",
+    "ArrayLike",
     "array",
     "zeros",
     "zeros_like",
@@ -77,6 +78,10 @@ __all__ = (
     "tree_vdot",
     "tree_scalar_mul",
     "tree_add_scalar_mul",
+    "tree_l2_norm", 
+    "tree_negative",
+    "tree_ones_like",
+    "tree_zeros_like",
 )
 
 from functools import partial, reduce, wraps
@@ -125,6 +130,7 @@ from jax.numpy.linalg import norm, solve
 import jax.numpy as jnp
 
 from jax import Array, grad, jit, jacfwd, jacrev, vmap, jvp, value_and_grad
+from jax.typing import ArrayLike
 import jax.lax as lax
 import jax.random as random
 import jax.flatten_util as flatten_util
@@ -143,6 +149,10 @@ from jaxopt.tree_util import (
     tree_vdot,
     tree_scalar_mul,
     tree_add_scalar_mul,
+    tree_l2_norm, 
+    tree_negative,
+    tree_ones_like,
+    tree_zeros_like
 )
 import flax
 from flax import linen as nn
