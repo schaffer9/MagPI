@@ -65,6 +65,7 @@ class TestTR(JaxTestCase):
             maxiter_steihaug=2
         )
         params, state = jit(solver.run)(x0)
+        print(params, state)
         self.assertIsclose(params, array([3.1415927, 2.2466307]))
         self.assertEqual(state.tr_radius, 2.)
         self.assertLess(tree_l2_norm(state.grad), 0.001)
@@ -86,3 +87,27 @@ class TestTR(JaxTestCase):
         self.assertIsclose(params['params'], array([3.1415927, 2.2466307]))
         self.assertEqual(state.tr_radius, 2.)
         self.assertLess(tree_l2_norm(state.grad), 0.001)
+        
+    def test_006_steihaug_limit_step(self):
+        x0 = array(2.)
+        df = 2 * x0
+        hvp = lambda x: 2 * x
+        converged, iterations, p = tr.steihaug(df, hvp, tr_radius=0.01, eps_max=1e-4)
+        self.assertTrue(converged)
+        self.assertIsclose(tree_l2_norm(p), 0.01)
+
+    def test_007_tr_no_jit(self):
+        f = lambda x: jnp.sum(x ** 2)
+        x0 = jnp.ones(4)
+        solver = tr.TR(f, maxiter=5, init_tr_radius=0.5, jit=False)
+        params, state = solver.run(x0)
+        self.assertIsclose(params, 0.)
+        self.assertTrue(state.staihaug_converged)
+        self.assertGreater(state.iter_num_steihaug, 0)
+    
+    def test_008_steihaug_not_converged(self):
+        f = lambda x: (x[1] - 0.129 * x[0] ** 2 + 1.6 * x[0] - 6) ** 2 + 6.07 * cos(x[0]) + 10
+        x0 = array([3, 2.])
+        solver = tr.TR(f, maxiter=1, init_tr_radius=0.5, maxiter_steihaug=1, unroll=False)
+        _, state = solver.run(x0)
+        self.assertFalse(state.staihaug_converged)
