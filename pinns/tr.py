@@ -20,7 +20,8 @@ class TrState(T.NamedTuple):
     tr_radius: Array
     aux: Any
     iter_num_steihaug: int
-    staihaug_converged: bool | Array
+    steihaug_converged: bool | Array
+    steihaug_curvature: Array
 
 
 @dataclass(eq=False)
@@ -30,20 +31,19 @@ class TR(jaxopt_base.IterativeSolver):
     has_aux: bool = False
     init_tr_radius: float = 1.0
     max_tr_radius: float = 2.0
-    min_tr_radius: float = 1e-8
+    min_tr_radius: float = 1e-10
     rho_increase: float = 3 / 4
     increase_factor: float = 2
     rho_decrease: float = 1 / 4
     decrease_factor: float = 1 / 4
-    rho_accept: float = 1 / 6
+    rho_accept: float = 1 / 4
     tol: float = 1e-2  # gradient tolerance
     maxiter: int = 100
     maxiter_steihaug: int | None = None
-    eps_steihaug: float = 1e-2
     eps_min_steihaug: float = 1e-9
 
     callback: None | Callable[[jaxopt_base.OptStep], None] = None
-    
+
     implicit_diff: bool = True
     implicit_diff_solve: Optional[Callable] = None
 
@@ -73,10 +73,13 @@ class TR(jaxopt_base.IterativeSolver):
             rho=jnp.asarray(0.0),
             tr_radius=tr_radius,
             iter_num_steihaug=0,
-            staihaug_converged=False,
+            steihaug_converged=False,
+            steihaug_curvature=jnp.asarray(jnp.inf),
         )
 
-    def hvp(self, params, state, *args, **kwargs) -> Callable[[chex.ArrayTree], chex.ArrayTree]:
+    def hvp(
+        self, params, state, *args, **kwargs
+    ) -> Callable[[chex.ArrayTree], chex.ArrayTree]:
         return lambda p: calc.hvp_forward_over_reverse(
             self._value_and_grad_with_aux,
             (params,),
@@ -94,16 +97,17 @@ class TR(jaxopt_base.IterativeSolver):
             params = params.params
         hvp = self.hvp(params, state, *args, **kwargs)
         jit, unroll = self._get_loop_options()
-        converged, iter_num_steihaug, p = steihaug(
+        # converged, iter_num_steihaug, p = steihaug(
+        steihaug_result = steihaug(
             state.grad,
             hvp,
             tr_radius=state.tr_radius,
             maxiter=self.maxiter_steihaug,
             eps_min=self.eps_min_steihaug,
-            eps_max=self.eps_steihaug,
             jit=jit,
             unroll=unroll,
         )
+        p = steihaug_result.p
 
         def update():
             new_params = tree_add(params, p)
@@ -113,20 +117,19 @@ class TR(jaxopt_base.IterativeSolver):
             nom = state.value - value
             denom = -(tree_vdot(state.grad, p) + 1 / 2 * tree_vdot(p, hvp(p)))
             rho = nom / denom
-            norm_p = tree_l2_norm(p)
             tr_radius = update_tr_radius(
                 state.tr_radius,
                 self.max_tr_radius,
                 self.min_tr_radius,
                 rho,
-                norm_p,
+                steihaug_result.step_length,
                 self.rho_increase,
                 self.rho_decrease,
                 self.increase_factor,
                 self.decrease_factor,
             )
             accept = rho >= self.rho_accept
-            
+
             new_state = lax.cond(
                 accept,
                 lambda: TrState(
@@ -137,8 +140,9 @@ class TR(jaxopt_base.IterativeSolver):
                     rho=rho,
                     tr_radius=tr_radius,
                     aux=aux,
-                    iter_num_steihaug=iter_num_steihaug,
-                    staihaug_converged=converged,
+                    iter_num_steihaug=steihaug_result.iter_num,
+                    steihaug_converged=steihaug_result.converged,
+                    steihaug_curvature=steihaug_result.curvature
                 ),
                 lambda: TrState(
                     iter_num=state.iter_num + 1,
@@ -148,28 +152,27 @@ class TR(jaxopt_base.IterativeSolver):
                     rho=rho,
                     tr_radius=tr_radius,
                     aux=state.aux,
-                    iter_num_steihaug=iter_num_steihaug,
-                    staihaug_converged=converged,
+                    iter_num_steihaug=steihaug_result.iter_num,
+                    steihaug_converged=steihaug_result.converged,
+                    steihaug_curvature=steihaug_result.curvature
                 ),
-                
             )
-            
+
             _step = jaxopt.OptStep(
-                lax.cond(accept, lambda: new_params, lambda: params),
-                new_state
+                lax.cond(accept, lambda: new_params, lambda: params), new_state
             )
             if self.callback is not None:
                 cb = lambda step, _: self.callback(step)
                 hcb.id_tap(cb, _step)
-            
+
             return _step
-            
+
         def no_update():
             # in case steihaug does not make any progress, p = 0
             return jaxopt.OptStep(params, state)
+        make_update = (steihaug_result.iter_num == 0) | (state.tr_radius <= self.min_tr_radius)
+        return lax.cond(make_update, no_update, update)
 
-        return lax.cond(iter_num_steihaug == 0, no_update, update)
-    
     def optimality_fun(self, params, *args, **kwargs):
         return self._value_and_grad_with_aux(params, *args, **kwargs)[1]
 
@@ -181,11 +184,20 @@ class TR(jaxopt_base.IterativeSolver):
         if self.rho_accept > self.rho_decrease:
             msg = "`rho_accept` must be smaller than `rho_decrease` for convergence reasons!"
             raise ValueError(msg)
-        
 
-def tree_elements(tree: chex.ArrayTree) -> int:
+
+def tree_size(tree: chex.ArrayTree) -> int:
     tree = tree_map(lambda t: t.size, tree)
     return tree_reduce(operator.add, tree)
+
+
+class CgSteihaugResult(T.NamedTuple):
+    iter_num: int
+    converged: bool | Array
+    limit_step: bool | Array
+    step_length: Array
+    curvature: Array
+    p: chex.ArrayTree
 
 
 def steihaug(
@@ -194,20 +206,19 @@ def steihaug(
     tr_radius: float | Array,
     maxiter: int | None = None,
     eps_min: float = 1e-9,
-    eps_max: float = 1e-2,
     unroll: bool = True,
     jit: bool = True,
-) -> tuple[Array, int, chex.ArrayTree]:
+) -> CgSteihaugResult:  # tuple[Array, int, Array, chex.ArrayTree]:
     if maxiter is None:
-        maxiter = tree_elements(grad_f)
+        maxiter = tree_size(grad_f)
 
     z = tree_zeros_like(grad_f)
     r = grad_f
     d = tree_negative(r)
     norm_df = tree_l2_norm(grad_f)
 
-    eps = jnp.minimum(1 / 2, sqrt(norm_df)) * norm_df  # forcing sequence
-    eps = jnp.minimum(eps_max, eps)
+    # eps = jnp.minimum(1 / 2, sqrt(norm_df)) * norm_df  # forcing sequence
+    eps = jnp.minimum(1 / 2, norm_df) * norm_df  # forcing sequence
 
     def limit_step(z, d):
         a, b, c = tree_vdot(d, d), tree_vdot(z, d), tree_vdot(z, z) - tr_radius**2
@@ -251,7 +262,9 @@ def steihaug(
 
     def condition(state):
         curvature, norm_z, norm_r = state["curvature"], state["norm_z"], state["norm_r"]
-        cond = (curvature <= 0) | (norm_z >= tr_radius) | (norm_r < eps) | (eps < eps_min)
+        cond = (
+            (curvature <= 0) | (norm_z >= tr_radius) | (norm_r < eps) | (eps < eps_min)
+        )
         return jnp.invert(cond)
 
     dtype = utils.tree_single_dtype(grad_f)
@@ -268,7 +281,17 @@ def steihaug(
         condition, step, init_state, maxiter, unroll=unroll, jit=jit
     )
     converged = jnp.invert(condition(state))
-    return converged, state["iter_num"], state["z"]
+    steplength = tree_l2_norm(state["z"])
+    result = CgSteihaugResult(
+        iter_num=state["iter_num"],
+        converged=converged,
+        limit_step=jnp.isclose(steplength, tr_radius),
+        curvature=state["curvature"],
+        step_length=steplength,
+        p=state["z"],
+    )
+    return result
+    # return converged, state["iter_num"], state["z"], state["curvature"]
 
 
 def update_tr_radius(
