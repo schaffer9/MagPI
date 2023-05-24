@@ -12,7 +12,7 @@ class TestTR(JaxTestCase):
         x0 = array(2.)
         df = 2 * x0
         hvp = lambda x: 2 * x
-        r = tr.steihaug(df, hvp, tr_radius=2., maxiter=10)
+        r = tr.steihaug(df, hvp, tr_radius=2., eps=1e-4, maxiter=10)
         self.assertTrue(r.converged)
         self.assertIsclose(x0 + r.p, 0.)
         self.assertIsclose(abs(r.p), 2.)
@@ -22,7 +22,7 @@ class TestTR(JaxTestCase):
         x0 = array(2.)
         df = 2 * x0
         hvp = lambda x: 2 * x
-        r = tr.steihaug(df, hvp, tr_radius=1., maxiter=10)
+        r = tr.steihaug(df, hvp, tr_radius=1., eps=1e-4, maxiter=10)
         self.assertTrue(r.converged)
         self.assertIsclose(x0 + r.p, 1.)
         self.assertIsclose(abs(r.p), 1.)
@@ -32,7 +32,7 @@ class TestTR(JaxTestCase):
         x0 = array(0.)
         df = 2 * x0
         hvp = lambda x: 2 * x
-        r = tr.steihaug(df, hvp, tr_radius=2., maxiter=10, eps_max=1e-4)
+        r = tr.steihaug(df, hvp, tr_radius=2., maxiter=10, eps=1e-4)
         self.assertTrue(r.converged)
         self.assertIsclose(x0 + r.p, 0.)
         self.assertIsclose(abs(r.p), 0.)
@@ -44,7 +44,7 @@ class TestTR(JaxTestCase):
         df = grad(f)(x0)
         hvp = lambda x: calc.hvp_forward_over_reverse(f, (x0,), (x,))
         steihaug = jit(tr.steihaug, static_argnames=("hvp", "maxiter"))
-        r = steihaug(df, hvp, tr_radius=3, maxiter=2)
+        r = steihaug(df, hvp, tr_radius=3, maxiter=2, eps=1e-4)
         self.assertTrue(r.converged)
         self.assertIsclose(x0[0] + r.p[0], array([0., 0.]))
         self.assertIsclose(r.p[0], array([-1., -1.]))
@@ -60,7 +60,6 @@ class TestTR(JaxTestCase):
             max_tr_radius=2.,
             tol=1e-4,
             maxiter=30,
-            eps_steihaug=1e-2,
             maxiter_steihaug=2
         )
         params, state = jit(solver.run)(x0)
@@ -78,7 +77,6 @@ class TestTR(JaxTestCase):
             max_tr_radius=2.,
             tol=1e-4,
             maxiter=30,
-            eps_steihaug=1e-2,
             maxiter_steihaug=2
         )
         params, state = jit(solver.run)(x0)
@@ -90,7 +88,7 @@ class TestTR(JaxTestCase):
         x0 = array(2.)
         df = 2 * x0
         hvp = lambda x: 2 * x
-        r = tr.steihaug(df, hvp, tr_radius=0.01, eps_max=1e-4)
+        r = tr.steihaug(df, hvp, tr_radius=0.01, eps=1e-4)
         self.assertTrue(r.converged)
         self.assertIsclose(tree_l2_norm(r.p), 0.01)
         self.assertIsclose(r.step_length, 0.01)

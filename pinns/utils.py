@@ -1,7 +1,8 @@
 from .prelude import *
-
+import chex
 
 # some function taken from jaxopt:
+
 
 def make_funs_with_aux(fun: Callable, value_and_grad: bool, has_aux: bool):
     if value_and_grad:
@@ -40,4 +41,13 @@ def tree_single_dtype(tree):
         return None
     if len(dtypes) == 1:
         return dtypes.pop()
-    raise ValueError("Found more than one dtype in the tree.")
+    raise ValueError(f"Found more than one dtype in the tree ({list(dtypes)}).")
+
+
+def tree_dim(tree: chex.ArrayTree, axis=0) -> int:
+    dim = tree_leaves(tree_map(lambda t: t.shape[axis], tree))
+    dim = set(dim)
+    assert (
+        len(dim) == 1
+    ), f"Dimension mismatch! All arrays must have same size along axis {axis}."
+    return dim.pop()

@@ -22,6 +22,7 @@ class TrState(T.NamedTuple):
     iter_num_steihaug: int
     steihaug_converged: bool | Array
     steihaug_curvature: Array
+    steihaug_eps: float | Array
 
 
 @dataclass(eq=False)
@@ -64,23 +65,25 @@ class TR(jaxopt_base.IterativeSolver):
             tr_radius = jnp.asarray(self.init_tr_radius)
 
         (value, aux), grad = self._value_and_grad_with_aux(init_params, *args, **kwargs)
+        norm_df = tree_l2_norm(grad)
         return TrState(
             iter_num=iter_num,
             value=value,
             grad=grad,
             aux=aux,
-            error=jnp.asarray(jnp.inf),
+            error=norm_df,
             rho=jnp.asarray(0.0),
             tr_radius=tr_radius,
             iter_num_steihaug=0,
             steihaug_converged=False,
             steihaug_curvature=jnp.asarray(jnp.inf),
+            steihaug_eps=jnp.minimum(1 / 2, norm_df) * norm_df,
         )
 
     def hvp(
-        self, params, state, *args, **kwargs
-    ) -> Callable[[chex.ArrayTree], chex.ArrayTree]:
-        return lambda p: calc.hvp_forward_over_reverse(
+        self, state, params, *args, **kwargs
+    ) -> tuple[Any, Callable[[chex.ArrayTree], chex.ArrayTree]]:
+        _hvp = lambda p: calc.hvp_forward_over_reverse(
             self._value_and_grad_with_aux,
             (params,),
             (p,),
@@ -89,19 +92,23 @@ class TR(jaxopt_base.IterativeSolver):
             value_and_grad=True,
             has_aux=True
         )
+        return state, _hvp
 
     def update(
         self, params: chex.ArrayTree, state, *args, **kwargs
     ) -> jaxopt_base.OptStep:
         if isinstance(params, jaxopt_base.OptStep):
             params = params.params
-        hvp = self.hvp(params, state, *args, **kwargs)
+        state, hvp = self.hvp(state, params, *args, **kwargs)
         jit, unroll = self._get_loop_options()
-        # converged, iter_num_steihaug, p = steihaug(
+        norm_df = state.error
+        eps = jnp.minimum(1 / 2, norm_df) * norm_df
+        eps = jnp.minimum(state.steihaug_eps, eps)
         steihaug_result = steihaug(
             state.grad,
             hvp,
             tr_radius=state.tr_radius,
+            eps=eps,
             maxiter=self.maxiter_steihaug,
             eps_min=self.eps_min_steihaug,
             jit=jit,
@@ -142,7 +149,8 @@ class TR(jaxopt_base.IterativeSolver):
                     aux=aux,
                     iter_num_steihaug=steihaug_result.iter_num,
                     steihaug_converged=steihaug_result.converged,
-                    steihaug_curvature=steihaug_result.curvature
+                    steihaug_curvature=steihaug_result.curvature,
+                    steihaug_eps=eps
                 ),
                 lambda: TrState(
                     iter_num=state.iter_num + 1,
@@ -154,7 +162,8 @@ class TR(jaxopt_base.IterativeSolver):
                     aux=state.aux,
                     iter_num_steihaug=steihaug_result.iter_num,
                     steihaug_converged=steihaug_result.converged,
-                    steihaug_curvature=steihaug_result.curvature
+                    steihaug_curvature=steihaug_result.curvature,
+                    steihaug_eps=eps
                 ),
             )
 
@@ -204,8 +213,9 @@ def steihaug(
     grad_f: chex.ArrayTree,
     hvp: Callable[[chex.ArrayTree], chex.ArrayTree],
     tr_radius: float | Array,
-    maxiter: int | None = None,
+    eps: float | Array,
     eps_min: float = 1e-9,
+    maxiter: int | None = None,
     unroll: bool = True,
     jit: bool = True,
 ) -> CgSteihaugResult:  # tuple[Array, int, Array, chex.ArrayTree]:
@@ -215,10 +225,10 @@ def steihaug(
     z = tree_zeros_like(grad_f)
     r = grad_f
     d = tree_negative(r)
-    norm_df = tree_l2_norm(grad_f)
+    # norm_df = tree_l2_norm(grad_f)
 
     # eps = jnp.minimum(1 / 2, sqrt(norm_df)) * norm_df  # forcing sequence
-    eps = jnp.minimum(1 / 2, norm_df) * norm_df  # forcing sequence
+    # eps = jnp.minimum(1 / 2, norm_df) * norm_df  # forcing sequence
 
     def limit_step(z, d):
         a, b, c = tree_vdot(d, d), tree_vdot(z, d), tree_vdot(z, z) - tr_radius**2

@@ -12,6 +12,7 @@ __all__ = (
     "Array",
     "ArrayLike",
     "array",
+    "asarray",
     "zeros",
     "zeros_like",
     "ones",
@@ -91,6 +92,7 @@ from typing import Any, Callable, Sequence, Optional, Union
 import jax
 from jax.numpy import (
     array,
+    asarray,
     zeros,
     zeros_like,
     ones,

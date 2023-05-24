@@ -81,7 +81,10 @@ class RAlphaM(RFun):
             alpha = self.alpha(a, b)
             r = a**2 + b**2
             return (
-                1 / (1 + alpha) * (a + b - sqrt(r - 2 * alpha * a * b)) * r ** (self.m / 2)
+                1
+                / (1 + alpha)
+                * (a + b - sqrt(r - 2 * alpha * a * b))
+                * r ** (self.m / 2)
             )
 
         return lambda x: op(adf1(x), adf2(x))
@@ -91,7 +94,10 @@ class RAlphaM(RFun):
             alpha = self.alpha(a, b)
             r = a**2 + b**2
             return (
-                1 / (1 + alpha) * (a + b + sqrt(r - 2 * alpha * a * b)) * r ** (self.m / 2)
+                1
+                / (1 + alpha)
+                * (a + b + sqrt(r - 2 * alpha * a * b))
+                * r ** (self.m / 2)
             )
 
         return lambda x: op(adf1(x), adf2(x))
@@ -115,6 +121,46 @@ class RP(RFun):
         return lambda x: op(adf1(x), adf2(x))
 
 
+class RhoBlending(RFun):
+    """Blending R-function which smoothes sharp corners and edges [1]_.
+
+    Parameters
+    ---------
+    rho : float
+        smoothing factor
+
+    Notes
+    -----
+    .. [1] Shapiro, Vadim. "Semi-analytic geometry with R-functions."
+       ACTA numerica 16 (2007): 239-303.
+    """
+
+    def __init__(self, rho: float):
+        self.rho = rho
+
+    def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        def op(a, b):
+            s = a**2 + b**2 - self.rho**2
+            return (
+                a
+                + b
+                - sqrt(a**2 + b**2 + 1 / (8 * self.rho) * s * (s - jnp.abs(s)))
+            )
+
+        return lambda x: op(adf1(x), adf2(x))
+
+    def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        def op(a, b):
+            s = a**2 + b**2 - self.rho**2
+            return (
+                a
+                + b
+                + sqrt(a**2 + b**2 + 1 / (8 * self.rho) * s * (s - jnp.abs(s)))
+            )
+
+        return lambda x: op(adf1(x), adf2(x))
+
+
 r1 = RAlpha(lambda a, b: 1)  # min, max
 r0 = RAlpha(
     lambda a, b: 0
@@ -125,7 +171,7 @@ rp4 = RP(4)  # analytic everywhere and normalized to 3rd order.
 
 def cuboid(side_lengths: Vec, centering: bool = False, normalize: int = 1) -> ADF:
     assert normalize % 2 == 1, "Only odd degrees of normalization allowed for cuboid"
-    side_lengths = _to_array(side_lengths)
+    side_lengths = asarray(side_lengths)
 
     if centering:
         lb = -side_lengths / 2
@@ -179,12 +225,12 @@ def compose(func: Callable[[Scalar, Scalar], Scalar]) -> Callable[..., ADF]:
 
 
 def translate(adf: ADF, y: Vec) -> ADF:
-    y = _to_array(y)
+    y = asarray(y)
     return lambda x: adf(x - y)
 
 
 def scale(adf: ADF, scaling_factor: Scalar) -> ADF:
-    scaling_factor = _to_array(scaling_factor).ravel()
+    scaling_factor = asarray(scaling_factor).ravel()
     assert scaling_factor.shape == (
         1,
     ), "`scaling_factor` must be a scalar to preserve normalization"
@@ -193,20 +239,19 @@ def scale(adf: ADF, scaling_factor: Scalar) -> ADF:
 
 
 def scale_without_normalization(adf, scaling_factor) -> ADF:
-    scaling_factor = _to_array(scaling_factor).ravel()
+    scaling_factor = asarray(scaling_factor).ravel()
     return lambda x: adf(x / scaling_factor)
 
 
 def rotate2d(adf: ADF, angle: Scalar, o: Vec2d = (0.0, 0.0)) -> ADF:
-    o = _to_array(o)
-    angle = _to_array(angle)
+    o = asarray(o)
+    angle = asarray(angle)
     _adf = translate(adf, -o)
     M = array([[cos(angle), sin(angle)], [-sin(angle), cos(angle)]], dtype=angle.dtype)
 
     def rot_op(x):
-        assert x.shape == (
-            2,
-        ), f"Cannot rotate vector of size {x.shape} in 2d. Please pass a 2d vector."
+        msg = f"Cannot rotate vector of size {x.shape} in 2d. Please pass a 2d vector."
+        assert x.shape == (2,), msg
         return _adf(M @ x)
 
     return translate(rot_op, o)
@@ -218,10 +263,10 @@ def rotate3d(
     rot_axis: None | Vec3d = None,
     o: Vec3d = (0.0, 0.0, 0.0),
 ) -> ADF:
-    o = _to_array(o)
+    o = asarray(o)
     _adf = translate(adf, -o)
 
-    angle = -_to_array(angle)
+    angle = -asarray(angle)
     if angle.shape == ():
         if rot_axis is None:
             msg = "If only the angle is specified, the rotation axis must be provided"
@@ -235,9 +280,8 @@ def rotate3d(
         raise ValueError("Provide axis-angle representation or Euler angles.")
 
     def rot_op(x):
-        assert x.shape == (
-            3,
-        ), f"Cannot rotate vector of size {x.shape} in 3d. Please pass a 3d vector."
+        msg = f"Cannot rotate vector of size {x.shape} in 3d. Please pass a 3d vector."
+        assert x.shape == (3,), msg
         x = quaternion_rotation(x, rot_quaternion)
         return _adf(x)
 
@@ -245,7 +289,7 @@ def rotate3d(
 
 
 def reflect(adf: ADF, normal_vec: Vec2d, o: Vec = 0.0) -> ADF:
-    o, n = _to_array(o), _to_array(normal_vec)
+    o, n = asarray(o), asarray(normal_vec)
     _adf = translate(adf, -o)
 
     def ref_op(x):
@@ -256,7 +300,7 @@ def reflect(adf: ADF, normal_vec: Vec2d, o: Vec = 0.0) -> ADF:
 
 
 def project(adf: ADF, normal_vec: Vec2d, o: Vec = 0.0) -> ADF:
-    o, n = _to_array(o), _to_array(normal_vec)
+    o, n = asarray(o), asarray(normal_vec)
     _adf = translate(adf, -o)
 
     def proj_op(x):
@@ -264,6 +308,32 @@ def project(adf: ADF, normal_vec: Vec2d, o: Vec = 0.0) -> ADF:
         return _adf(x)
 
     return translate(proj_op, o)
+
+
+def revolution(adf: ADF, axis: int = 0) -> ADF:
+    """Creates the body of revolution from a 2d shape.
+
+    Parameters
+    ----------
+    adf : ADF
+    axis : int, optional
+        0 for revolution around x axis or 1 for y axis, by default 0
+    """
+
+    def rev_op(x):
+        assert x.shape == (3,), "Revolution only supported in 3d."
+        if axis == 0:
+            r = sqrt(x[1] ** 2 + x[2] ** 2)
+            return adf(jnp.stack([x[0], r]))
+        elif axis == 1:
+            r = sqrt(x[0] ** 2 + x[2] ** 2)
+            return adf(jnp.stack([r, x[1]]))
+        else:
+            msg = "`axis` must either be 0 for revolution around x "
+            msg += "or 1 for revolution around y."
+            raise ValueError(msg)
+
+    return rev_op
 
 
 def normalize_1st_order(adf: ADF) -> ADF:
@@ -275,10 +345,3 @@ def normalize_1st_order(adf: ADF) -> ADF:
         return y / sqrt(y**2 + norm(dy) ** 2)
 
     return normalize
-
-
-def _to_array(a: Vec) -> Array:
-    if not isinstance(a, Array):
-        return array(a)
-    else:
-        return a
