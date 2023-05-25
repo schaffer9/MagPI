@@ -15,8 +15,8 @@ class Quaternion:
     imag = property(lambda self: self._q)
 
     def __init__(self, a: Scalar, q: Vec):
-        object.__setattr__(self, "_a", _to_array(a))
-        object.__setattr__(self, "_q", _to_array(q))
+        object.__setattr__(self, "_a", asarray(a))
+        object.__setattr__(self, "_q", asarray(q))
         assert self._a.shape == ()
         assert self._q.shape == (3,)
         assert self._a.dtype == self._q.dtype
@@ -167,7 +167,7 @@ def quaternion_rotation(x: Vec, q: Quaternion) -> Array:
     -------
     Array
     """
-    x = _to_array(x)
+    x = asarray(x)
     qinv = q.reciprocal()
     p = Quaternion(zeros((), dtype=x.dtype), x)
     return (qinv * p * q).imag
@@ -185,8 +185,8 @@ def quaternion_reflection(x: Vec, normal_vec: Vec) -> Array:
     -------
     Array
     """
-    x = _to_array(x)
-    normal_vec = _to_array(normal_vec)
+    x = asarray(x)
+    normal_vec = asarray(normal_vec)
     n = normal_vec / norm(normal_vec)
     z = zeros((), dtype=x.dtype)
     p = Quaternion(z, x)
@@ -206,7 +206,7 @@ def from_euler_angles(angles: Vec) -> Quaternion:
     -------
     Quaternion
     """
-    angles = _to_array(angles)
+    angles = asarray(angles)
     angles = angles / 2
     s = sin(angles)
     c = cos(angles)
@@ -232,13 +232,6 @@ def from_axis_angle(angle: Scalar, axis: Vec) -> Quaternion:
     -------
     Quaternion
     """
-    axis = _to_array(axis)
+    axis = asarray(axis)
     angle = angle / 2
     return Quaternion(cos(angle), axis * sin(angle))
-
-
-def _to_array(a: Vec | Scalar) -> Array:
-    if not isinstance(a, Array):
-        return array(a)
-    else:
-        return a

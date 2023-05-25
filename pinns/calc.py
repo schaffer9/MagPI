@@ -3,6 +3,7 @@ from inspect import signature
 from .prelude import *
 
 import chex
+
 # TODO: typing and docs
 
 __all__ = (
@@ -159,13 +160,13 @@ def hvp(
 
 
 def hvp_forward_over_reverse(
-    f: Callable, 
-    primals: Sequence[chex.ArrayTree], 
-    tangents: Sequence[chex.ArrayTree], 
-    *args: Any, 
-    value_and_grad: bool = False, 
-    has_aux: bool = False, 
-    **kwargs: Any
+    f: Callable,
+    primals: Sequence[chex.ArrayTree],
+    tangents: Sequence[chex.ArrayTree],
+    *args: Any,
+    value_and_grad: bool = False,
+    has_aux: bool = False,
+    **kwargs: Any,
 ):
     """Computes the hessian vector product of a Scalar valued
     function in forward-over-reverse mode.
@@ -177,6 +178,7 @@ def hvp_forward_over_reverse(
         value_and_grad (bool, optional): Defaults to False.
         has_aux (bool, optional): Defaults to False.
     """
+
     def grad_f(p):
         if value_and_grad:
             _, _grad_f = f(p, *args, **kwargs)
@@ -188,11 +190,11 @@ def hvp_forward_over_reverse(
 
 
 def hessian_diag(f: Callable[..., Array], primals: Array) -> Array:
-    primals = _to_array(primals)
+    primals = asarray(primals)
     primals = primals
     is_1d = primals.shape == ()
     primals = primals.ravel()
-    
+
     vs = jnp.eye(primals.shape[0])
     comp = lambda v: tree_map(lambda a: a @ v, hvp(f, [primals], [v]))
     diag_entries = jax.vmap(comp)(vs)
@@ -286,10 +288,3 @@ def is_2d(*args) -> bool:
 
 def is_3d(*args) -> bool:
     return all(map(lambda x: x.shape[-1] == 3, args))
-
-
-def _to_array(a: Array | Sequence[float | int] | float | int) -> Array:
-    if not isinstance(a, Array):
-        return array(a)
-    else:
-        return a
