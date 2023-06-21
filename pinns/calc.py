@@ -189,6 +189,27 @@ def hvp_forward_over_reverse(
     return jvp(grad_f, primals, tangents)[1]
 
 
+def hvp_reverse_over_reverse(
+    f: Callable,
+    primals: Sequence[chex.ArrayTree],
+    tangents: Sequence[chex.ArrayTree],
+    *args: Any,
+    value_and_grad: bool = False,
+    has_aux: bool = False,
+    **kwargs: Any,
+):
+    def grad_f(p):
+        if value_and_grad:
+            _, _grad_f = f(p, *args, **kwargs)
+        else:
+            _, _grad_f = jax.value_and_grad(f, has_aux=has_aux)(p, *args, **kwargs)
+        return _grad_f
+    
+    x, = primals
+    v, = tangents
+    return grad(lambda x: tree_vdot(grad_f(x), v))(x)
+
+
 def hessian_diag(f: Callable[..., Array], primals: Array) -> Array:
     primals = asarray(primals)
     primals = primals
