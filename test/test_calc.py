@@ -140,3 +140,75 @@ class TestLaplace(JaxTestCase):
         lap = calc.laplace(f)(x)
         self.assertEqual(lap.shape, ())
         self.assertIsclose(lap, 6)
+        
+        
+class TestValueAndJacfwd(JaxTestCase):
+    def test_00_sin(self):
+        y, dy = calc.value_and_jacfwd(sin)(pi / 2)
+        self.assertIsclose(y, 1.)
+        self.assertIsclose(dy, 0.)
+        
+    def test_01_2d_with_aux(self):
+        def f(x1, x2):
+            return x1 ** 2 + x2, x2
+        
+        (y, aux), dy = calc.value_and_jacfwd(
+            f, argnums=(0, 1), has_aux=True)(array([1., 1.]), 2.)
+
+        self.assertIsclose(y, array([3., 3.]))
+        self.assertIsclose(aux, 2.)
+        self.assertIsclose(dy[0], array([[2., 0.], [0., 2.]]))
+        self.assertIsclose(dy[1], array([1., 1.]))
+        
+    def test_02_has_aux(self):
+        def f(x):
+            return sin(x), {"bar": 2}
+            
+        (_, aux), _ = calc.value_and_jacfwd(f, has_aux=True)(pi / 2)
+        self.assertEqual(aux["bar"], 2)
+        
+    def test_03_pytree_output(self):
+        def f(x):
+            return sin(x), {"bar": 2}
+        
+        y, dy = calc.value_and_jacfwd(f)(pi / 2)
+        self.assertIsclose(y[0], 1.)
+        self.assertIsclose(y[1]["bar"], 2.)
+        self.assertIsclose(dy[0], 0.)
+        self.assertIsclose(dy[1]["bar"], 0.)
+        
+        
+class TestValueAndJacrev(JaxTestCase):
+    def test_00_sin(self):
+        y, dy = calc.value_and_jacrev(sin)(pi / 2)
+        self.assertIsclose(y, 1.)
+        self.assertIsclose(dy, 0.)
+        
+    def test_01_2d_with_aux(self):
+        def f(x1, x2):
+            return x1 ** 2 + x2, x2
+        
+        (y, aux), dy = calc.value_and_jacrev(
+            f, argnums=(0, 1), has_aux=True)(array([1., 1.]), 2.)
+
+        self.assertIsclose(y, array([3., 3.]))
+        self.assertIsclose(aux, 2.)
+        self.assertIsclose(dy[0], array([[2., 0.], [0., 2.]]))
+        self.assertIsclose(dy[1], array([1., 1.]))
+        
+    def test_02_has_aux(self):
+        def f(x):
+            return sin(x), {"bar": 2}
+            
+        (_, aux), _ = calc.value_and_jacrev(f, has_aux=True)(pi / 2)
+        self.assertEqual(aux["bar"], 2)
+        
+    def test_03_pytree_output(self):
+        def f(x):
+            return sin(x), {"bar": 2.}
+        
+        y, dy = calc.value_and_jacrev(f)(pi / 2)
+        self.assertIsclose(y[0], 1.)
+        self.assertIsclose(y[1]["bar"], 2.)
+        self.assertIsclose(dy[0], 0.)
+        self.assertIsclose(dy[1]["bar"], 0.)

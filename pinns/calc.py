@@ -153,6 +153,49 @@ def derivative(
     return inner
 
 
+def value_and_jacfwd(
+    f: Callable, 
+    argnums: int | Sequence[int] = 0, 
+    has_aux: bool = False, 
+    holomorphic: bool = False
+) -> Callable:
+    def _f(*args, **kwargs):
+        y = f(*args, **kwargs)
+        if has_aux:
+            y, aux = y
+            return y, (y, aux)
+        else:
+            return y, y
+        
+    def df(*args, **kwargs):    
+        J, y = jacfwd(_f, argnums, has_aux=True, holomorphic=holomorphic)(*args, **kwargs)
+        return y, J
+
+    return df
+
+
+def value_and_jacrev(
+    f: Callable, 
+    argnums: int | Sequence[int] = 0, 
+    has_aux: bool = False, 
+    holomorphic: bool = False,
+    allow_int: bool = False
+) -> Callable:
+    def _f(*args, **kwargs):
+        y = f(*args, **kwargs)
+        if has_aux:
+            y, aux = y
+            return y, (y, aux)
+        else:
+            return y, y
+        
+    def df(*args, **kwargs):    
+        J, y = jacrev(_f, argnums, has_aux=True, holomorphic=holomorphic, allow_int=allow_int)(*args, **kwargs)
+        return y, J
+
+    return df
+
+
 def hvp(
     f: Callable[..., Array], primals: Sequence[Array], tangents: Sequence[Array]
 ) -> Array:
