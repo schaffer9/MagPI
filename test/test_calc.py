@@ -60,14 +60,41 @@ class TestDerivative(JaxTestCase):
 
 
 class TestDiv(JaxTestCase):
-    def test_div_batch(self):
+    def test_01_div(self):
         def f(x):
             return x**2
 
         x = array([2.0, 2.0])
         div = calc.divergence(f)(x)
         self.assertIsclose(div, array(8.0))
+        
+    def test_02_div_batch(self):
+        def f(x):
+            return asarray([x**2, x])
 
+        x = array([2.0, 2.0])
+        div = calc.divergence(f)(x)
+        self.assertIsclose(div, array([8.0, 2.0]))
+        
+    def test_03_value_and_div(self):
+        def f(x):
+            return asarray([x**2, x])
+
+        x = array([2.0, 2.0])
+        y, div = calc.value_and_divergence(f)(x)
+        self.assertIsclose(div, array([8.0, 2.0]))
+        self.assertIsclose(y, array([[4.0, 4.0], [2.0, 2.0]]))
+        
+    def test_04_value_and_div_with_pytree(self):
+        def f(x):
+            return asarray([x**2, x]), asarray([x**2, x])
+
+        x = array([2.0, 2.0])
+        y, div = calc.value_and_divergence(f)(x)
+        print(div)
+        self.assertIsclose(div, (array([8.0, 2.0]), array([8.0, 2.0])))
+        self.assertIsclose(y, (array([[4.0, 4.0], [2.0, 2.0]]), array([[4.0, 4.0], [2.0, 2.0]])))
+        
 
 class TestCurl(JaxTestCase):
     def test_curl2d(self):
@@ -134,81 +161,83 @@ class TestLaplace(JaxTestCase):
 
     def test_laplace_on_scalar_input_and_scalar_output(self):
         def f(x):
-            return x ** 3
-        
-        x = 1.
+            return x**3
+
+        x = 1.0
         lap = calc.laplace(f)(x)
         self.assertEqual(lap.shape, ())
         self.assertIsclose(lap, 6)
-        
-        
+
+
 class TestValueAndJacfwd(JaxTestCase):
     def test_00_sin(self):
         y, dy = calc.value_and_jacfwd(sin)(pi / 2)
-        self.assertIsclose(y, 1.)
-        self.assertIsclose(dy, 0.)
-        
+        self.assertIsclose(y, 1.0)
+        self.assertIsclose(dy, 0.0)
+
     def test_01_2d_with_aux(self):
         def f(x1, x2):
-            return x1 ** 2 + x2, x2
-        
-        (y, aux), dy = calc.value_and_jacfwd(
-            f, argnums=(0, 1), has_aux=True)(array([1., 1.]), 2.)
+            return x1**2 + x2, x2
 
-        self.assertIsclose(y, array([3., 3.]))
-        self.assertIsclose(aux, 2.)
-        self.assertIsclose(dy[0], array([[2., 0.], [0., 2.]]))
-        self.assertIsclose(dy[1], array([1., 1.]))
-        
+        (y, aux), dy = calc.value_and_jacfwd(f, argnums=(0, 1), has_aux=True)(
+            array([1.0, 1.0]), 2.0
+        )
+
+        self.assertIsclose(y, array([3.0, 3.0]))
+        self.assertIsclose(aux, 2.0)
+        self.assertIsclose(dy[0], array([[2.0, 0.0], [0.0, 2.0]]))
+        self.assertIsclose(dy[1], array([1.0, 1.0]))
+
     def test_02_has_aux(self):
         def f(x):
             return sin(x), {"bar": 2}
-            
+
         (_, aux), _ = calc.value_and_jacfwd(f, has_aux=True)(pi / 2)
         self.assertEqual(aux["bar"], 2)
-        
+
     def test_03_pytree_output(self):
         def f(x):
             return sin(x), {"bar": 2}
-        
+
         y, dy = calc.value_and_jacfwd(f)(pi / 2)
-        self.assertIsclose(y[0], 1.)
-        self.assertIsclose(y[1]["bar"], 2.)
-        self.assertIsclose(dy[0], 0.)
-        self.assertIsclose(dy[1]["bar"], 0.)
-        
-        
+        self.assertIsclose(y[0], 1.0)
+        self.assertIsclose(y[1]["bar"], 2.0)
+        self.assertIsclose(dy[0], 0.0)
+        self.assertIsclose(dy[1]["bar"], 0.0)
+
+
 class TestValueAndJacrev(JaxTestCase):
     def test_00_sin(self):
         y, dy = calc.value_and_jacrev(sin)(pi / 2)
-        self.assertIsclose(y, 1.)
-        self.assertIsclose(dy, 0.)
-        
+        self.assertIsclose(y, 1.0)
+        self.assertIsclose(dy, 0.0)
+
     def test_01_2d_with_aux(self):
         def f(x1, x2):
-            return x1 ** 2 + x2, x2
-        
-        (y, aux), dy = calc.value_and_jacrev(
-            f, argnums=(0, 1), has_aux=True)(array([1., 1.]), 2.)
+            return x1**2 + x2, x2
 
-        self.assertIsclose(y, array([3., 3.]))
-        self.assertIsclose(aux, 2.)
-        self.assertIsclose(dy[0], array([[2., 0.], [0., 2.]]))
-        self.assertIsclose(dy[1], array([1., 1.]))
-        
+        (y, aux), dy = calc.value_and_jacrev(f, argnums=(0, 1), has_aux=True)(
+            array([1.0, 1.0]), 2.0
+        )
+
+        self.assertIsclose(y, array([3.0, 3.0]))
+        self.assertIsclose(aux, 2.0)
+        self.assertIsclose(dy[0], array([[2.0, 0.0], [0.0, 2.0]]))
+        self.assertIsclose(dy[1], array([1.0, 1.0]))
+
     def test_02_has_aux(self):
         def f(x):
             return sin(x), {"bar": 2}
-            
+
         (_, aux), _ = calc.value_and_jacrev(f, has_aux=True)(pi / 2)
         self.assertEqual(aux["bar"], 2)
-        
+
     def test_03_pytree_output(self):
         def f(x):
-            return sin(x), {"bar": 2.}
-        
+            return sin(x), {"bar": 2.0}
+
         y, dy = calc.value_and_jacrev(f)(pi / 2)
-        self.assertIsclose(y[0], 1.)
-        self.assertIsclose(y[1]["bar"], 2.)
-        self.assertIsclose(dy[0], 0.)
-        self.assertIsclose(dy[1]["bar"], 0.)
+        self.assertIsclose(y[0], 1.0)
+        self.assertIsclose(y[1]["bar"], 2.0)
+        self.assertIsclose(dy[0], 0.0)
+        self.assertIsclose(dy[1]["bar"], 0.0)

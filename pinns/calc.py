@@ -73,7 +73,7 @@ def value_and_derivative(
 def derivative(
     wrt: Callable[..., Array] | Partials | Sequence[Partials],
     argnums: T.Optional[int | Sequence[int | None]] = None,
-) -> Callable[..., Callable | Array]:
+) -> Callable[..., Callable | chex.ArrayTree]:
     """This derivative operator computes the respective derivatives
     using forward mode differentiation.
 
@@ -154,10 +154,10 @@ def derivative(
 
 
 def value_and_jacfwd(
-    f: Callable, 
-    argnums: int | Sequence[int] = 0, 
-    has_aux: bool = False, 
-    holomorphic: bool = False
+    f: Callable,
+    argnums: int | Sequence[int] = 0,
+    has_aux: bool = False,
+    holomorphic: bool = False,
 ) -> Callable:
     def _f(*args, **kwargs):
         y = f(*args, **kwargs)
@@ -166,20 +166,22 @@ def value_and_jacfwd(
             return y, (y, aux)
         else:
             return y, y
-        
-    def df(*args, **kwargs):    
-        J, y = jacfwd(_f, argnums, has_aux=True, holomorphic=holomorphic)(*args, **kwargs)
+
+    def df(*args, **kwargs):
+        J, y = jacfwd(_f, argnums, has_aux=True, holomorphic=holomorphic)(
+            *args, **kwargs
+        )
         return y, J
 
     return df
 
 
 def value_and_jacrev(
-    f: Callable, 
-    argnums: int | Sequence[int] = 0, 
-    has_aux: bool = False, 
+    f: Callable,
+    argnums: int | Sequence[int] = 0,
+    has_aux: bool = False,
     holomorphic: bool = False,
-    allow_int: bool = False
+    allow_int: bool = False,
 ) -> Callable:
     def _f(*args, **kwargs):
         y = f(*args, **kwargs)
@@ -188,9 +190,11 @@ def value_and_jacrev(
             return y, (y, aux)
         else:
             return y, y
-        
-    def df(*args, **kwargs):    
-        J, y = jacrev(_f, argnums, has_aux=True, holomorphic=holomorphic, allow_int=allow_int)(*args, **kwargs)
+
+    def df(*args, **kwargs):
+        J, y = jacrev(
+            _f, argnums, has_aux=True, holomorphic=holomorphic, allow_int=allow_int
+        )(*args, **kwargs)
         return y, J
 
     return df
@@ -210,7 +214,7 @@ def hvp_forward_over_reverse(
     value_and_grad: bool = False,
     has_aux: bool = False,
     **kwargs: Any,
-):
+) -> chex.ArrayTree:
     """Computes the hessian vector product of a Scalar valued
     function in forward-over-reverse mode.
 
@@ -240,20 +244,20 @@ def hvp_reverse_over_reverse(
     value_and_grad: bool = False,
     has_aux: bool = False,
     **kwargs: Any,
-):
+) -> chex.ArrayTree:
     def grad_f(p):
         if value_and_grad:
             _, _grad_f = f(p, *args, **kwargs)
         else:
             _, _grad_f = jax.value_and_grad(f, has_aux=has_aux)(p, *args, **kwargs)
         return _grad_f
-    
-    x, = primals
-    v, = tangents
+
+    (x,) = primals
+    (v,) = tangents
     return grad(lambda x: tree_vdot(grad_f(x), v))(x)
 
 
-def hessian_diag(f: Callable[..., Array], primals: Array) -> Array:
+def hessian_diag(f: Callable[..., chex.ArrayTree], primals: Array) -> chex.ArrayTree:
     primals = asarray(primals)
     primals = primals
     is_1d = primals.shape == ()
@@ -269,7 +273,7 @@ def hessian_diag(f: Callable[..., Array], primals: Array) -> Array:
 
 
 @apply_to_module
-def laplace(f: Callable[..., Scalar]) -> Callable[..., Scalar]:
+def laplace(f: Callable[..., chex.ArrayTree]) -> Callable[..., chex.ArrayTree]:
     """Computes the laplacian :math:`\\Delta f` wrt. the first argument.
     If `f` is a vector valued function, the laplacian of each output is
     computed.
@@ -287,7 +291,7 @@ def laplace(f: Callable[..., Scalar]) -> Callable[..., Scalar]:
 
 
 @apply_to_module
-def divergence(f: Callable[..., Array]) -> Callable[..., Array]:
+def divergence(f: Callable[..., chex.ArrayTree], argnums=0) -> Callable[..., chex.ArrayTree]:
     """Computes the divergence :math:`\\nabla \\cdot f` wrt. the first argument.
 
     Parameters
@@ -295,9 +299,34 @@ def divergence(f: Callable[..., Array]) -> Callable[..., Array]:
     f : Callable[..., Array]
     """
 
-    def div_f(x, *args, **kwargs):
-        Jf = jacfwd(f, 0)(x, *args, **kwargs)
-        return jnp.sum(diag(Jf))
+    def div_f(*args, **kwargs):
+        _, d = value_and_divergence(f, argnums)(*args, **kwargs)
+        return d
+
+    return div_f
+
+
+@apply_to_module
+def value_and_divergence(
+    f: Callable[..., chex.ArrayTree], argnums=0
+) -> Callable[..., tuple[chex.ArrayTree, chex.ArrayTree]]:
+    """Computes the divergence :math:`\\nabla \\cdot f` wrt. the first argument.
+
+    Parameters
+    ----------
+    f : Callable[..., Array]
+    """
+
+    def div_f(*args, **kwargs):
+        y, Jf = value_and_jacfwd(f, argnums)(*args, **kwargs)
+
+        def _compute_div(Jf):
+            if len(Jf.shape) > 2:
+                return jnp.sum(vmap(diag, 0)(Jf), -1)
+            else:
+                return jnp.sum(diag(Jf))
+
+        return y, tree_map(_compute_div, Jf)
 
     return div_f
 
