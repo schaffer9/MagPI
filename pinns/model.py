@@ -172,7 +172,6 @@ def impose_dirichlet_bc(
 def impose_neumann_bc(
     adf: ADF,
     model: Model | None = None,
-    model2: Model | None = None,
     h: Callable[..., Array] | None = None,
     argnums_adf: int | Sequence[int] = 0,
     argnum_model: int = 0,
@@ -186,7 +185,6 @@ def impose_neumann_bc(
         model (Model | None, optional):
             Unconstrained model. If not provided, the function acts as a decorator.
             Defaults to None.
-        model2 (Model | None, optional): Secondary optional model. Defaults to None.
         h (Callable[..., Array] | None, optional): prescribed boundary conditions. Defaults to None.
         argnums_adf (int | Sequence[int], optional):
             specifies which positional arguments are passed to `adf`. Defaults to 0.
@@ -224,11 +222,8 @@ def impose_neumann_bc(
             value, normal_derivative = jvp(f, [x], [n])
             x_h = (args[i] for i in argnums_h)
             value_h = _h(*x_h)
-            if model2 is None:
-                value_model2 = value
-            else:
-                value_model2 = model2(*args, **kwargs)
-            return value + l**2 * value_model2 - l * normal_derivative - l * value_h
+
+            return value - l * normal_derivative - l * value_h
 
         return _model
 
