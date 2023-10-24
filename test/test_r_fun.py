@@ -1,4 +1,4 @@
-from pinns.r_fun import (
+from magpi.r_fun import (
     r0,
     r1,
     cube,

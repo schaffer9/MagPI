@@ -1,9 +1,9 @@
-# jax_pinns
+# MagPI
 
-This project was done in the course of my PhD thesis and is a collection of usefull algorithms and methods for the training 
+This project was done in the course of my PhD thesis and is a collection of useful algorithms and methods for the training 
 of Physics Informed Neural Networks (PINNs).
 
-Here is a short summary of the most usefull features:
+Here is a short summary of the features which are offered by MagPI:
 - Implementation of a CSG modelling framework using R-Functions
 - A Trust Region optimizer with CGSteihaug solver
 - Differential operators in forward mode AD

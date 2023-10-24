@@ -1,4 +1,4 @@
-from pinns import domain
+from magpi import domain
 
 from . import *
 

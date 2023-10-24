@@ -1,8 +1,8 @@
-from pinns import tr
+from magpi import tr
 from test import JaxTestCase
 
-from pinns import tr
-from pinns import calc
+from magpi import tr
+from magpi import calc
 
 from . import *
 

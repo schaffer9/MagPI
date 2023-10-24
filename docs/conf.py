@@ -16,12 +16,11 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-import chex
-from pinns.prelude import *
+from magpi.prelude import *
 
 # -- Project information -----------------------------------------------------
 
-project = 'jax_pinns'
+project = 'MagPI'
 copyright = '2022, Sebastian Schaffer'
 author = 'Sebastian Schaffer'
 
@@ -132,7 +131,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'jax_pinnsdoc'
+htmlhelp_basename = 'magpidoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -159,7 +158,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'jax_pinns.tex', 'jax\\_pinns Documentation',
+    (master_doc, 'magpi.tex', 'MagPi Documentation',
      'Sebastian Schaffer', 'manual'),
 ]
 
@@ -169,7 +168,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'jax_pinns', 'jax_pinns Documentation',
+    (master_doc, 'magpi', 'MagPI Documentation',
      [author], 1)
 ]
 
@@ -180,8 +179,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'jax_pinns', 'jax_pinns Documentation',
-     author, 'jax_pinns', 'One line description of project.',
+    (master_doc, 'magpi', 'MagPI Documentation',
+     author, 'MagPI', 'One line description of project.',
      'Miscellaneous'),
 ]
 

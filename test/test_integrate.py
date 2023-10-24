@@ -1,4 +1,4 @@
-from pinns.integrate import integrate, gauss3
+from magpi.integrate import integrate, gauss3
 
 from . import *
 

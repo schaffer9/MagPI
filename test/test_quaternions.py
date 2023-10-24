@@ -1,6 +1,6 @@
 from . import *
 
-from pinns.quaternions import (
+from magpi.quaternions import (
     Quaternion,
     sgn,
     quanternion_exp,

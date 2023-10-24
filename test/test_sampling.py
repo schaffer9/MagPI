@@ -1,4 +1,4 @@
-from pinns import sampling, domain
+from magpi import sampling, domain
 
 from . import *
 

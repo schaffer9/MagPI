@@ -1,4 +1,4 @@
-from pinns.prelude import *
+from magpi.prelude import *
 
 Scalar = Array
 Origin = Array

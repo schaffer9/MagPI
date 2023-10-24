@@ -1,7 +1,7 @@
 import chex
 
-from pinns.prelude import *
-from pinns.tr import TR
+from magpi.prelude import *
+from magpi.tr import TR
 
 
 __all__ = (
@@ -15,7 +15,7 @@ __all__ = (
 P = T.ParamSpec("P")
 PyTree = chex.ArrayTree
 Batch = PyTree
-BatchFn = Callable[[random.KeyArray], Sequence[Batch]]
+BatchFn = Callable[[Array], Sequence[Batch]]
 
 
 def check_axis_size(tree: PyTree, axis: int = 0) -> bool:
@@ -34,7 +34,7 @@ def axis_size(tree: PyTree, axis: int = 0) -> bool:
 
 
 def batches_without_replacement(
-    key: random.KeyArray, X: PyTree, batch_size: int
+    key: Array, X: PyTree, batch_size: int
 ) -> Sequence[Batch]:
     N = axis_size(X)
     batches = N // batch_size
@@ -45,7 +45,7 @@ def batches_without_replacement(
 
 
 def batches_with_replacement(
-    key: random.KeyArray,
+    key: Array,
     X: PyTree,
     batches: int,
     batch_size: int,
@@ -62,7 +62,7 @@ def batches_with_replacement(
 
 
 def make_iterator(
-    key: random.PRNGKeyArray, epochs: int, batch_fn: BatchFn, add_rng: bool = False
+    key: Array, epochs: int, batch_fn: BatchFn, add_rng: bool = False
 ) -> T.Iterator[Batch]:
     for _ in range(epochs):
         key, sample_key, batch_key = random.split(key, 3)

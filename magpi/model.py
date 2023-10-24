@@ -32,7 +32,7 @@ class MLP(nn.Module):
 
 
 def mlp(
-    key: random.KeyArray, layers: Sequence[int], activation: Optional[Activation] = None
+    key: Array, layers: Sequence[int], activation: Optional[Activation] = None
 ) -> tuple[MLP, Params]:
     """Creates a Multi Layer Perceptron with the given layers and activation function.
 
@@ -48,7 +48,7 @@ def mlp(
 
     Parameters
     ----------
-    key : KeyArray
+    key : Array
         Random key for initialization
     layers : Sequence[int]
         Number of neurons in each layer. This must include input and output layer.

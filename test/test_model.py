@@ -1,7 +1,7 @@
 from . import JaxTestCase
-from pinns.prelude import *
-from pinns import model
-from pinns.r_fun import cube
+from magpi.prelude import *
+from magpi import model
+from magpi.r_fun import cube
 
 
 class TestImposeNeumannBC(JaxTestCase):

@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="pinns",
+    name="magpi",
     version="0.0.1",
     author="Sebastian Schaffer",
     packages=find_packages(

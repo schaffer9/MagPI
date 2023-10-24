@@ -1,7 +1,7 @@
-pinns
+MagPi
 =====
 
 .. toctree::
    :maxdepth: 4
 
-   pinns
+   magpi

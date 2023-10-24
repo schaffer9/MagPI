@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pinns.prelude import *
+from magpi.prelude import *
 
 
 class JaxTestCase(TestCase):

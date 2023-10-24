@@ -3,11 +3,11 @@ from dataclasses import dataclass, field
 from chex import Array
 from jaxopt.linear_solve import solve_lu
 
-from pinns.calc import divergence, laplace
-from pinns.domain import Hypercube
-from pinns.integrate import QuadRule, gauss5, integrate, simpson
-from pinns.prelude import *
-from pinns.r_fun import cuboid, translate
+from magpi.calc import divergence, laplace
+from magpi.domain import Hypercube
+from magpi.integrate import QuadRule, gauss5, integrate, simpson
+from magpi.prelude import *
+from magpi.r_fun import cuboid, translate
 
 
 ChargeFn = Callable[..., Array]

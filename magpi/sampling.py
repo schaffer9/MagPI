@@ -5,11 +5,12 @@ from chex import ArrayTree
 Sample = ArrayTree
 Samples = ArrayTree
 PDF = Callable[[Sample], float]
-SampleFn = Callable[[random.KeyArray], Sample]
+Key = Array
+SampleFn = Callable[[Key], Sample]
 
 
 def rejection_sampling(
-    key: random.KeyArray,
+    key: Key,
     pdf: PDF,
     sample_fn: SampleFn,
     n: int,
@@ -20,7 +21,7 @@ def rejection_sampling(
 
     Parameters
     ----------
-    key : random.KeyArray
+    key : Key
     pdf : PDF
     sample_fn : SampleFn
     n : int

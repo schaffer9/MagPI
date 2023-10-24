@@ -1,4 +1,4 @@
-from pinns import calc
+from magpi import calc
 
 from . import *
 
