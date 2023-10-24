@@ -1,6 +1,6 @@
 # MagPI
 
-[Documentation](https://schaffer9.github.io/MagPI/source/magpi.html)
+[Documentation](https://schaffer9.github.io/MagPI/)
 
 This project was done in the course of my PhD thesis and is a collection of useful algorithms and methods for the training 
 of Physics Informed Neural Networks (PINNs).
