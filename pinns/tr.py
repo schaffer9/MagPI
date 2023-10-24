@@ -30,24 +30,6 @@ class TR(jaxopt_base.IterativeSolver):
     """
     Trust Region method optimizer which uses the
     CGSteihaug algorithm to solve the trust region sub-problem.
-
-    Attributes
-    ----------
-    fun: Callable
-    value_and_grad: bool
-    has_aux: bool = False
-    init_tr_radius: float
-    max_tr_radius: float
-    min_tr_radius: float
-    rho_increase: float
-    increase_factor: float
-    rho_decrease: float
-    decrease_factor: float
-    rho_accept: float
-    tol: float
-    maxiter: int
-    maxiter_steihaug: int | None
-    eps_min_steihaug: float
     """
     fun: Callable
     value_and_grad: bool = False

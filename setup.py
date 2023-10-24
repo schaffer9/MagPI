@@ -6,5 +6,6 @@ setup(
     author="Sebastian Schaffer",
     packages=find_packages(
         exclude=["test"]
-    )
+    ),
+    python_requires='>=3.11'
 )

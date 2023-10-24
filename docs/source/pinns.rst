@@ -19,34 +19,20 @@ pinns.integrate module
 
 .. automodule:: pinns.integrate
    :members:
+   :undoc-members:
+
 
 pinns.domain module
 -------------------
 
 .. automodule:: pinns.domain
    :members:
-   :undoc-members:
-
-pinns.elm module
-----------------
-
-.. automodule:: pinns.elm
-   :members:
-   :undoc-members:
-
-pinns.krr module
-----------------
-
-.. automodule:: pinns.krr
-   :members:
-   :undoc-members:
 
 pinns.model module
 ------------------
 
 .. automodule:: pinns.model
    :members: mlp
-   :undoc-members:
 
 pinns.opt module
 ----------------
@@ -55,20 +41,17 @@ pinns.opt module
    :members:
    :undoc-members:
 
+pinns.ode module
+----------------
+
+.. automodule:: pinns.ode
+   :members:
 
 pinns.sampling module
 ---------------------
 
 .. automodule:: pinns.sampling
    :members:
-   :undoc-members:
-
-pinns.tr module
----------------
-
-.. automodule:: pinns.tr
-   :members:
-   :undoc-members:
 
 pinns.quaternions module
 ------------------------
@@ -82,5 +65,4 @@ pinns.r_fun module
 
 .. automodule:: pinns.r_fun
    :members:
-   :undoc-members:
 

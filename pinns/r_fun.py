@@ -135,7 +135,7 @@ class RAlphaM(RFun):
 class RP(RFun):
     """
     Implements the system :math:`R_p` for some even integer value `p`.
-    This system is normalized to the `p-1`th order.
+    This system is normalized to the order `p-1`.
 
     Parameters
     ----------

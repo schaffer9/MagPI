@@ -1,8 +1,8 @@
 from inspect import signature
 
-from .prelude import *
+from chex import ArrayTree
 
-import chex
+from .prelude import *
 
 # TODO: typing and docs
 
@@ -18,6 +18,7 @@ __all__ = (
 
 
 Scalar = Array
+PyTree = ArrayTree
 
 
 def apply_to_module(operator):
@@ -73,7 +74,7 @@ def value_and_derivative(
 def derivative(
     wrt: Callable[..., Array] | Partials | Sequence[Partials],
     argnums: T.Optional[int | Sequence[int | None]] = None,
-) -> Callable[..., Callable | chex.ArrayTree]:
+) -> Callable[..., Callable | PyTree]:
     """This derivative operator computes the respective derivatives
     using forward mode differentiation.
 
@@ -201,27 +202,27 @@ def value_and_jacrev(
 
 
 def hvp(
-    f: Callable[..., chex.ArrayTree], primals: Sequence[Array], tangents: Sequence[Array]
+    f: Callable[..., PyTree], primals: Sequence[Array], tangents: Sequence[Array]
 ) -> Array:
     return jvp(jacfwd(f), primals, tangents)[1]
 
 
 def hvp_forward_over_reverse(
     f: Callable,
-    primals: Sequence[chex.ArrayTree],
-    tangents: Sequence[chex.ArrayTree],
+    primals: Sequence[PyTree],
+    tangents: Sequence[PyTree],
     *args: Any,
     value_and_grad: bool = False,
     has_aux: bool = False,
     **kwargs: Any,
-) -> chex.ArrayTree:
+) -> PyTree:
     """Computes the hessian vector product of a Scalar valued
     function in forward-over-reverse mode.
 
     Args:
         f (Callable):
-        primals Sequence[chex.ArrayTree]:
-        tangents Sequence[chex.ArrayTree]:
+        primals Sequence[PyTree]:
+        tangents Sequence[PyTree]:
         value_and_grad (bool, optional): Defaults to False.
         has_aux (bool, optional): Defaults to False.
     """
@@ -238,13 +239,13 @@ def hvp_forward_over_reverse(
 
 def hvp_reverse_over_reverse(
     f: Callable,
-    primals: Sequence[chex.ArrayTree],
-    tangents: Sequence[chex.ArrayTree],
+    primals: Sequence[PyTree],
+    tangents: Sequence[PyTree],
     *args: Any,
     value_and_grad: bool = False,
     has_aux: bool = False,
     **kwargs: Any,
-) -> chex.ArrayTree:
+) -> PyTree:
     def grad_f(p):
         if value_and_grad:
             _, _grad_f = f(p, *args, **kwargs)
@@ -257,7 +258,7 @@ def hvp_reverse_over_reverse(
     return grad(lambda x: tree_vdot(grad_f(x), v))(x)
 
 
-def hessian_diag(f: Callable[..., chex.ArrayTree], primals: Array) -> chex.ArrayTree:
+def hessian_diag(f: Callable[..., PyTree], primals: Array) -> PyTree:
     primals = asarray(primals)
     primals = primals
     is_1d = primals.shape == ()
@@ -273,7 +274,7 @@ def hessian_diag(f: Callable[..., chex.ArrayTree], primals: Array) -> chex.Array
 
 
 @apply_to_module
-def laplace(f: Callable[..., chex.ArrayTree]) -> Callable[..., chex.ArrayTree]:
+def laplace(f: Callable[..., PyTree]) -> Callable[..., PyTree]:
     """Computes the laplacian :math:`\\Delta f` wrt. the first argument.
     If `f` is a vector valued function, the laplacian of each output is
     computed.
@@ -291,7 +292,7 @@ def laplace(f: Callable[..., chex.ArrayTree]) -> Callable[..., chex.ArrayTree]:
 
 
 @apply_to_module
-def divergence(f: Callable[..., chex.ArrayTree], argnums=0) -> Callable[..., chex.ArrayTree]:
+def divergence(f: Callable[..., PyTree], argnums=0) -> Callable[..., PyTree]:
     """Computes the divergence :math:`\\nabla \\cdot f` wrt. the first argument.
 
     Parameters
@@ -308,8 +309,8 @@ def divergence(f: Callable[..., chex.ArrayTree], argnums=0) -> Callable[..., che
 
 @apply_to_module
 def value_and_divergence(
-    f: Callable[..., chex.ArrayTree], argnums=0
-) -> Callable[..., tuple[chex.ArrayTree, chex.ArrayTree]]:
+    f: Callable[..., PyTree], argnums=0
+) -> Callable[..., tuple[PyTree, PyTree]]:
     """Computes the divergence :math:`\\nabla \\cdot f` wrt. the first argument.
 
     Parameters

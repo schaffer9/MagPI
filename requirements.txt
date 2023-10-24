@@ -1,0 +1,7 @@
+Sphinx
+sphinx-autodoc-typehints
+sphinx-rtd-theme
+jax
+jaxopt
+optax
+flax
