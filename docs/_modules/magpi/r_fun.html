@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>magpi.r_fun &mdash; MagPI 0.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            MagPI
+          </a>
+              <div class="version">
+                0.0.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">MagPi</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MagPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">magpi.r_fun</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for magpi.r_fun</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">.prelude</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.quaternions</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">quaternion_rotation</span><span class="p">,</span>
+    <span class="n">from_euler_angles</span><span class="p">,</span>
+    <span class="n">from_axis_angle</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="n">Scalar</span> <span class="o">=</span> <span class="n">Array</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span>
+<span class="n">Vec</span> <span class="o">=</span> <span class="n">Array</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Scalar</span><span class="p">]</span> <span class="o">|</span> <span class="n">Scalar</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Scalar</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+<span class="n">Vec2d</span> <span class="o">=</span> <span class="n">Array</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Scalar</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">]</span>
+<span class="n">Vec3d</span> <span class="o">=</span> <span class="n">Array</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Scalar</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">]</span>
+
+<span class="n">_annotation</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">ADF stands for Approximate distance function. It is</span>
+<span class="s2">positive inside the respective domain, zero on the boundary</span>
+<span class="s2">and negative outside the domain. When normalized to first order</span>
+<span class="s2">the normal derivative has a magnitude of one everywhere on the</span>
+<span class="s2">boundary. Higher order normalization yields a function</span>
+<span class="s2">where higher order normal derivatives are zero.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="n">ADF</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">Annotated</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Array</span> <span class="o">|</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">_annotation</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="RFun">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.RFun">[docs]</a>
+<span class="k">class</span> <span class="nc">RFun</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements the basic set theoretic operations for a system of R-Functions.</span>
+<span class="sd">    In essence, only `conjugation` and `disjunction` needs to be implemented.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">conjunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotADirectoryError</span>
+
+    <span class="k">def</span> <span class="nf">disjunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotADirectoryError</span>
+
+    <span class="k">def</span> <span class="nf">negate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="o">-</span><span class="n">adf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">union</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">disjunction</span><span class="p">(</span><span class="n">adf1</span><span class="p">,</span> <span class="n">adf2</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">intersection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">conjunction</span><span class="p">(</span><span class="n">adf1</span><span class="p">,</span> <span class="n">adf2</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">equivalence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">negate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xor</span><span class="p">(</span><span class="n">adf1</span><span class="p">,</span> <span class="n">adf2</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">implication</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">negate</span><span class="p">(</span><span class="n">adf1</span><span class="p">),</span> <span class="n">adf2</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">difference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">adf1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">negate</span><span class="p">(</span><span class="n">adf2</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">xor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="n">adf1</span><span class="p">,</span> <span class="n">adf2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">adf1</span><span class="p">,</span> <span class="n">adf2</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">negate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">adf1</span><span class="p">,</span> <span class="n">adf2</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">adf1</span><span class="p">,</span> <span class="n">adf2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="RAlpha">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.RAlpha">[docs]</a>
+<span class="k">class</span> <span class="nc">RAlpha</span><span class="p">(</span><span class="n">RFun</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements the system :math:`R_\\alpha` for some value of `alpha` in (-1, 1].</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    alpha : Scalar</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">&lt;</span> <span class="n">alpha</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+
+    <span class="k">def</span> <span class="nf">conjunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">op</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="mi">1</span>
+                <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">-</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="p">))</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">op</span><span class="p">(</span><span class="n">adf1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">adf2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">disjunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">op</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="mi">1</span>
+                <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="p">))</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">op</span><span class="p">(</span><span class="n">adf1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">adf2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="RAlphaM">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.RAlphaM">[docs]</a>
+<span class="k">class</span> <span class="nc">RAlphaM</span><span class="p">(</span><span class="n">RFun</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements the system :math:`R_\\alpha^m` for some value of `alpha` in (-1, 1].</span>
+<span class="sd">    Note that this system is not normalized.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    m: Scalar</span>
+<span class="sd">    alpha : Scalar</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">&lt;</span> <span class="n">alpha</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">m</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+
+    <span class="k">def</span> <span class="nf">conjunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">op</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">a</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span><span class="o">**</span><span class="mi">2</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="mi">1</span>
+                <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">-</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">r</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="p">))</span>
+                <span class="o">*</span> <span class="n">r</span> <span class="o">**</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">op</span><span class="p">(</span><span class="n">adf1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">adf2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">disjunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">op</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">a</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span><span class="o">**</span><span class="mi">2</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="mi">1</span>
+                <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">r</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="p">))</span>
+                <span class="o">*</span> <span class="n">r</span> <span class="o">**</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">op</span><span class="p">(</span><span class="n">adf1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">adf2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="RP">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.RP">[docs]</a>
+<span class="k">class</span> <span class="nc">RP</span><span class="p">(</span><span class="n">RFun</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements the system :math:`R_p` for some even integer value `p`.</span>
+<span class="sd">    This system is normalized to the order `p-1`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    p : int</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">p</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;`p` must be an even integer&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">p</span>
+
+    <span class="k">def</span> <span class="nf">conjunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">op</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">-</span> <span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">+</span> <span class="n">b</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">op</span><span class="p">(</span><span class="n">adf1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">adf2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">disjunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">op</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">+</span> <span class="n">b</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">op</span><span class="p">(</span><span class="n">adf1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">adf2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="RhoBlending">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.RhoBlending">[docs]</a>
+<span class="k">class</span> <span class="nc">RhoBlending</span><span class="p">(</span><span class="n">RFun</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Blending R-function which smoothes sharp corners and edges [1]_.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ---------</span>
+<span class="sd">    rho : float</span>
+<span class="sd">        smoothing factor</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    .. [1] Shapiro, Vadim. &quot;Semi-analytic geometry with R-functions.&quot;</span>
+<span class="sd">       ACTA numerica 16 (2007): 239-303.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rho</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span>
+
+    <span class="k">def</span> <span class="nf">conjunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">op</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">a</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="o">**</span><span class="mi">2</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">a</span>
+                <span class="o">+</span> <span class="n">b</span>
+                <span class="o">-</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">)</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">s</span><span class="p">)))</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">op</span><span class="p">(</span><span class="n">adf1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">adf2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">disjunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adf1</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">adf2</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">op</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">a</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="o">**</span><span class="mi">2</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">a</span>
+                <span class="o">+</span> <span class="n">b</span>
+                <span class="o">+</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">)</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">s</span><span class="p">)))</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">op</span><span class="p">(</span><span class="n">adf1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">adf2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+
+
+
+<span class="n">r1</span> <span class="o">=</span> <span class="n">RAlpha</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>  <span class="c1"># min, max</span>
+<span class="n">r0</span> <span class="o">=</span> <span class="n">RAlpha</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># analytic everywhere but the origin and normalized to first order</span>
+<span class="n">rp2</span> <span class="o">=</span> <span class="n">RP</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># same as r0</span>
+<span class="n">rp4</span> <span class="o">=</span> <span class="n">RP</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># analytic everywhere and normalized to 3rd order.</span>
+
+
+<div class="viewcode-block" id="cuboid">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.cuboid">[docs]</a>
+<span class="k">def</span> <span class="nf">cuboid</span><span class="p">(</span><span class="n">edge_lengths</span><span class="p">:</span> <span class="n">Vec</span><span class="p">,</span> <span class="n">centering</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">normalize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the ADF of a cuboid.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    edge_lengths : Vec</span>
+<span class="sd">        geometry of the cuboid. The lenght of the vector determines the dimension.</span>
+<span class="sd">    centering : bool, optional</span>
+<span class="sd">        centers the cuboid at the origin, by default False</span>
+<span class="sd">    normalize : int, optional</span>
+<span class="sd">        normalization degree of the ADF, by default 1</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">normalize</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Only odd degrees of normalization allowed for cuboid&quot;</span>
+    <span class="n">_edge_lengths</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">edge_lengths</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">centering</span><span class="p">:</span>
+        <span class="n">lb</span> <span class="o">=</span> <span class="o">-</span><span class="n">_edge_lengths</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">ub</span> <span class="o">=</span> <span class="n">_edge_lengths</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lb</span> <span class="o">=</span> <span class="n">zeros_like</span><span class="p">(</span><span class="n">_edge_lengths</span><span class="p">)</span>
+        <span class="n">ub</span> <span class="o">=</span> <span class="n">_edge_lengths</span>
+
+    <span class="c1"># use a RP function to compute the intersection for all 6 sides</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">normalize</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">_intersection</span> <span class="o">=</span> <span class="n">compose</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">-</span> <span class="p">(</span><span class="n">a</span><span class="o">**</span><span class="n">p</span> <span class="o">+</span> <span class="n">b</span><span class="o">**</span><span class="n">p</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">p</span><span class="p">))</span>
+
+    <span class="nd">@_intersection</span>
+    <span class="k">def</span> <span class="nf">adf</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">ub</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">lb</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">concatenate</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">adf</span></div>
+
+
+
+<div class="viewcode-block" id="cube">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.cube">[docs]</a>
+<span class="k">def</span> <span class="nf">cube</span><span class="p">(</span><span class="n">edge_lenght</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">centering</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">normalize</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the ADF of a cube.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    edge_lenght : Scalar</span>
+<span class="sd">        edge length of the cube</span>
+<span class="sd">    centering : bool, optional</span>
+<span class="sd">        centers the cuboid at the origin, by default False</span>
+<span class="sd">    normalize : int, optional</span>
+<span class="sd">        normalization degree of the ADF, by default 1</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">cuboid</span><span class="p">(</span><span class="n">edge_lenght</span><span class="p">,</span> <span class="n">centering</span><span class="p">,</span> <span class="n">normalize</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="sphere">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.sphere">[docs]</a>
+<span class="k">def</span> <span class="nf">sphere</span><span class="p">(</span><span class="n">r</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the ADF of a sphere which is normalized to first order.</span>
+<span class="sd">    The dimension is arbitrary.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    r : Scalar</span>
+<span class="sd">        radius</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">r</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="cylinder">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.cylinder">[docs]</a>
+<span class="k">def</span> <span class="nf">cylinder</span><span class="p">(</span><span class="n">r</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    1st order ADF of a cylinder of infinte length.</span>
+<span class="sd">    The base of the cylinder lies in the first two dimensions of the</span>
+<span class="sd">    input.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    r : Scalar</span>
+<span class="sd">        radius</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">sphere</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">s</span><span class="p">(</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">)[:</span><span class="mi">2</span><span class="p">])</span></div>
+
+
+
+<div class="viewcode-block" id="ellipsoid">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.ellipsoid">[docs]</a>
+<span class="k">def</span> <span class="nf">ellipsoid</span><span class="p">(</span><span class="n">axes_lengths</span><span class="p">:</span> <span class="n">Vec</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    1st order ADF of a ellipsoid.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    axes_lengths : Vec</span>
+<span class="sd">        length of the vector determines the dimension</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">adf</span> <span class="o">=</span> <span class="n">sphere</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">adf</span> <span class="o">=</span> <span class="n">scale_without_normalization</span><span class="p">(</span><span class="n">adf</span><span class="p">,</span> <span class="n">axes_lengths</span><span class="p">)</span>
+    <span class="n">adf</span> <span class="o">=</span> <span class="n">normalize_1st_order</span><span class="p">(</span><span class="n">adf</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">adf</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">compose</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Scalar</span><span class="p">,</span> <span class="n">Scalar</span><span class="p">],</span> <span class="n">Scalar</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">ADF</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">composition</span><span class="p">(</span><span class="o">*</span><span class="n">adf</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">_adf</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">concatenate</span><span class="p">(</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="n">df</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">adf</span><span class="p">)))</span>
+            <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_adf</span>
+
+    <span class="k">return</span> <span class="n">composition</span>
+
+
+<div class="viewcode-block" id="translate">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.translate">[docs]</a>
+<span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Vec</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Translates the ADF by the vector y.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    adf : ADF</span>
+<span class="sd">    y : Vec</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_y</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">adf</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">_y</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="scale">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.scale">[docs]</a>
+<span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">scaling_factor</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Scales the ADF by the given `scaling_factor`.</span>
+<span class="sd">    First order normalization is preserved.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    adf : ADF</span>
+<span class="sd">    scaling_factor : Scalar</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_scaling_factor</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">scaling_factor</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">_scaling_factor</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span>
+        <span class="mi">1</span><span class="p">,</span>
+    <span class="p">),</span> <span class="s2">&quot;`scaling_factor` must be a scalar to preserve normalization&quot;</span>
+    <span class="n">_scaling_factor</span> <span class="o">=</span> <span class="n">_scaling_factor</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">adf</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">_scaling_factor</span><span class="p">)</span> <span class="o">*</span> <span class="n">_scaling_factor</span></div>
+
+
+
+<div class="viewcode-block" id="scale_without_normalization">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.scale_without_normalization">[docs]</a>
+<span class="k">def</span> <span class="nf">scale_without_normalization</span><span class="p">(</span><span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">scaling_factor</span><span class="p">:</span> <span class="n">Vec</span> <span class="o">|</span> <span class="n">Scalar</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Scales the ADF without normalization. This allows</span>
+<span class="sd">    different scaling factors for each dimension but does</span>
+<span class="sd">    not preserve normalization. First order normalization can be</span>
+<span class="sd">    estabished by `normalize_1st_order`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    adf : ADF</span>
+<span class="sd">    scaling_factor : Vec | Scalar</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_scaling_factor</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">scaling_factor</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">adf</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">_scaling_factor</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="rotate2d">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.rotate2d">[docs]</a>
+<span class="k">def</span> <span class="nf">rotate2d</span><span class="p">(</span><span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">angle</span><span class="p">:</span> <span class="n">Scalar</span><span class="p">,</span> <span class="n">o</span><span class="p">:</span> <span class="n">Vec2d</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Rotates the given 2d ADF by some `angle` around the point `o`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    adf : ADF</span>
+<span class="sd">    angle : Scalar</span>
+<span class="sd">    o : Vec2d, optional</span>
+<span class="sd">        by default (0.0, 0.0)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_o</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+    <span class="n">_angle</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+    <span class="n">_adf</span> <span class="o">=</span> <span class="n">translate</span><span class="p">(</span><span class="n">adf</span><span class="p">,</span> <span class="o">-</span><span class="n">_o</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span>
+        <span class="p">[[</span><span class="n">cos</span><span class="p">(</span><span class="n">_angle</span><span class="p">),</span> <span class="n">sin</span><span class="p">(</span><span class="n">_angle</span><span class="p">)],</span> <span class="p">[</span><span class="o">-</span><span class="n">sin</span><span class="p">(</span><span class="n">_angle</span><span class="p">),</span> <span class="n">cos</span><span class="p">(</span><span class="n">_angle</span><span class="p">)]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">_angle</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">rot_op</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Cannot rotate vector of size </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> in 2d. Please pass a 2d vector.&quot;</span>
+        <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">2</span><span class="p">,),</span> <span class="n">msg</span>
+        <span class="k">return</span> <span class="n">_adf</span><span class="p">(</span><span class="n">M</span> <span class="o">@</span> <span class="n">x</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">translate</span><span class="p">(</span><span class="n">rot_op</span><span class="p">,</span> <span class="n">_o</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="rotate3d">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.rotate3d">[docs]</a>
+<span class="k">def</span> <span class="nf">rotate3d</span><span class="p">(</span>
+    <span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span>
+    <span class="n">angle</span><span class="p">:</span> <span class="n">Scalar</span> <span class="o">|</span> <span class="n">Vec3d</span><span class="p">,</span>
+    <span class="n">rot_axis</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">Vec3d</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">o</span><span class="p">:</span> <span class="n">Vec3d</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Rotates the 3d ADF by some angle around the rotation axis `rot_axis` or</span>
+<span class="sd">    if a three euler angles are provided around the point `o`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    adf : ADF</span>
+<span class="sd">    angle : Scalar | Vec3d</span>
+<span class="sd">    rot_axis : None | Vec3d, optional</span>
+<span class="sd">        by default None</span>
+<span class="sd">    o : Vec3d, optional</span>
+<span class="sd">        by default (0.0, 0.0, 0.0)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_o</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+    <span class="n">_adf</span> <span class="o">=</span> <span class="n">translate</span><span class="p">(</span><span class="n">adf</span><span class="p">,</span> <span class="o">-</span><span class="n">_o</span><span class="p">)</span>
+
+    <span class="n">_angle</span> <span class="o">=</span> <span class="o">-</span><span class="n">asarray</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">_angle</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">():</span>
+        <span class="k">if</span> <span class="n">rot_axis</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;If only the angle is specified, the rotation axis must be provided&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">rot_quaternion</span> <span class="o">=</span> <span class="n">from_axis_angle</span><span class="p">(</span><span class="n">_angle</span><span class="p">,</span> <span class="n">rot_axis</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">_angle</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">3</span><span class="p">,):</span>
+        <span class="k">if</span> <span class="n">rot_axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;If Euler angles are given, the `rot_axis` must be `None`&quot;</span><span class="p">)</span>
+        <span class="n">rot_quaternion</span> <span class="o">=</span> <span class="n">from_euler_angles</span><span class="p">(</span><span class="n">_angle</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Provide axis-angle representation or Euler angles.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">rot_op</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Cannot rotate vector of size </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> in 3d. Please pass a 3d vector.&quot;</span>
+        <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">3</span><span class="p">,),</span> <span class="n">msg</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">quaternion_rotation</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">rot_quaternion</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_adf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">translate</span><span class="p">(</span><span class="n">rot_op</span><span class="p">,</span> <span class="n">_o</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="reflect">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.reflect">[docs]</a>
+<span class="k">def</span> <span class="nf">reflect</span><span class="p">(</span><span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">normal_vec</span><span class="p">:</span> <span class="n">Vec</span><span class="p">,</span> <span class="n">o</span><span class="p">:</span> <span class="n">Vec</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reflects the ADF along the provided normal vector of the reflection plane with origin `o`.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    adf : ADF</span>
+<span class="sd">    normal_vec : Vec</span>
+<span class="sd">    o : Vec, optional</span>
+<span class="sd">        by default 0.0</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_o</span><span class="p">,</span> <span class="n">_n</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">o</span><span class="p">),</span> <span class="n">asarray</span><span class="p">(</span><span class="n">normal_vec</span><span class="p">)</span>
+    <span class="n">_adf</span> <span class="o">=</span> <span class="n">translate</span><span class="p">(</span><span class="n">adf</span><span class="p">,</span> <span class="o">-</span><span class="n">_o</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">ref_op</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">@</span> <span class="n">_n</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">_n</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">_n</span>
+        <span class="k">return</span> <span class="n">_adf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">translate</span><span class="p">(</span><span class="n">ref_op</span><span class="p">,</span> <span class="n">_o</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="project">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.project">[docs]</a>
+<span class="k">def</span> <span class="nf">project</span><span class="p">(</span><span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">normal_vec</span><span class="p">:</span> <span class="n">Vec</span><span class="p">,</span> <span class="n">o</span><span class="p">:</span> <span class="n">Vec</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Projects the ADF onto the plane devined by the normal vector `normal_vec` and `o`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    adf : ADF</span>
+<span class="sd">    normal_vec : Vec</span>
+<span class="sd">    o : Vec, optional</span>
+<span class="sd">        by default 0.0</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_o</span><span class="p">,</span> <span class="n">_n</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">o</span><span class="p">),</span> <span class="n">asarray</span><span class="p">(</span><span class="n">normal_vec</span><span class="p">)</span>
+    <span class="n">_adf</span> <span class="o">=</span> <span class="n">translate</span><span class="p">(</span><span class="n">adf</span><span class="p">,</span> <span class="o">-</span><span class="n">_o</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">proj_op</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="p">(</span><span class="n">x</span> <span class="o">@</span> <span class="n">_n</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">_n</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">_n</span>
+        <span class="k">return</span> <span class="n">_adf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">translate</span><span class="p">(</span><span class="n">proj_op</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="revolution">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.revolution">[docs]</a>
+<span class="k">def</span> <span class="nf">revolution</span><span class="p">(</span><span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates the body of revolution from a 2d shape.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    adf : ADF</span>
+<span class="sd">    axis : int, optional</span>
+<span class="sd">        0 for revolution around x axis or 1 for y axis, by default 0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">rev_op</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">3</span><span class="p">,),</span> <span class="s2">&quot;Revolution only supported in 3d.&quot;</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">adf</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">]))</span>
+        <span class="k">elif</span> <span class="n">axis</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">adf</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">r</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;`axis` must either be 0 for revolution around x &quot;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;or 1 for revolution around y.&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">rev_op</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_1st_order">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.r_fun.normalize_1st_order">[docs]</a>
+<span class="k">def</span> <span class="nf">normalize_1st_order</span><span class="p">(</span><span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ADF</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Normalizes the ADF to first order. Note that the gradient</span>
+<span class="sd">    cannot vanish on the boundary for this function to work.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    adf : ADF</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ADF</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">jacfwd</span><span class="p">(</span><span class="n">adf</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">adf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">dy</span> <span class="o">=</span> <span class="n">df</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span> <span class="o">/</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">y</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">norm</span><span class="p">(</span><span class="n">dy</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">normalize</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Sebastian Schaffer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

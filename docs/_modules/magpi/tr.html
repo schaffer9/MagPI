@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>magpi.tr &mdash; MagPI 0.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            MagPI
+          </a>
+              <div class="version">
+                0.0.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">MagPi</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MagPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">magpi.tr</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for magpi.tr</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">operator</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="kn">import</span> <span class="nn">chex</span>
+<span class="kn">from</span> <span class="nn">jax.experimental</span> <span class="kn">import</span> <span class="n">host_callback</span> <span class="k">as</span> <span class="n">hcb</span>
+<span class="kn">from</span> <span class="nn">jaxopt</span> <span class="kn">import</span> <span class="n">base</span> <span class="k">as</span> <span class="n">jaxopt_base</span>
+<span class="kn">from</span> <span class="nn">jaxopt</span> <span class="kn">import</span> <span class="n">loop</span>
+
+<span class="kn">from</span> <span class="nn">.prelude</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">calc</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">utils</span>
+
+
+<span class="k">class</span> <span class="nc">TrState</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">NamedTuple</span><span class="p">):</span>
+    <span class="n">iter_num</span><span class="p">:</span> <span class="n">Array</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">Array</span>
+    <span class="n">grad</span><span class="p">:</span> <span class="n">Array</span>
+    <span class="n">error</span><span class="p">:</span> <span class="n">Array</span>  <span class="c1"># gradient norm</span>
+    <span class="n">rho</span><span class="p">:</span> <span class="n">Array</span>
+    <span class="n">tr_radius</span><span class="p">:</span> <span class="n">Array</span>
+    <span class="n">aux</span><span class="p">:</span> <span class="n">Any</span>
+    <span class="n">iter_num_steihaug</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">steihaug_converged</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="n">Array</span>
+    <span class="n">steihaug_curvature</span><span class="p">:</span> <span class="n">Array</span>
+    <span class="n">steihaug_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Array</span>
+
+
+<div class="viewcode-block" id="TR">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.opt.TR">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">TR</span><span class="p">(</span><span class="n">jaxopt_base</span><span class="o">.</span><span class="n">IterativeSolver</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Trust Region method optimizer which uses the</span>
+<span class="sd">    CGSteihaug algorithm to solve the trust region sub-problem.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fun</span><span class="p">:</span> <span class="n">Callable</span>
+    <span class="n">value_and_grad</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">has_aux</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">init_tr_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">max_tr_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>
+    <span class="n">min_tr_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-10</span>
+    <span class="n">rho_increase</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">/</span> <span class="mi">4</span>
+    <span class="n">increase_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">rho_decrease</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">4</span>
+    <span class="n">decrease_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">4</span>
+    <span class="n">rho_accept</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">4</span>
+    <span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-2</span>  <span class="c1"># gradient tolerance</span>
+    <span class="n">maxiter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">maxiter_steihaug</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">eps_min_steihaug</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-9</span>
+
+    <span class="n">callback</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">jaxopt_base</span><span class="o">.</span><span class="n">OptStep</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">implicit_diff</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">implicit_diff_solve</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">jit</span><span class="p">:</span> <span class="n">jaxopt_base</span><span class="o">.</span><span class="n">AutoOrBoolean</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span>
+    <span class="n">unroll</span><span class="p">:</span> <span class="n">jaxopt_base</span><span class="o">.</span><span class="n">AutoOrBoolean</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span>
+
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="TR.init_state">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.opt.TR.init_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">init_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">init_params</span><span class="p">:</span> <span class="n">chex</span><span class="o">.</span><span class="n">ArrayTree</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">init_params</span><span class="p">,</span> <span class="n">jaxopt_base</span><span class="o">.</span><span class="n">OptStep</span><span class="p">):</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="n">init_params</span><span class="o">.</span><span class="n">state</span>
+            <span class="n">tr_radius</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">tr_radius</span>
+            <span class="n">iter_num</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">iter_num</span>
+            <span class="n">init_params</span> <span class="o">=</span> <span class="n">init_params</span><span class="o">.</span><span class="n">params</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">iter_num</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">tr_radius</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">init_tr_radius</span><span class="p">)</span>
+
+        <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">aux</span><span class="p">),</span> <span class="n">grad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_and_grad_with_aux</span><span class="p">(</span><span class="n">init_params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">norm_df</span> <span class="o">=</span> <span class="n">tree_l2_norm</span><span class="p">(</span><span class="n">grad</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">TrState</span><span class="p">(</span>
+            <span class="n">iter_num</span><span class="o">=</span><span class="n">iter_num</span><span class="p">,</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+            <span class="n">grad</span><span class="o">=</span><span class="n">grad</span><span class="p">,</span>
+            <span class="n">aux</span><span class="o">=</span><span class="n">aux</span><span class="p">,</span>
+            <span class="n">error</span><span class="o">=</span><span class="n">norm_df</span><span class="p">,</span>
+            <span class="n">rho</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+            <span class="n">tr_radius</span><span class="o">=</span><span class="n">tr_radius</span><span class="p">,</span>
+            <span class="n">iter_num_steihaug</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">steihaug_converged</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">steihaug_curvature</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span>
+            <span class="n">steihaug_eps</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">norm_df</span><span class="p">)</span> <span class="o">*</span> <span class="n">norm_df</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TR.hvp">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.opt.TR.hvp">[docs]</a>
+    <span class="k">def</span> <span class="nf">hvp</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">chex</span><span class="o">.</span><span class="n">ArrayTree</span><span class="p">],</span> <span class="n">chex</span><span class="o">.</span><span class="n">ArrayTree</span><span class="p">]]:</span>
+        <span class="n">_hvp</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">calc</span><span class="o">.</span><span class="n">hvp_forward_over_reverse</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_value_and_grad_with_aux</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">params</span><span class="p">,),</span>
+            <span class="p">(</span><span class="n">p</span><span class="p">,),</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="n">value_and_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">has_aux</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">state</span><span class="p">,</span> <span class="n">_hvp</span></div>
+
+
+<div class="viewcode-block" id="TR.update">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.opt.TR.update">[docs]</a>
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">chex</span><span class="o">.</span><span class="n">ArrayTree</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jaxopt_base</span><span class="o">.</span><span class="n">OptStep</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">jaxopt_base</span><span class="o">.</span><span class="n">OptStep</span><span class="p">):</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">params</span>
+        <span class="n">state</span><span class="p">,</span> <span class="n">hvp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hvp</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">jit</span><span class="p">,</span> <span class="n">unroll</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_loop_options</span><span class="p">()</span>
+        <span class="n">norm_df</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">error</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">norm_df</span><span class="p">)</span> <span class="o">*</span> <span class="n">norm_df</span>
+        <span class="n">eps</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">steihaug_eps</span><span class="p">,</span> <span class="n">eps</span><span class="p">)</span>
+        <span class="n">steihaug_result</span> <span class="o">=</span> <span class="n">steihaug</span><span class="p">(</span>
+            <span class="n">state</span><span class="o">.</span><span class="n">grad</span><span class="p">,</span>
+            <span class="n">hvp</span><span class="p">,</span>
+            <span class="n">tr_radius</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">tr_radius</span><span class="p">,</span>
+            <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span>
+            <span class="n">maxiter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">maxiter_steihaug</span><span class="p">,</span>
+            <span class="n">eps_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eps_min_steihaug</span><span class="p">,</span>
+            <span class="n">jit</span><span class="o">=</span><span class="n">jit</span><span class="p">,</span>
+            <span class="n">unroll</span><span class="o">=</span><span class="n">unroll</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">steihaug_result</span><span class="o">.</span><span class="n">p</span>
+
+        <span class="k">def</span> <span class="nf">update</span><span class="p">():</span>
+            <span class="n">new_params</span> <span class="o">=</span> <span class="n">tree_add</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">aux</span><span class="p">),</span> <span class="n">grad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_and_grad_with_aux</span><span class="p">(</span>
+                <span class="n">new_params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+            <span class="n">nom</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">value</span> <span class="o">-</span> <span class="n">value</span>
+            <span class="n">denom</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">tree_vdot</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">grad</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">tree_vdot</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">hvp</span><span class="p">(</span><span class="n">p</span><span class="p">)))</span>
+            <span class="n">rho</span> <span class="o">=</span> <span class="n">nom</span> <span class="o">/</span> <span class="n">denom</span>
+            <span class="n">tr_radius</span> <span class="o">=</span> <span class="n">update_tr_radius</span><span class="p">(</span>
+                <span class="n">state</span><span class="o">.</span><span class="n">tr_radius</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_tr_radius</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">min_tr_radius</span><span class="p">,</span>
+                <span class="n">rho</span><span class="p">,</span>
+                <span class="n">steihaug_result</span><span class="o">.</span><span class="n">step_length</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rho_increase</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rho_decrease</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">increase_factor</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decrease_factor</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">accept</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho_accept</span>
+
+            <span class="n">new_state</span> <span class="o">=</span> <span class="n">lax</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+                <span class="n">accept</span><span class="p">,</span>
+                <span class="k">lambda</span><span class="p">:</span> <span class="n">TrState</span><span class="p">(</span>
+                    <span class="n">iter_num</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">iter_num</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span>
+                    <span class="n">grad</span><span class="o">=</span><span class="n">grad</span><span class="p">,</span>
+                    <span class="n">error</span><span class="o">=</span><span class="n">tree_l2_norm</span><span class="p">(</span><span class="n">grad</span><span class="p">),</span>
+                    <span class="n">rho</span><span class="o">=</span><span class="n">rho</span><span class="p">,</span>
+                    <span class="n">tr_radius</span><span class="o">=</span><span class="n">tr_radius</span><span class="p">,</span>
+                    <span class="n">aux</span><span class="o">=</span><span class="n">aux</span><span class="p">,</span>
+                    <span class="n">iter_num_steihaug</span><span class="o">=</span><span class="n">steihaug_result</span><span class="o">.</span><span class="n">iter_num</span><span class="p">,</span>
+                    <span class="n">steihaug_converged</span><span class="o">=</span><span class="n">steihaug_result</span><span class="o">.</span><span class="n">converged</span><span class="p">,</span>
+                    <span class="n">steihaug_curvature</span><span class="o">=</span><span class="n">steihaug_result</span><span class="o">.</span><span class="n">curvature</span><span class="p">,</span>
+                    <span class="n">steihaug_eps</span><span class="o">=</span><span class="n">eps</span>
+                <span class="p">),</span>
+                <span class="k">lambda</span><span class="p">:</span> <span class="n">TrState</span><span class="p">(</span>
+                    <span class="n">iter_num</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">iter_num</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                    <span class="n">grad</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">grad</span><span class="p">,</span>
+                    <span class="n">error</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">error</span><span class="p">,</span>
+                    <span class="n">rho</span><span class="o">=</span><span class="n">rho</span><span class="p">,</span>
+                    <span class="n">tr_radius</span><span class="o">=</span><span class="n">tr_radius</span><span class="p">,</span>
+                    <span class="n">aux</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">aux</span><span class="p">,</span>
+                    <span class="n">iter_num_steihaug</span><span class="o">=</span><span class="n">steihaug_result</span><span class="o">.</span><span class="n">iter_num</span><span class="p">,</span>
+                    <span class="n">steihaug_converged</span><span class="o">=</span><span class="n">steihaug_result</span><span class="o">.</span><span class="n">converged</span><span class="p">,</span>
+                    <span class="n">steihaug_curvature</span><span class="o">=</span><span class="n">steihaug_result</span><span class="o">.</span><span class="n">curvature</span><span class="p">,</span>
+                    <span class="n">steihaug_eps</span><span class="o">=</span><span class="n">eps</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+            <span class="n">_step</span> <span class="o">=</span> <span class="n">jaxopt</span><span class="o">.</span><span class="n">OptStep</span><span class="p">(</span>
+                <span class="n">lax</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">accept</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">new_params</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">params</span><span class="p">),</span> <span class="n">new_state</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">cb</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">step</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+                <span class="n">hcb</span><span class="o">.</span><span class="n">id_tap</span><span class="p">(</span><span class="n">cb</span><span class="p">,</span> <span class="n">_step</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">_step</span>
+
+        <span class="k">def</span> <span class="nf">no_update</span><span class="p">():</span>
+            <span class="c1"># in case steihaug does not make any progress, p = 0</span>
+            <span class="k">return</span> <span class="n">jaxopt</span><span class="o">.</span><span class="n">OptStep</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+        <span class="n">make_update</span> <span class="o">=</span> <span class="p">(</span><span class="n">steihaug_result</span><span class="o">.</span><span class="n">iter_num</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">tr_radius</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_tr_radius</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">lax</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">make_update</span><span class="p">,</span> <span class="n">no_update</span><span class="p">,</span> <span class="n">update</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TR.optimality_fun">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.opt.TR.optimality_fun">[docs]</a>
+    <span class="k">def</span> <span class="nf">optimality_fun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_and_grad_with_aux</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_and_grad_with_aux</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">make_funs_with_aux</span><span class="p">(</span>
+            <span class="n">fun</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fun</span><span class="p">,</span> <span class="n">value_and_grad</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">value_and_grad</span><span class="p">,</span> <span class="n">has_aux</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">has_aux</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho_accept</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho_decrease</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;`rho_accept` must be smaller than `rho_decrease` for convergence reasons!&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">tree_size</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">chex</span><span class="o">.</span><span class="n">ArrayTree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">tree</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tree_reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">tree</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">CgSteihaugResult</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="n">NamedTuple</span><span class="p">):</span>
+    <span class="n">iter_num</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">converged</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="n">Array</span>
+    <span class="n">limit_step</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="n">Array</span>
+    <span class="n">step_length</span><span class="p">:</span> <span class="n">Array</span>
+    <span class="n">curvature</span><span class="p">:</span> <span class="n">Array</span>
+    <span class="n">p</span><span class="p">:</span> <span class="n">chex</span><span class="o">.</span><span class="n">ArrayTree</span>
+
+
+<span class="k">def</span> <span class="nf">steihaug</span><span class="p">(</span>
+    <span class="n">grad_f</span><span class="p">:</span> <span class="n">chex</span><span class="o">.</span><span class="n">ArrayTree</span><span class="p">,</span>
+    <span class="n">hvp</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">chex</span><span class="o">.</span><span class="n">ArrayTree</span><span class="p">],</span> <span class="n">chex</span><span class="o">.</span><span class="n">ArrayTree</span><span class="p">],</span>
+    <span class="n">tr_radius</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Array</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Array</span><span class="p">,</span>
+    <span class="n">eps_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-9</span><span class="p">,</span>
+    <span class="n">maxiter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">unroll</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">jit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CgSteihaugResult</span><span class="p">:</span>  <span class="c1"># tuple[Array, int, Array, chex.ArrayTree]:</span>
+    <span class="k">if</span> <span class="n">maxiter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">maxiter</span> <span class="o">=</span> <span class="n">tree_size</span><span class="p">(</span><span class="n">grad_f</span><span class="p">)</span>
+
+    <span class="n">z</span> <span class="o">=</span> <span class="n">tree_zeros_like</span><span class="p">(</span><span class="n">grad_f</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">grad_f</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">tree_negative</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">limit_step</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">tree_vdot</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span> <span class="n">tree_vdot</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span> <span class="n">tree_vdot</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="o">-</span> <span class="n">tr_radius</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">discriminant</span> <span class="o">=</span> <span class="n">b</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">c</span>
+        <span class="n">discriminant</span> <span class="o">=</span> <span class="n">lax</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">discriminant</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">discriminant</span><span class="p">)</span>
+        <span class="n">tau1</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">b</span> <span class="o">+</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">discriminant</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">a</span><span class="p">)</span>
+        <span class="n">tau2</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">b</span> <span class="o">-</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">discriminant</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">a</span><span class="p">)</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="n">maximum</span><span class="p">(</span><span class="n">tau1</span><span class="p">,</span> <span class="n">tau2</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">tree_add_scalar_mul</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">tree_scalar_mul</span><span class="p">(</span><span class="n">tr_radius</span> <span class="o">/</span> <span class="n">tree_l2_norm</span><span class="p">(</span><span class="n">z</span><span class="p">),</span> <span class="n">z</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">z</span>
+
+    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
+        <span class="n">z</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">],</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;d&quot;</span><span class="p">],</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">]</span>
+        <span class="n">rTr</span> <span class="o">=</span> <span class="n">tree_vdot</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+        <span class="n">Hd</span> <span class="o">=</span> <span class="n">hvp</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">curvature</span> <span class="o">=</span> <span class="n">tree_vdot</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">Hd</span><span class="p">)</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">rTr</span> <span class="o">/</span> <span class="n">curvature</span>
+        <span class="n">z_new</span> <span class="o">=</span> <span class="n">tree_add_scalar_mul</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+        <span class="n">r_new</span> <span class="o">=</span> <span class="n">tree_add_scalar_mul</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">Hd</span><span class="p">)</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="n">tree_vdot</span><span class="p">(</span><span class="n">r_new</span><span class="p">,</span> <span class="n">r_new</span><span class="p">)</span> <span class="o">/</span> <span class="n">rTr</span>
+        <span class="n">d_new</span> <span class="o">=</span> <span class="n">tree_add_scalar_mul</span><span class="p">(</span><span class="n">tree_negative</span><span class="p">(</span><span class="n">r_new</span><span class="p">),</span> <span class="n">beta</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+        <span class="n">norm_z_new</span> <span class="o">=</span> <span class="n">tree_l2_norm</span><span class="p">(</span><span class="n">z_new</span><span class="p">)</span>
+        <span class="n">norm_r_new</span> <span class="o">=</span> <span class="n">tree_l2_norm</span><span class="p">(</span><span class="n">r_new</span><span class="p">)</span>
+
+        <span class="n">z</span> <span class="o">=</span> <span class="n">lax</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">curvature</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">norm_z_new</span> <span class="o">&gt;=</span> <span class="n">tr_radius</span><span class="p">),</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="n">limit_step</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="n">z_new</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">iter_num</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;iter_num&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">z</span><span class="o">=</span><span class="n">z</span><span class="p">,</span>
+            <span class="n">d</span><span class="o">=</span><span class="n">d_new</span><span class="p">,</span>
+            <span class="n">r</span><span class="o">=</span><span class="n">r_new</span><span class="p">,</span>
+            <span class="n">norm_z</span><span class="o">=</span><span class="n">norm_z_new</span><span class="p">,</span>
+            <span class="n">norm_r</span><span class="o">=</span><span class="n">norm_r_new</span><span class="p">,</span>
+            <span class="n">curvature</span><span class="o">=</span><span class="n">curvature</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">condition</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
+        <span class="n">curvature</span><span class="p">,</span> <span class="n">norm_z</span><span class="p">,</span> <span class="n">norm_r</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;curvature&quot;</span><span class="p">],</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;norm_z&quot;</span><span class="p">],</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;norm_r&quot;</span><span class="p">]</span>
+        <span class="n">cond</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">curvature</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">norm_z</span> <span class="o">&gt;=</span> <span class="n">tr_radius</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">norm_r</span> <span class="o">&lt;</span> <span class="n">eps</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">eps</span> <span class="o">&lt;</span> <span class="n">eps_min</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">cond</span><span class="p">)</span>
+
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">tree_single_dtype</span><span class="p">(</span><span class="n">grad_f</span><span class="p">)</span>
+    <span class="n">init_state</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">iter_num</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">z</span><span class="o">=</span><span class="n">z</span><span class="p">,</span>
+        <span class="n">d</span><span class="o">=</span><span class="n">d</span><span class="p">,</span>
+        <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+        <span class="n">norm_z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">norm_r</span><span class="o">=</span><span class="n">tree_l2_norm</span><span class="p">(</span><span class="n">r</span><span class="p">),</span>
+        <span class="n">curvature</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
+        <span class="n">condition</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">init_state</span><span class="p">,</span> <span class="n">maxiter</span><span class="p">,</span> <span class="n">unroll</span><span class="o">=</span><span class="n">unroll</span><span class="p">,</span> <span class="n">jit</span><span class="o">=</span><span class="n">jit</span>
+    <span class="p">)</span>
+    <span class="n">converged</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">condition</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
+    <span class="n">steplength</span> <span class="o">=</span> <span class="n">tree_l2_norm</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">])</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">CgSteihaugResult</span><span class="p">(</span>
+        <span class="n">iter_num</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;iter_num&quot;</span><span class="p">],</span>
+        <span class="n">converged</span><span class="o">=</span><span class="n">converged</span><span class="p">,</span>
+        <span class="n">limit_step</span><span class="o">=</span><span class="n">jnp</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">steplength</span><span class="p">,</span> <span class="n">tr_radius</span><span class="p">),</span>
+        <span class="n">curvature</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;curvature&quot;</span><span class="p">],</span>
+        <span class="n">step_length</span><span class="o">=</span><span class="n">steplength</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">=</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="k">def</span> <span class="nf">update_tr_radius</span><span class="p">(</span>
+    <span class="n">tr_radius</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span>
+    <span class="n">max_tr_radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">min_tr_radius</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">rho</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span>
+    <span class="n">stepsize</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span>
+    <span class="n">rho_increase</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">rho_decrease</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">increase_factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">decrease_factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">limit_step</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">stepsize</span><span class="p">,</span> <span class="n">tr_radius</span><span class="p">)</span>
+    <span class="n">tr_radius</span> <span class="o">=</span> <span class="n">lax</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+        <span class="n">rho</span> <span class="o">&lt;</span> <span class="n">rho_decrease</span><span class="p">,</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="n">tr_radius</span> <span class="o">*</span> <span class="n">decrease_factor</span><span class="p">,</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="n">lax</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">rho</span> <span class="o">&gt;</span> <span class="n">rho_increase</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">limit_step</span><span class="p">,</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">tr_radius</span> <span class="o">*</span> <span class="n">increase_factor</span><span class="p">,</span> <span class="n">max_tr_radius</span><span class="p">),</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="n">tr_radius</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tr_radius</span><span class="p">,</span> <span class="n">min_tr_radius</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Sebastian Schaffer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

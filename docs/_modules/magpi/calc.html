@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>magpi.calc &mdash; MagPI 0.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            MagPI
+          </a>
+              <div class="version">
+                0.0.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">MagPi</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MagPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">magpi.calc</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for magpi.calc</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
+
+<span class="kn">from</span> <span class="nn">chex</span> <span class="kn">import</span> <span class="n">ArrayTree</span>
+
+<span class="kn">from</span> <span class="nn">.prelude</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="c1"># TODO: typing and docs</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;derivative&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;value_and_derivative&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;hvp&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;curl&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cross&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;divergence&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;laplace&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="n">Scalar</span> <span class="o">=</span> <span class="n">Array</span>
+<span class="n">PyTree</span> <span class="o">=</span> <span class="n">ArrayTree</span>
+
+
+<span class="k">def</span> <span class="nf">apply_to_module</span><span class="p">(</span><span class="n">operator</span><span class="p">):</span>
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">operator</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">op</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+            <span class="n">apply</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">operator</span><span class="p">(</span><span class="n">apply</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">operator</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">op</span>
+
+
+<span class="n">Partials</span> <span class="o">=</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">str</span>
+
+
+<span class="nd">@apply_to_module</span>
+<span class="k">def</span> <span class="nf">value_and_derivative</span><span class="p">(</span>
+    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Array</span><span class="p">],</span> <span class="n">wrt</span><span class="p">:</span> <span class="n">Partials</span><span class="p">,</span> <span class="n">argnum</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Array</span><span class="p">,</span> <span class="n">Array</span><span class="p">]]:</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">argnum</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnum</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="s2">&quot;`argnum` must be a integer.&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wrt</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="s2">&quot;`wrt` must be a integer if argnum is given.&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wrt</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">arg_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">wrt</span> <span class="ow">in</span> <span class="n">arg_names</span>
+        <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Argument `</span><span class="si">{</span><span class="n">wrt</span><span class="si">}</span><span class="s2">` is not a valid attribute name for the function.&quot;</span>
+        <span class="n">wrt</span> <span class="o">=</span> <span class="n">arg_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">wrt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wrt</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">argnum</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ei</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">ones_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">wrt</span> <span class="k">else</span> <span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wrt</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">argnum</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ei</span> <span class="o">=</span> <span class="p">[</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+            <span class="n">ei</span><span class="p">[</span><span class="n">argnum</span><span class="p">]</span> <span class="o">=</span> <span class="n">ei</span><span class="p">[</span><span class="n">argnum</span><span class="p">]</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">wrt</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ei</span> <span class="o">=</span> <span class="n">wrt</span>
+        <span class="n">_f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">primals</span><span class="p">,</span> <span class="n">tangents</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jvp</span><span class="p">(</span><span class="n">_f</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">),</span> <span class="n">ei</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">primals</span><span class="p">,</span> <span class="n">tangents</span>
+
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<div class="viewcode-block" id="derivative">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.calc.derivative">[docs]</a>
+<span class="nd">@apply_to_module</span>
+<span class="k">def</span> <span class="nf">derivative</span><span class="p">(</span>
+    <span class="n">wrt</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Array</span><span class="p">]</span> <span class="o">|</span> <span class="n">Partials</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Partials</span><span class="p">],</span>
+    <span class="n">argnums</span><span class="p">:</span> <span class="n">T</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Callable</span> <span class="o">|</span> <span class="n">PyTree</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This derivative operator computes the respective derivatives</span>
+<span class="sd">    using forward mode differentiation.</span>
+
+<span class="sd">    &gt;&gt;&gt; f = lambda x, y: x ** 2 + y</span>
+<span class="sd">    &gt;&gt;&gt; df = derivative(f, 0)(3., 1.)</span>
+<span class="sd">    &gt;&gt;&gt; bool(jnp.isclose(df, 6.))</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; f = lambda x, y: x ** 2 * y + x * y ** 2</span>
+<span class="sd">    &gt;&gt;&gt; df = derivative([&#39;x&#39;, &#39;y&#39;])(f)(3., 5.)</span>
+<span class="sd">    &gt;&gt;&gt; bool(jnp.isclose(df, 16.))</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; g = lambda x, y: sin(x * y**2)</span>
+<span class="sd">    &gt;&gt;&gt; dg = jit(derivative(g, 1))(1., 0.5)</span>
+<span class="sd">    &gt;&gt;&gt; bool(jnp.isclose(dg, cos(0.5 ** 2)))</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; g = lambda x, y: sin(y[0]) * cos(y[1]) * x</span>
+<span class="sd">    &gt;&gt;&gt; dg = derivative([1], argnums=[1])(g)(1., array([0.5, 1.0]))</span>
+<span class="sd">    &gt;&gt;&gt; bool(jnp.isclose(dg, -sin(0.5) * sin(1.)))</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; g = lambda x, y: sin(x) @ cos(y)</span>
+<span class="sd">    &gt;&gt;&gt; dg = derivative([0, 0], argnums=[0, 1])(g)(array([0.5, 1.0]), array([0.6, 1.0]))</span>
+<span class="sd">    &gt;&gt;&gt; bool(jnp.isclose(dg, -cos(0.5) * sin(0.6)))</span>
+<span class="sd">    True</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    wrt : Union[Callable[..., Array], int, str, Sequence[Union[int, str]]]</span>
+<span class="sd">        function, argnums, string or list of partial derivatives to compute</span>
+<span class="sd">    argnums : Optional[int], optional</span>
+<span class="sd">        if provided, the respective argument is considered a vector `wrt` should indicate the index</span>
+<span class="sd">        of the partial derivative to compute</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Callable[..., Array]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">wrt</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;If a function is passed directly, `argnum` must be None or an integer&quot;</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">),</span> <span class="n">msg</span>
+        <span class="k">if</span> <span class="n">argnums</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">argnum</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">argnums</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="n">argnum</span> <span class="o">=</span> <span class="n">argnums</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">argnum</span> <span class="o">=</span> <span class="n">argnums</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">wrt</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">value_and_derivative</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">argnum</span><span class="p">)</span>
+        <span class="n">_df</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">df</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">_df</span><span class="p">,</span> <span class="s2">&quot;__signature__&quot;</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_df</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wrt</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">wrt</span> <span class="o">=</span> <span class="p">[</span><span class="n">wrt</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+        <span class="n">argnums</span> <span class="o">=</span> <span class="p">[</span><span class="n">argnums</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">wrt</span><span class="p">]</span>
+
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">argnums</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">wrt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">inner</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Array</span><span class="p">]:</span>
+        <span class="k">def</span> <span class="nf">_df</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ei</span><span class="p">,</span> <span class="n">argnum</span><span class="p">):</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">value_and_derivative</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ei</span><span class="p">,</span> <span class="n">argnum</span><span class="o">=</span><span class="n">argnum</span><span class="p">)</span>
+            <span class="n">derivative_f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">df</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">derivative_f</span><span class="p">,</span> <span class="s2">&quot;__signature__&quot;</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">derivative_f</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wrt</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ei</span><span class="p">,</span> <span class="n">argnum</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">wrt</span><span class="p">,</span> <span class="n">argnums</span><span class="p">):</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">_df</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">ei</span><span class="p">,</span> <span class="n">argnum</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span>
+
+    <span class="k">return</span> <span class="n">inner</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">value_and_jacfwd</span><span class="p">(</span>
+    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+    <span class="n">argnums</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">has_aux</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">holomorphic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">_f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">has_aux</span><span class="p">:</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">aux</span> <span class="o">=</span> <span class="n">y</span>
+            <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">aux</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">y</span>
+
+    <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">J</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">jacfwd</span><span class="p">(</span><span class="n">_f</span><span class="p">,</span> <span class="n">argnums</span><span class="p">,</span> <span class="n">has_aux</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">holomorphic</span><span class="o">=</span><span class="n">holomorphic</span><span class="p">)(</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">J</span>
+
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<span class="k">def</span> <span class="nf">value_and_jacrev</span><span class="p">(</span>
+    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+    <span class="n">argnums</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">has_aux</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">holomorphic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">allow_int</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">_f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">has_aux</span><span class="p">:</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">aux</span> <span class="o">=</span> <span class="n">y</span>
+            <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">aux</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">y</span>
+
+    <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">J</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">jacrev</span><span class="p">(</span>
+            <span class="n">_f</span><span class="p">,</span> <span class="n">argnums</span><span class="p">,</span> <span class="n">has_aux</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">holomorphic</span><span class="o">=</span><span class="n">holomorphic</span><span class="p">,</span> <span class="n">allow_int</span><span class="o">=</span><span class="n">allow_int</span>
+        <span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">J</span>
+
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<span class="k">def</span> <span class="nf">hvp</span><span class="p">(</span>
+    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">PyTree</span><span class="p">],</span> <span class="n">primals</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Array</span><span class="p">],</span> <span class="n">tangents</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Array</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Array</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">jvp</span><span class="p">(</span><span class="n">jacfwd</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="n">primals</span><span class="p">,</span> <span class="n">tangents</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">hvp_forward_over_reverse</span><span class="p">(</span>
+    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+    <span class="n">primals</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PyTree</span><span class="p">],</span>
+    <span class="n">tangents</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PyTree</span><span class="p">],</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">value_and_grad</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">has_aux</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PyTree</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the hessian vector product of a Scalar valued</span>
+<span class="sd">    function in forward-over-reverse mode.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        f (Callable):</span>
+<span class="sd">        primals Sequence[PyTree]:</span>
+<span class="sd">        tangents Sequence[PyTree]:</span>
+<span class="sd">        value_and_grad (bool, optional): Defaults to False.</span>
+<span class="sd">        has_aux (bool, optional): Defaults to False.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">grad_f</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value_and_grad</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">_grad_f</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">_grad_f</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">value_and_grad</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">has_aux</span><span class="o">=</span><span class="n">has_aux</span><span class="p">)(</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_grad_f</span>
+
+    <span class="k">return</span> <span class="n">jvp</span><span class="p">(</span><span class="n">grad_f</span><span class="p">,</span> <span class="n">primals</span><span class="p">,</span> <span class="n">tangents</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">hvp_reverse_over_reverse</span><span class="p">(</span>
+    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+    <span class="n">primals</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PyTree</span><span class="p">],</span>
+    <span class="n">tangents</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">PyTree</span><span class="p">],</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">value_and_grad</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">has_aux</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PyTree</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">grad_f</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value_and_grad</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">_grad_f</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">_grad_f</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">value_and_grad</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">has_aux</span><span class="o">=</span><span class="n">has_aux</span><span class="p">)(</span><span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_grad_f</span>
+
+    <span class="p">(</span><span class="n">x</span><span class="p">,)</span> <span class="o">=</span> <span class="n">primals</span>
+    <span class="p">(</span><span class="n">v</span><span class="p">,)</span> <span class="o">=</span> <span class="n">tangents</span>
+    <span class="k">return</span> <span class="n">grad</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tree_vdot</span><span class="p">(</span><span class="n">grad_f</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">v</span><span class="p">))(</span><span class="n">x</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">hessian_diag</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">PyTree</span><span class="p">],</span> <span class="n">primals</span><span class="p">:</span> <span class="n">Array</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PyTree</span><span class="p">:</span>
+    <span class="n">primals</span> <span class="o">=</span> <span class="n">asarray</span><span class="p">(</span><span class="n">primals</span><span class="p">)</span>
+    <span class="n">primals</span> <span class="o">=</span> <span class="n">primals</span>
+    <span class="n">is_1d</span> <span class="o">=</span> <span class="n">primals</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">()</span>
+    <span class="n">primals</span> <span class="o">=</span> <span class="n">primals</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+    <span class="n">vs</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">primals</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">comp</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">a</span> <span class="o">@</span> <span class="n">v</span><span class="p">,</span> <span class="n">hvp</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">[</span><span class="n">primals</span><span class="p">],</span> <span class="p">[</span><span class="n">v</span><span class="p">]))</span>
+    <span class="n">diag_entries</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">vmap</span><span class="p">(</span><span class="n">comp</span><span class="p">)(</span><span class="n">vs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_1d</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">diag_entries</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">diag_entries</span>
+
+
+<div class="viewcode-block" id="laplace">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.calc.laplace">[docs]</a>
+<span class="nd">@apply_to_module</span>
+<span class="k">def</span> <span class="nf">laplace</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">PyTree</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">PyTree</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the laplacian :math:`\\Delta f` wrt. the first argument.</span>
+<span class="sd">    If `f` is a vector valued function, the laplacian of each output is</span>
+<span class="sd">    computed.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f : Callable[..., Scalar]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">lap</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">H_diag</span> <span class="o">=</span> <span class="n">hessian_diag</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">H_diag</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">lap</span></div>
+
+
+
+<div class="viewcode-block" id="divergence">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.calc.divergence">[docs]</a>
+<span class="nd">@apply_to_module</span>
+<span class="k">def</span> <span class="nf">divergence</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">PyTree</span><span class="p">],</span> <span class="n">argnums</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">PyTree</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the divergence :math:`\\nabla \\cdot f` wrt. the first argument.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f : Callable[..., Array]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">div_f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">value_and_divergence</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">argnums</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+    <span class="k">return</span> <span class="n">div_f</span></div>
+
+
+
+<span class="nd">@apply_to_module</span>
+<span class="k">def</span> <span class="nf">value_and_divergence</span><span class="p">(</span>
+    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">PyTree</span><span class="p">],</span> <span class="n">argnums</span><span class="o">=</span><span class="mi">0</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PyTree</span><span class="p">,</span> <span class="n">PyTree</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the divergence :math:`\\nabla \\cdot f` wrt. the first argument.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f : Callable[..., Array]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">div_f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">y</span><span class="p">,</span> <span class="n">Jf</span> <span class="o">=</span> <span class="n">value_and_jacfwd</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">argnums</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_compute_div</span><span class="p">(</span><span class="n">Jf</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">Jf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">vmap</span><span class="p">(</span><span class="n">diag</span><span class="p">,</span> <span class="mi">0</span><span class="p">)(</span><span class="n">Jf</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">diag</span><span class="p">(</span><span class="n">Jf</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">tree_map</span><span class="p">(</span><span class="n">_compute_div</span><span class="p">,</span> <span class="n">Jf</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">div_f</span>
+
+
+<div class="viewcode-block" id="curl">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.calc.curl">[docs]</a>
+<span class="nd">@apply_to_module</span>
+<span class="k">def</span> <span class="nf">curl</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Array</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Array</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the curl :math:`\\nabla \\times f` wrt. the first argument.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f : Callable[..., Array]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_curl</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">curl2d</span><span class="p">(</span><span class="n">f</span><span class="p">)(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">curl3d</span><span class="p">(</span><span class="n">f</span><span class="p">)(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Dimension must be 2 or 3.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_curl</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">curl3d</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_f</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="n">jacfwd</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">0</span><span class="p">)(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">J</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">J</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">J</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">J</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">J</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">J</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">c</span>
+
+    <span class="k">return</span> <span class="n">_f</span>
+
+
+<span class="k">def</span> <span class="nf">curl2d</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_f</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="n">J</span> <span class="o">=</span> <span class="n">jacfwd</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">0</span><span class="p">)(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">J</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">J</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">c</span>
+
+    <span class="k">return</span> <span class="n">jit</span><span class="p">(</span><span class="n">_f</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">is_2d</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">is_3d</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Sebastian Schaffer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

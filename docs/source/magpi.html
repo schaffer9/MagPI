@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MagPI package &mdash; MagPI 0.0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="MagPi" href="modules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            MagPI
+          </a>
+              <div class="version">
+                0.0.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">MagPi</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">MagPI package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-magpi.calc">magpi.calc module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.calc.cross"><code class="docutils literal notranslate"><span class="pre">cross()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.calc.curl"><code class="docutils literal notranslate"><span class="pre">curl()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.calc.derivative"><code class="docutils literal notranslate"><span class="pre">derivative()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.calc.divergence"><code class="docutils literal notranslate"><span class="pre">divergence()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.calc.laplace"><code class="docutils literal notranslate"><span class="pre">laplace()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-magpi.integrate">magpi.integrate module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.integrate.gauss2"><code class="docutils literal notranslate"><span class="pre">gauss2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.integrate.gauss3"><code class="docutils literal notranslate"><span class="pre">gauss3()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.integrate.gauss4"><code class="docutils literal notranslate"><span class="pre">gauss4()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.integrate.gauss5"><code class="docutils literal notranslate"><span class="pre">gauss5()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.integrate.integrate"><code class="docutils literal notranslate"><span class="pre">integrate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.integrate.integrate_disk"><code class="docutils literal notranslate"><span class="pre">integrate_disk()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.integrate.integrate_sphere"><code class="docutils literal notranslate"><span class="pre">integrate_sphere()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.integrate.midpoint"><code class="docutils literal notranslate"><span class="pre">midpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.integrate.simpson"><code class="docutils literal notranslate"><span class="pre">simpson()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.integrate.trap"><code class="docutils literal notranslate"><span class="pre">trap()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-magpi.domain">magpi.domain module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.domain.Annulus"><code class="docutils literal notranslate"><span class="pre">Annulus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.domain.Disk"><code class="docutils literal notranslate"><span class="pre">Disk</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.domain.Domain"><code class="docutils literal notranslate"><span class="pre">Domain</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.domain.Hypercube"><code class="docutils literal notranslate"><span class="pre">Hypercube</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.domain.Parallelogram"><code class="docutils literal notranslate"><span class="pre">Parallelogram</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.domain.Sphere"><code class="docutils literal notranslate"><span class="pre">Sphere</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-magpi.model">magpi.model module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.model.mlp"><code class="docutils literal notranslate"><span class="pre">mlp()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-magpi.opt">magpi.opt module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.opt.TR"><code class="docutils literal notranslate"><span class="pre">TR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.opt.batches_with_replacement"><code class="docutils literal notranslate"><span class="pre">batches_with_replacement()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.opt.batches_without_replacement"><code class="docutils literal notranslate"><span class="pre">batches_without_replacement()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.opt.make_iterator"><code class="docutils literal notranslate"><span class="pre">make_iterator()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-magpi.ode">magpi.ode module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.ode.odeint"><code class="docutils literal notranslate"><span class="pre">odeint()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-magpi.sampling">magpi.sampling module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.sampling.rejection_sampling"><code class="docutils literal notranslate"><span class="pre">rejection_sampling()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-magpi.quaternions">magpi.quaternions module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.quaternions.Quaternion"><code class="docutils literal notranslate"><span class="pre">Quaternion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.quaternions.arg"><code class="docutils literal notranslate"><span class="pre">arg()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.quaternions.from_axis_angle"><code class="docutils literal notranslate"><span class="pre">from_axis_angle()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.quaternions.from_euler_angles"><code class="docutils literal notranslate"><span class="pre">from_euler_angles()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.quaternions.quanternion_exp"><code class="docutils literal notranslate"><span class="pre">quanternion_exp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.quaternions.quanternion_log"><code class="docutils literal notranslate"><span class="pre">quanternion_log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.quaternions.quaternion_left_div"><code class="docutils literal notranslate"><span class="pre">quaternion_left_div()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.quaternions.quaternion_reflection"><code class="docutils literal notranslate"><span class="pre">quaternion_reflection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.quaternions.quaternion_right_div"><code class="docutils literal notranslate"><span class="pre">quaternion_right_div()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.quaternions.quaternion_rotation"><code class="docutils literal notranslate"><span class="pre">quaternion_rotation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.quaternions.sgn"><code class="docutils literal notranslate"><span class="pre">sgn()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-magpi.r_fun">magpi.r_fun module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.RAlpha"><code class="docutils literal notranslate"><span class="pre">RAlpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.RAlphaM"><code class="docutils literal notranslate"><span class="pre">RAlphaM</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.RFun"><code class="docutils literal notranslate"><span class="pre">RFun</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.RP"><code class="docutils literal notranslate"><span class="pre">RP</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.RhoBlending"><code class="docutils literal notranslate"><span class="pre">RhoBlending</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.cube"><code class="docutils literal notranslate"><span class="pre">cube()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.cuboid"><code class="docutils literal notranslate"><span class="pre">cuboid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.cylinder"><code class="docutils literal notranslate"><span class="pre">cylinder()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.ellipsoid"><code class="docutils literal notranslate"><span class="pre">ellipsoid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.normalize_1st_order"><code class="docutils literal notranslate"><span class="pre">normalize_1st_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.project"><code class="docutils literal notranslate"><span class="pre">project()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.reflect"><code class="docutils literal notranslate"><span class="pre">reflect()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.revolution"><code class="docutils literal notranslate"><span class="pre">revolution()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.rotate2d"><code class="docutils literal notranslate"><span class="pre">rotate2d()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.rotate3d"><code class="docutils literal notranslate"><span class="pre">rotate3d()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.scale"><code class="docutils literal notranslate"><span class="pre">scale()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.scale_without_normalization"><code class="docutils literal notranslate"><span class="pre">scale_without_normalization()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.sphere"><code class="docutils literal notranslate"><span class="pre">sphere()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#magpi.r_fun.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">MagPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">MagPi</a></li>
+      <li class="breadcrumb-item active">MagPI package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/source/magpi.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-magpi">
+<span id="magpi-package"></span><h1>MagPI package<a class="headerlink" href="#module-magpi" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-magpi.calc">
+<span id="magpi-calc-module"></span><h2>magpi.calc module<a class="headerlink" href="#module-magpi.calc" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.calc.cross">
+<span class="sig-prename descclassname"><span class="pre">magpi.calc.</span></span><span class="sig-name descname"><span class="pre">cross</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axisa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axisb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axisc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/jax/_src/numpy/lax_numpy.html#cross"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.calc.cross" title="Link to this definition"></a></dt>
+<dd><p>Return the cross product of two (arrays of) vectors.</p>
+<p>LAX-backend implementation of <code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.cross()</span></code>.</p>
+<p><em>Original docstring below.</em></p>
+<p>The cross product of <cite>a</cite> and <cite>b</cite> in <span class="math notranslate nohighlight">\(R^3\)</span> is a vector perpendicular
+to both <cite>a</cite> and <cite>b</cite>.  If <cite>a</cite> and <cite>b</cite> are arrays of vectors, the vectors
+are defined by the last axis of <cite>a</cite> and <cite>b</cite> by default, and these axes
+can have dimensions 2 or 3.  Where the dimension of either <cite>a</cite> or <cite>b</cite> is
+2, the third component of the input vector is assumed to be zero and the
+cross product calculated accordingly.  In cases where both input vectors
+have dimension 2, the z-component of the cross product is returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<em>array_like</em>) – Components of the first vector(s).</p></li>
+<li><p><strong>b</strong> (<em>array_like</em>) – Components of the second vector(s).</p></li>
+<li><p><strong>axisa</strong> (<em>int</em><em>, </em><em>optional</em>) – Axis of <cite>a</cite> that defines the vector(s).  By default, the last axis.</p></li>
+<li><p><strong>axisb</strong> (<em>int</em><em>, </em><em>optional</em>) – Axis of <cite>b</cite> that defines the vector(s).  By default, the last axis.</p></li>
+<li><p><strong>axisc</strong> (<em>int</em><em>, </em><em>optional</em>) – Axis of <cite>c</cite> containing the cross product vector(s).  Ignored if
+both input vectors have dimension 2, as the return is scalar.
+By default, the last axis.</p></li>
+<li><p><strong>axis</strong> (<em>int</em><em>, </em><em>optional</em>) – If defined, the axis of <cite>a</cite>, <cite>b</cite> and <cite>c</cite> that defines the vector(s)
+and cross product(s).  Overrides <cite>axisa</cite>, <cite>axisb</cite> and <cite>axisc</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>c</strong> – Vector cross product(s).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.calc.curl">
+<span class="sig-prename descclassname"><span class="pre">magpi.calc.</span></span><span class="sig-name descname"><span class="pre">curl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/calc.html#curl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.calc.curl" title="Link to this definition"></a></dt>
+<dd><p>Computes the curl <span class="math notranslate nohighlight">\(\nabla \times f\)</span> wrt. the first argument.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>f</strong> (<em>Callable</em><em>[</em><em>...</em><em>, </em><em>Array</em><em>]</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.calc.derivative">
+<span class="sig-prename descclassname"><span class="pre">magpi.calc.</span></span><span class="sig-name descname"><span class="pre">derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wrt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">argnums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/calc.html#derivative"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.calc.derivative" title="Link to this definition"></a></dt>
+<dd><p>This derivative operator computes the respective derivatives
+using forward mode differentiation.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">y</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">derivative</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">0</span><span class="p">)(</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="mf">6.</span><span class="p">))</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">y</span> <span class="o">+</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span> <span class="o">**</span> <span class="mi">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">derivative</span><span class="p">([</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">])(</span><span class="n">f</span><span class="p">)(</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">5.</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="mf">16.</span><span class="p">))</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">sin</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dg</span> <span class="o">=</span> <span class="n">jit</span><span class="p">(</span><span class="n">derivative</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="mi">1</span><span class="p">))(</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">dg</span><span class="p">,</span> <span class="n">cos</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)))</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">sin</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">cos</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">x</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dg</span> <span class="o">=</span> <span class="n">derivative</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">argnums</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">])(</span><span class="n">g</span><span class="p">)(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">array</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">dg</span><span class="p">,</span> <span class="o">-</span><span class="n">sin</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">sin</span><span class="p">(</span><span class="mf">1.</span><span class="p">)))</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">@</span> <span class="n">cos</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dg</span> <span class="o">=</span> <span class="n">derivative</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">argnums</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])(</span><span class="n">g</span><span class="p">)(</span><span class="n">array</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]),</span> <span class="n">array</span><span class="p">([</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">dg</span><span class="p">,</span> <span class="o">-</span><span class="n">cos</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">sin</span><span class="p">(</span><span class="mf">0.6</span><span class="p">)))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wrt</strong> (<em>Union</em><em>[</em><em>Callable</em><em>[</em><em>...</em><em>, </em><em>Array</em><em>]</em><em>, </em><em>int</em><em>, </em><em>str</em><em>, </em><em>Sequence</em><em>[</em><em>Union</em><em>[</em><em>int</em><em>, </em><em>str</em><em>]</em><em>]</em><em>]</em>) – function, argnums, string or list of partial derivatives to compute</p></li>
+<li><p><strong>argnums</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – if provided, the respective argument is considered a vector <cite>wrt</cite> should indicate the index
+of the partial derivative to compute</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Callable[…, Array]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.calc.divergence">
+<span class="sig-prename descclassname"><span class="pre">magpi.calc.</span></span><span class="sig-name descname"><span class="pre">divergence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">argnums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/calc.html#divergence"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.calc.divergence" title="Link to this definition"></a></dt>
+<dd><p>Computes the divergence <span class="math notranslate nohighlight">\(\nabla \cdot f\)</span> wrt. the first argument.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>f</strong> (<em>Callable</em><em>[</em><em>...</em><em>, </em><em>Array</em><em>]</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.calc.laplace">
+<span class="sig-prename descclassname"><span class="pre">magpi.calc.</span></span><span class="sig-name descname"><span class="pre">laplace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/calc.html#laplace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.calc.laplace" title="Link to this definition"></a></dt>
+<dd><p>Computes the laplacian <span class="math notranslate nohighlight">\(\Delta f\)</span> wrt. the first argument.
+If <cite>f</cite> is a vector valued function, the laplacian of each output is
+computed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>f</strong> (<em>Callable</em><em>[</em><em>...</em><em>, </em><em>Scalar</em><em>]</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-magpi.integrate">
+<span id="magpi-integrate-module"></span><h2>magpi.integrate module<a class="headerlink" href="#module-magpi.integrate" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.integrate.gauss2">
+<span class="sig-prename descclassname"><span class="pre">magpi.integrate.</span></span><span class="sig-name descname"><span class="pre">gauss2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/integrate.html#gauss2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.integrate.gauss2" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.integrate.gauss3">
+<span class="sig-prename descclassname"><span class="pre">magpi.integrate.</span></span><span class="sig-name descname"><span class="pre">gauss3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/integrate.html#gauss3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.integrate.gauss3" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.integrate.gauss4">
+<span class="sig-prename descclassname"><span class="pre">magpi.integrate.</span></span><span class="sig-name descname"><span class="pre">gauss4</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/integrate.html#gauss4"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.integrate.gauss4" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.integrate.gauss5">
+<span class="sig-prename descclassname"><span class="pre">magpi.integrate.</span></span><span class="sig-name descname"><span class="pre">gauss5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/integrate.html#gauss5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.integrate.gauss5" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.integrate.integrate">
+<span class="sig-prename descclassname"><span class="pre">magpi.integrate.</span></span><span class="sig-name descname"><span class="pre">integrate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method=&lt;function</span> <span class="pre">simpson&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/integrate.html#integrate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.integrate.integrate" title="Link to this definition"></a></dt>
+<dd><p>Integrates over the given domain with the provided quadrature
+rule. The domain can either be an array or a list of arrays.</p>
+<p class="rubric">Examples</p>
+<dl>
+<dt>This integrates <code class="docutils literal notranslate"><span class="pre">f</span></code> over the domain <span class="math notranslate nohighlight">\([0, 1]\)</span></dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">float</span><span class="p">(</span><span class="n">integrate</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">midpoint</span><span class="p">))</span>
+<span class="go">1.0</span>
+</pre></div>
+</div>
+</dd>
+<dt>Using more nodal points, composite rules are used</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">F</span> <span class="o">=</span> <span class="n">integrate</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<p>For multivariate functions, the domain can be a list indicating a
+rectangular domain. Also additional parameters can be passed using
+<code class="docutils literal notranslate"><span class="pre">*args</span></code> and <code class="docutils literal notranslate"><span class="pre">*kwargs</span></code>.  This example integrates
+<span class="math notranslate nohighlight">\(\int_{-1}^{1}\int_{0}^{1} a x_0^2 + b x_1 dx_1 dx_0\)</span>
+with <span class="math notranslate nohighlight">\(a=1\)</span> and <span class="math notranslate nohighlight">\(b=2\)</span></p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">... </span>    <span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+<span class="gp">... </span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">F</span> <span class="o">=</span> <span class="n">integrate</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">gauss2</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mf">2.</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="mf">2.66666666</span><span class="p">))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f</strong> (<em>Integrand</em>) – </p></li>
+<li><p><strong>domain</strong> (<em>Array</em><em> | </em><em>list</em><em>[</em><em>Array</em><em>]</em>) – nodal points for each dimension</p></li>
+<li><p><strong>method</strong> (<em>QuadRule</em><em>, </em><em>optional</em>) – The quadrature rule is a function <cite>Callable[[Array], tuple[Array, Array]]</cite> which
+should return a tuple <cite>(wieghts, nodes)</cite> of the method
+in 1d, by default simpson.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.integrate.integrate_disk">
+<span class="sig-prename descclassname"><span class="pre">magpi.integrate.</span></span><span class="sig-name descname"><span class="pre">integrate_disk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_inner=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi1=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi2=6.283185307179586</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method=&lt;function</span> <span class="pre">simpson&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/integrate.html#integrate_disk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.integrate.integrate_disk" title="Link to this definition"></a></dt>
+<dd><p>Integrates over a disk of radius <code class="docutils literal notranslate"><span class="pre">r</span></code> and origin <code class="docutils literal notranslate"><span class="pre">o</span></code>.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">area</span> <span class="o">=</span> <span class="n">integrate_disk</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]),</span> <span class="mi">20</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">area</span><span class="p">,</span> <span class="n">pi</span><span class="p">))</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f</strong> (<em>Integrand</em>) – </p></li>
+<li><p><strong>r</strong> (<em>Scalar</em>) – radius</p></li>
+<li><p><strong>o</strong> (<em>Origin</em>) – origin</p></li>
+<li><p><strong>n</strong> (<em>int</em><em> | </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – Nodes in each dimension.</p></li>
+<li><p><strong>r_inner</strong> (<em>float</em>) – </p></li>
+<li><p><strong>phi1</strong> (<em>float</em>) – </p></li>
+<li><p><strong>phi2</strong> (<em>float</em>) – </p></li>
+<li><p><strong>method</strong> (<em>QuadRule</em><em>, </em><em>optional</em>) – Quadrature rule, by default simpson</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.integrate.integrate_sphere">
+<span class="sig-prename descclassname"><span class="pre">magpi.integrate.</span></span><span class="sig-name descname"><span class="pre">integrate_sphere</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_inner=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi1=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi2=3.141592653589793</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta1=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta2=6.283185307179586</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method=&lt;function</span> <span class="pre">simpson&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/integrate.html#integrate_sphere"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.integrate.integrate_sphere" title="Link to this definition"></a></dt>
+<dd><p>Integrates over a sphere of radius <code class="docutils literal notranslate"><span class="pre">r</span></code> and origin <code class="docutils literal notranslate"><span class="pre">o</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f</strong> (<em>Integrand</em>) – </p></li>
+<li><p><strong>r</strong> (<em>Scalar</em>) – radius</p></li>
+<li><p><strong>o</strong> (<em>Origin</em>) – origin</p></li>
+<li><p><strong>n</strong> (<em>int</em><em> | </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>, </em><em>int</em><em>]</em>) – Nodes in each dimension.</p></li>
+<li><p><strong>r_inner</strong> (<em>float</em>) – </p></li>
+<li><p><strong>phi1</strong> (<em>float</em>) – </p></li>
+<li><p><strong>phi2</strong> (<em>float</em>) – </p></li>
+<li><p><strong>theta1</strong> (<em>float</em>) – </p></li>
+<li><p><strong>theta2</strong> (<em>float</em>) – </p></li>
+<li><p><strong>method</strong> (<em>QuadRule</em><em>, </em><em>optional</em>) – Quadrature rule, by default simpson</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.integrate.midpoint">
+<span class="sig-prename descclassname"><span class="pre">magpi.integrate.</span></span><span class="sig-name descname"><span class="pre">midpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/integrate.html#midpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.integrate.midpoint" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.integrate.simpson">
+<span class="sig-prename descclassname"><span class="pre">magpi.integrate.</span></span><span class="sig-name descname"><span class="pre">simpson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/integrate.html#simpson"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.integrate.simpson" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.integrate.trap">
+<span class="sig-prename descclassname"><span class="pre">magpi.integrate.</span></span><span class="sig-name descname"><span class="pre">trap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/integrate.html#trap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.integrate.trap" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-magpi.domain">
+<span id="magpi-domain-module"></span><h2>magpi.domain module<a class="headerlink" href="#module-magpi.domain" title="Link to this heading"></a></h2>
+<p>This module contains some useful transformations. All transformations
+perform a uniform mapping from <span class="math notranslate nohighlight">\([0,1]^d\)</span> to the respective domain.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.domain.Annulus">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.domain.</span></span><span class="sig-name descname"><span class="pre">Annulus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/domain.html#Annulus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.domain.Annulus" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.domain.Annulus.replace">
+<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">updates</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#magpi.domain.Annulus.replace" title="Link to this definition"></a></dt>
+<dd><p>“Returns a new object replacing the specified fields with new values.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.domain.Disk">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.domain.</span></span><span class="sig-name descname"><span class="pre">Disk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/domain.html#Disk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.domain.Disk" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_Spherical</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.domain.Disk.replace">
+<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">updates</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#magpi.domain.Disk.replace" title="Link to this definition"></a></dt>
+<dd><p>“Returns a new object replacing the specified fields with new values.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.domain.Domain">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.domain.</span></span><span class="sig-name descname"><span class="pre">Domain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/domain.html#Domain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.domain.Domain" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.domain.Hypercube">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.domain.</span></span><span class="sig-name descname"><span class="pre">Hypercube</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ub</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/domain.html#Hypercube"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.domain.Hypercube" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.domain.Hypercube.replace">
+<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">updates</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#magpi.domain.Hypercube.replace" title="Link to this definition"></a></dt>
+<dd><p>“Returns a new object replacing the specified fields with new values.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.domain.Parallelogram">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.domain.</span></span><span class="sig-name descname"><span class="pre">Parallelogram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/domain.html#Parallelogram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.domain.Parallelogram" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.domain.Parallelogram.replace">
+<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">updates</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#magpi.domain.Parallelogram.replace" title="Link to this definition"></a></dt>
+<dd><p>“Returns a new object replacing the specified fields with new values.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.domain.Sphere">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.domain.</span></span><span class="sig-name descname"><span class="pre">Sphere</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/domain.html#Sphere"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.domain.Sphere" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_Spherical</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.domain.Sphere.replace">
+<span class="sig-name descname"><span class="pre">replace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">updates</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#magpi.domain.Sphere.replace" title="Link to this definition"></a></dt>
+<dd><p>“Returns a new object replacing the specified fields with new values.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-magpi.model">
+<span id="magpi-model-module"></span><h2>magpi.model module<a class="headerlink" href="#module-magpi.model" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.model.mlp">
+<span class="sig-prename descclassname"><span class="pre">magpi.model.</span></span><span class="sig-name descname"><span class="pre">mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/model.html#mlp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.model.mlp" title="Link to this definition"></a></dt>
+<dd><p>Creates a Multi Layer Perceptron with the given layers and activation function.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">key1</span><span class="p">,</span> <span class="n">key2</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">42</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This creates a MLP with two input features, two hidden layers and a scalar output.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">mlp</span><span class="p">(</span><span class="n">key1</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">swish</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">key2</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> (<em>Array</em>) – Random key for initialization</p></li>
+<li><p><strong>layers</strong> (<em>Sequence</em><em>[</em><em>int</em><em>]</em>) – Number of neurons in each layer. This must include input and output layer.</p></li>
+<li><p><strong>activation</strong> (Optional[Activation], defaults to <code class="docutils literal notranslate"><span class="pre">tanh</span></code>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple[MLP, flax.core.FrozenDict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-magpi.opt">
+<span id="magpi-opt-module"></span><h2>magpi.opt module<a class="headerlink" href="#module-magpi.opt" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.opt.TR">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.opt.</span></span><span class="sig-name descname"><span class="pre">TR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fun</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_and_grad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_aux</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_tr_radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_tr_radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_tr_radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_increase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.75</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">increase_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_decrease</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decrease_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_accept</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxiter_steihaug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps_min_steihaug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-09</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">implicit_diff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">implicit_diff_solve</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unroll</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/tr.html#TR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.opt.TR" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">IterativeSolver</span></code></p>
+<p>Trust Region method optimizer which uses the
+CGSteihaug algorithm to solve the trust region sub-problem.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.callback">
+<span class="sig-name descname"><span class="pre">callback</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code><span class="pre">[</span><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code><span class="pre">[[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">OptStep</span></code><span class="pre">],</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code><span class="pre">]]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#magpi.opt.TR.callback" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.decrease_factor">
+<span class="sig-name descname"><span class="pre">decrease_factor</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.25</span></em><a class="headerlink" href="#magpi.opt.TR.decrease_factor" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.eps_min_steihaug">
+<span class="sig-name descname"><span class="pre">eps_min_steihaug</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-09</span></em><a class="headerlink" href="#magpi.opt.TR.eps_min_steihaug" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.fun">
+<span class="sig-name descname"><span class="pre">fun</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></em><a class="headerlink" href="#magpi.opt.TR.fun" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.has_aux">
+<span class="sig-name descname"><span class="pre">has_aux</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#magpi.opt.TR.has_aux" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.opt.TR.hvp">
+<span class="sig-name descname"><span class="pre">hvp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/tr.html#TR.hvp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.opt.TR.hvp" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]]]], <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]]]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.implicit_diff">
+<span class="sig-name descname"><span class="pre">implicit_diff</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#magpi.opt.TR.implicit_diff" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.implicit_diff_solve">
+<span class="sig-name descname"><span class="pre">implicit_diff_solve</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code><span class="pre">[</span><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code><span class="pre">]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#magpi.opt.TR.implicit_diff_solve" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.increase_factor">
+<span class="sig-name descname"><span class="pre">increase_factor</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#magpi.opt.TR.increase_factor" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.opt.TR.init_state">
+<span class="sig-name descname"><span class="pre">init_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">init_params</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/tr.html#TR.init_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.opt.TR.init_state" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.init_tr_radius">
+<span class="sig-name descname"><span class="pre">init_tr_radius</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.0</span></em><a class="headerlink" href="#magpi.opt.TR.init_tr_radius" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.jit">
+<span class="sig-name descname"><span class="pre">jit</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code><span class="pre">,</span> <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code><span class="pre">]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'auto'</span></em><a class="headerlink" href="#magpi.opt.TR.jit" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.max_tr_radius">
+<span class="sig-name descname"><span class="pre">max_tr_radius</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#magpi.opt.TR.max_tr_radius" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.maxiter">
+<span class="sig-name descname"><span class="pre">maxiter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">100</span></em><a class="headerlink" href="#magpi.opt.TR.maxiter" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.maxiter_steihaug">
+<span class="sig-name descname"><span class="pre">maxiter_steihaug</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code><span class="pre">]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#magpi.opt.TR.maxiter_steihaug" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.min_tr_radius">
+<span class="sig-name descname"><span class="pre">min_tr_radius</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-10</span></em><a class="headerlink" href="#magpi.opt.TR.min_tr_radius" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.opt.TR.optimality_fun">
+<span class="sig-name descname"><span class="pre">optimality_fun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/tr.html#TR.optimality_fun"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.opt.TR.optimality_fun" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.rho_accept">
+<span class="sig-name descname"><span class="pre">rho_accept</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.25</span></em><a class="headerlink" href="#magpi.opt.TR.rho_accept" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.rho_decrease">
+<span class="sig-name descname"><span class="pre">rho_decrease</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.25</span></em><a class="headerlink" href="#magpi.opt.TR.rho_decrease" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.rho_increase">
+<span class="sig-name descname"><span class="pre">rho_increase</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.75</span></em><a class="headerlink" href="#magpi.opt.TR.rho_increase" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.tol">
+<span class="sig-name descname"><span class="pre">tol</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.01</span></em><a class="headerlink" href="#magpi.opt.TR.tol" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.unroll">
+<span class="sig-name descname"><span class="pre">unroll</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code><span class="pre">,</span> <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code><span class="pre">]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'auto'</span></em><a class="headerlink" href="#magpi.opt.TR.unroll" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.opt.TR.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/tr.html#TR.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.opt.TR.update" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">OptStep</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.value_and_grad">
+<span class="sig-name descname"><span class="pre">value_and_grad</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#magpi.opt.TR.value_and_grad" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="magpi.opt.TR.verbose">
+<span class="sig-name descname"><span class="pre">verbose</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#magpi.opt.TR.verbose" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.opt.batches_with_replacement">
+<span class="sig-prename descclassname"><span class="pre">magpi.opt.</span></span><span class="sig-name descname"><span class="pre">batches_with_replacement</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batches</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replace_within_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/opt.html#batches_with_replacement"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.opt.batches_with_replacement" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.opt.batches_without_replacement">
+<span class="sig-prename descclassname"><span class="pre">magpi.opt.</span></span><span class="sig-name descname"><span class="pre">batches_without_replacement</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/opt.html#batches_without_replacement"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.opt.batches_without_replacement" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.opt.make_iterator">
+<span class="sig-prename descclassname"><span class="pre">magpi.opt.</span></span><span class="sig-name descname"><span class="pre">make_iterator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/opt.html#make_iterator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.opt.make_iterator" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-magpi.ode">
+<span id="magpi-ode-module"></span><h2>magpi.ode module<a class="headerlink" href="#module-magpi.ode" title="Link to this heading"></a></h2>
+<p>This code was adoped from <a class="reference external" href="https://implicit-layers-tutorial.org/implicit_functions/">https://implicit-layers-tutorial.org/implicit_functions/</a></p>
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.ode.odeint">
+<span class="sig-prename descclassname"><span class="pre">magpi.ode.</span></span><span class="sig-name descname"><span class="pre">odeint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unroll=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method=&lt;function</span> <span class="pre">rk4&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/ode.html#odeint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.ode.odeint" title="Link to this definition"></a></dt>
+<dd><p>ODE integration.
+This function fully supports forward and backward automatic differentiation by using
+<cite>jax.checkpoint</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>Callable</em>) – function describing the dynamics of the system</p></li>
+<li><p><strong>y</strong> (<em>ArrayTree</em>) – initial value</p></li>
+<li><p><strong>ts</strong> (<em>Array</em>) – timesteps</p></li>
+<li><p><strong>unroll</strong> (<em>int</em><em>, </em><em>optional</em>) – by default 1</p></li>
+<li><p><strong>method</strong> (<em>Callable</em><em>, </em><em>optional</em>) – method for integration, by default rk4</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ArrayTree</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-magpi.sampling">
+<span id="magpi-sampling-module"></span><h2>magpi.sampling module<a class="headerlink" href="#module-magpi.sampling" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.sampling.rejection_sampling">
+<span class="sig-prename descclassname"><span class="pre">magpi.sampling.</span></span><span class="sig-name descname"><span class="pre">rejection_sampling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/sampling.html#rejection_sampling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.sampling.rejection_sampling" title="Link to this definition"></a></dt>
+<dd><p>Draws <cite>n</cite> samples according to the given PDF. It takes on average
+<cite>m</cite> iterations for each sample. Samples are drawn in parallel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> (<em>Key</em>) – </p></li>
+<li><p><strong>pdf</strong> (<em>PDF</em>) – </p></li>
+<li><p><strong>sample_fn</strong> (<em>SampleFn</em>) – </p></li>
+<li><p><strong>n</strong> (<em>int</em>) – </p></li>
+<li><p><strong>m</strong> (<em>int</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool_</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[ArrayTree], <code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, ArrayTree]]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-magpi.quaternions">
+<span id="magpi-quaternions-module"></span><h2>magpi.quaternions module<a class="headerlink" href="#module-magpi.quaternions" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.quaternions.Quaternion">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.quaternions.</span></span><span class="sig-name descname"><span class="pre">Quaternion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#Quaternion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.Quaternion" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.quaternions.Quaternion.conj">
+<span class="sig-name descname"><span class="pre">conj</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#Quaternion.conj"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.Quaternion.conj" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#magpi.quaternions.Quaternion" title="magpi.quaternions.Quaternion"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quaternion</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="magpi.quaternions.Quaternion.imag">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">imag</span></span><a class="headerlink" href="#magpi.quaternions.Quaternion.imag" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="magpi.quaternions.Quaternion.real">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">real</span></span><a class="headerlink" href="#magpi.quaternions.Quaternion.real" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.quaternions.Quaternion.reciprocal">
+<span class="sig-name descname"><span class="pre">reciprocal</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#Quaternion.reciprocal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.Quaternion.reciprocal" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#magpi.quaternions.Quaternion" title="magpi.quaternions.Quaternion"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quaternion</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.quaternions.Quaternion.tree_flatten">
+<span class="sig-name descname"><span class="pre">tree_flatten</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#Quaternion.tree_flatten"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.Quaternion.tree_flatten" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.quaternions.Quaternion.tree_unflatten">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tree_unflatten</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aux_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">children</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#Quaternion.tree_unflatten"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.Quaternion.tree_unflatten" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="magpi.quaternions.Quaternion.zero_quaternion">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">zero_quaternion</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#Quaternion.zero_quaternion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.Quaternion.zero_quaternion" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.quaternions.arg">
+<span class="sig-prename descclassname"><span class="pre">magpi.quaternions.</span></span><span class="sig-name descname"><span class="pre">arg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#arg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.arg" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.quaternions.from_axis_angle">
+<span class="sig-prename descclassname"><span class="pre">magpi.quaternions.</span></span><span class="sig-name descname"><span class="pre">from_axis_angle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#from_axis_angle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.from_axis_angle" title="Link to this definition"></a></dt>
+<dd><p>Returns the unit quaternion of the given angle-axis representation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>angle</strong> (<em>Scalar</em>) – </p></li>
+<li><p><strong>axis</strong> (<em>Vec</em>) – 3d Vector of the rotation</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#magpi.quaternions.Quaternion" title="magpi.quaternions.Quaternion">Quaternion</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.quaternions.from_euler_angles">
+<span class="sig-prename descclassname"><span class="pre">magpi.quaternions.</span></span><span class="sig-name descname"><span class="pre">from_euler_angles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angles</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#from_euler_angles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.from_euler_angles" title="Link to this definition"></a></dt>
+<dd><p>Returns the unit quaternion of the euler angles
+<span class="math notranslate nohighlight">\(\phi_x,\phi_y,\phi_z\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>angles</strong> (<em>Vec</em>) – 3d vector of euler angles.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#magpi.quaternions.Quaternion" title="magpi.quaternions.Quaternion">Quaternion</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.quaternions.quanternion_exp">
+<span class="sig-prename descclassname"><span class="pre">magpi.quaternions.</span></span><span class="sig-name descname"><span class="pre">quanternion_exp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#quanternion_exp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.quanternion_exp" title="Link to this definition"></a></dt>
+<dd><p>Computes <span class="math notranslate nohighlight">\(\exp(q)\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>q</strong> (<a class="reference internal" href="#magpi.quaternions.Quaternion" title="magpi.quaternions.Quaternion"><em>Quaternion</em></a>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#magpi.quaternions.Quaternion" title="magpi.quaternions.Quaternion">Quaternion</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.quaternions.quanternion_log">
+<span class="sig-prename descclassname"><span class="pre">magpi.quaternions.</span></span><span class="sig-name descname"><span class="pre">quanternion_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#quanternion_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.quanternion_log" title="Link to this definition"></a></dt>
+<dd><p>Computes <span class="math notranslate nohighlight">\(\log(p)\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>q</strong> (<a class="reference internal" href="#magpi.quaternions.Quaternion" title="magpi.quaternions.Quaternion"><em>Quaternion</em></a>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#magpi.quaternions.Quaternion" title="magpi.quaternions.Quaternion">Quaternion</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.quaternions.quaternion_left_div">
+<span class="sig-prename descclassname"><span class="pre">magpi.quaternions.</span></span><span class="sig-name descname"><span class="pre">quaternion_left_div</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#quaternion_left_div"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.quaternion_left_div" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#magpi.quaternions.Quaternion" title="magpi.quaternions.Quaternion"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quaternion</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.quaternions.quaternion_reflection">
+<span class="sig-prename descclassname"><span class="pre">magpi.quaternions.</span></span><span class="sig-name descname"><span class="pre">quaternion_reflection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normal_vec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#quaternion_reflection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.quaternion_reflection" title="Link to this definition"></a></dt>
+<dd><p>Computes the reflection over the plane normal to the given normal vecor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Vec</em>) – </p></li>
+<li><p><strong>normal_vec</strong> (<em>Vec</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.quaternions.quaternion_right_div">
+<span class="sig-prename descclassname"><span class="pre">magpi.quaternions.</span></span><span class="sig-name descname"><span class="pre">quaternion_right_div</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#quaternion_right_div"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.quaternion_right_div" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#magpi.quaternions.Quaternion" title="magpi.quaternions.Quaternion"><code class="xref py py-class docutils literal notranslate"><span class="pre">Quaternion</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.quaternions.quaternion_rotation">
+<span class="sig-prename descclassname"><span class="pre">magpi.quaternions.</span></span><span class="sig-name descname"><span class="pre">quaternion_rotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#quaternion_rotation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.quaternion_rotation" title="Link to this definition"></a></dt>
+<dd><p>Computes the quaternion rotation <span class="math notranslate nohighlight">\(q^{-1} p q\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Vec</em>) – 3d Vector</p></li>
+<li><p><strong>q</strong> (<a class="reference internal" href="#magpi.quaternions.Quaternion" title="magpi.quaternions.Quaternion"><em>Quaternion</em></a>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.quaternions.sgn">
+<span class="sig-prename descclassname"><span class="pre">magpi.quaternions.</span></span><span class="sig-name descname"><span class="pre">sgn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/quaternions.html#sgn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.quaternions.sgn" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-magpi.r_fun">
+<span id="magpi-r-fun-module"></span><h2>magpi.r_fun module<a class="headerlink" href="#module-magpi.r_fun" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.r_fun.RAlpha">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">RAlpha</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#RAlpha"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.RAlpha" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#magpi.r_fun.RFun" title="magpi.r_fun.RFun"><code class="xref py py-class docutils literal notranslate"><span class="pre">RFun</span></code></a></p>
+<p>Implements the system <span class="math notranslate nohighlight">\(R_\alpha\)</span> for some value of <cite>alpha</cite> in (-1, 1].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>alpha</strong> (<em>Scalar</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.r_fun.RAlphaM">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">RAlphaM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#RAlphaM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.RAlphaM" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#magpi.r_fun.RFun" title="magpi.r_fun.RFun"><code class="xref py py-class docutils literal notranslate"><span class="pre">RFun</span></code></a></p>
+<p>Implements the system <span class="math notranslate nohighlight">\(R_\alpha^m\)</span> for some value of <cite>alpha</cite> in (-1, 1].
+Note that this system is not normalized.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> (<em>Scalar</em>) – </p></li>
+<li><p><strong>alpha</strong> (<em>Scalar</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.r_fun.RFun">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">RFun</span></span><a class="reference internal" href="../_modules/magpi/r_fun.html#RFun"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.RFun" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Implements the basic set theoretic operations for a system of R-Functions.
+In essence, only <cite>conjugation</cite> and <cite>disjunction</cite> needs to be implemented.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.r_fun.RP">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">RP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#RP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.RP" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#magpi.r_fun.RFun" title="magpi.r_fun.RFun"><code class="xref py py-class docutils literal notranslate"><span class="pre">RFun</span></code></a></p>
+<p>Implements the system <span class="math notranslate nohighlight">\(R_p\)</span> for some even integer value <cite>p</cite>.
+This system is normalized to the order <cite>p-1</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>p</strong> (<em>int</em>) – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="magpi.r_fun.RhoBlending">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">RhoBlending</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#RhoBlending"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.RhoBlending" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#magpi.r_fun.RFun" title="magpi.r_fun.RFun"><code class="xref py py-class docutils literal notranslate"><span class="pre">RFun</span></code></a></p>
+<p>Blending R-function which smoothes sharp corners and edges <a class="footnote-reference brackets" href="#id2" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>rho</strong> (<em>float</em>) – smoothing factor</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id2" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>Shapiro, Vadim. “Semi-analytic geometry with R-functions.”
+ACTA numerica 16 (2007): 239-303.</p>
+</aside>
+</aside>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.cube">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">cube</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">edge_lenght</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centering</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#cube"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.cube" title="Link to this definition"></a></dt>
+<dd><p>Return the ADF of a cube.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>edge_lenght</strong> (<em>Scalar</em>) – edge length of the cube</p></li>
+<li><p><strong>centering</strong> (<em>bool</em><em>, </em><em>optional</em>) – centers the cuboid at the origin, by default False</p></li>
+<li><p><strong>normalize</strong> (<em>int</em><em>, </em><em>optional</em>) – normalization degree of the ADF, by default 1</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.cuboid">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">cuboid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">edge_lengths</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centering</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#cuboid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.cuboid" title="Link to this definition"></a></dt>
+<dd><p>Returns the ADF of a cuboid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>edge_lengths</strong> (<em>Vec</em>) – geometry of the cuboid. The lenght of the vector determines the dimension.</p></li>
+<li><p><strong>centering</strong> (<em>bool</em><em>, </em><em>optional</em>) – centers the cuboid at the origin, by default False</p></li>
+<li><p><strong>normalize</strong> (<em>int</em><em>, </em><em>optional</em>) – normalization degree of the ADF, by default 1</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.cylinder">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">cylinder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#cylinder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.cylinder" title="Link to this definition"></a></dt>
+<dd><p>1st order ADF of a cylinder of infinte length.
+The base of the cylinder lies in the first two dimensions of the
+input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>r</strong> (<em>Scalar</em>) – radius</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.ellipsoid">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">ellipsoid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">axes_lengths</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#ellipsoid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.ellipsoid" title="Link to this definition"></a></dt>
+<dd><p>1st order ADF of a ellipsoid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>axes_lengths</strong> (<em>Vec</em>) – length of the vector determines the dimension</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.normalize_1st_order">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">normalize_1st_order</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adf</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#normalize_1st_order"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.normalize_1st_order" title="Link to this definition"></a></dt>
+<dd><p>Normalizes the ADF to first order. Note that the gradient
+cannot vanish on the boundary for this function to work.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>adf</strong> (<em>ADF</em>) – </p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.project">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">project</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normal_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#project"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.project" title="Link to this definition"></a></dt>
+<dd><p>Projects the ADF onto the plane devined by the normal vector <cite>normal_vec</cite> and <cite>o</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adf</strong> (<em>ADF</em>) – </p></li>
+<li><p><strong>normal_vec</strong> (<em>Vec</em>) – </p></li>
+<li><p><strong>o</strong> (<em>Vec</em><em>, </em><em>optional</em>) – by default 0.0</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.reflect">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">reflect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normal_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#reflect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.reflect" title="Link to this definition"></a></dt>
+<dd><p>Reflects the ADF along the provided normal vector of the reflection plane with origin <cite>o</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adf</strong> (<em>ADF</em>) – </p></li>
+<li><p><strong>normal_vec</strong> (<em>Vec</em>) – </p></li>
+<li><p><strong>o</strong> (<em>Vec</em><em>, </em><em>optional</em>) – by default 0.0</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.revolution">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">revolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#revolution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.revolution" title="Link to this definition"></a></dt>
+<dd><p>Creates the body of revolution from a 2d shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adf</strong> (<em>ADF</em>) – </p></li>
+<li><p><strong>axis</strong> (<em>int</em><em>, </em><em>optional</em>) – 0 for revolution around x axis or 1 for y axis, by default 0</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.rotate2d">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">rotate2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0,</span> <span class="pre">0.0)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#rotate2d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.rotate2d" title="Link to this definition"></a></dt>
+<dd><p>Rotates the given 2d ADF by some <cite>angle</cite> around the point <cite>o</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adf</strong> (<em>ADF</em>) – </p></li>
+<li><p><strong>angle</strong> (<em>Scalar</em>) – </p></li>
+<li><p><strong>o</strong> (<em>Vec2d</em><em>, </em><em>optional</em>) – by default (0.0, 0.0)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.rotate3d">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">rotate3d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rot_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#rotate3d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.rotate3d" title="Link to this definition"></a></dt>
+<dd><p>Rotates the 3d ADF by some angle around the rotation axis <cite>rot_axis</cite> or
+if a three euler angles are provided around the point <cite>o</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adf</strong> (<em>ADF</em>) – </p></li>
+<li><p><strong>angle</strong> (<em>Scalar</em><em> | </em><em>Vec3d</em>) – </p></li>
+<li><p><strong>rot_axis</strong> (<em>None</em><em> | </em><em>Vec3d</em><em>, </em><em>optional</em>) – by default None</p></li>
+<li><p><strong>o</strong> (<em>Vec3d</em><em>, </em><em>optional</em>) – by default (0.0, 0.0, 0.0)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.scale">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scaling_factor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.scale" title="Link to this definition"></a></dt>
+<dd><p>Scales the ADF by the given <cite>scaling_factor</cite>.
+First order normalization is preserved.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adf</strong> (<em>ADF</em>) – </p></li>
+<li><p><strong>scaling_factor</strong> (<em>Scalar</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.scale_without_normalization">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">scale_without_normalization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scaling_factor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#scale_without_normalization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.scale_without_normalization" title="Link to this definition"></a></dt>
+<dd><p>Scales the ADF without normalization. This allows
+different scaling factors for each dimension but does
+not preserve normalization. First order normalization can be
+estabished by <cite>normalize_1st_order</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adf</strong> (<em>ADF</em>) – </p></li>
+<li><p><strong>scaling_factor</strong> (<em>Vec</em><em> | </em><em>Scalar</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.sphere">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">sphere</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#sphere"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.sphere" title="Link to this definition"></a></dt>
+<dd><p>Returns the ADF of a sphere which is normalized to first order.
+The dimension is arbitrary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>r</strong> (<em>Scalar</em>) – radius</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="magpi.r_fun.translate">
+<span class="sig-prename descclassname"><span class="pre">magpi.r_fun.</span></span><span class="sig-name descname"><span class="pre">translate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/magpi/r_fun.html#translate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#magpi.r_fun.translate" title="Link to this definition"></a></dt>
+<dd><p>Translates the ADF by the vector y.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adf</strong> (<em>ADF</em>) – </p></li>
+<li><p><strong>y</strong> (<em>Vec</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>ADF</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modules.html" class="btn btn-neutral float-left" title="MagPi" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Sebastian Schaffer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

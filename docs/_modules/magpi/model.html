@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>magpi.model &mdash; MagPI 0.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            MagPI
+          </a>
+              <div class="version">
+                0.0.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">MagPi</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MagPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">magpi.model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for magpi.model</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">.prelude</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">.r_fun</span> <span class="kn">import</span> <span class="n">ADF</span>
+<span class="kn">from</span> <span class="nn">.calc</span> <span class="kn">import</span> <span class="n">value_and_jacfwd</span>
+
+
+<span class="n">Collection</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Array</span><span class="p">]</span>
+<span class="n">Params</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Collection</span><span class="p">]</span>
+<span class="n">Activation</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Array</span><span class="p">],</span> <span class="n">Array</span><span class="p">]</span>
+<span class="n">Model</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Array</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">MLP</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="n">layers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">activation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Activation</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@nn</span><span class="o">.</span><span class="n">compact</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">activation</span> <span class="o">=</span> <span class="n">tanh</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">activation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">activation</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;layers_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">))</span>
+
+        <span class="n">output_neurons</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">output_neurons</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;output_layer&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">output_neurons</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span>
+
+
+<div class="viewcode-block" id="mlp">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.model.mlp">[docs]</a>
+<span class="k">def</span> <span class="nf">mlp</span><span class="p">(</span>
+    <span class="n">key</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span> <span class="n">layers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">activation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Activation</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">MLP</span><span class="p">,</span> <span class="n">Params</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a Multi Layer Perceptron with the given layers and activation function.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; key1, key2 = random.split(random.PRNGKey(42), 2)</span>
+
+<span class="sd">    This creates a MLP with two input features, two hidden layers and a scalar output.</span>
+
+<span class="sd">    &gt;&gt;&gt; model, params = mlp(key1, [2, 10, 10, 1], swish)</span>
+<span class="sd">    &gt;&gt;&gt; x = random.uniform(key2, (10, 2))</span>
+<span class="sd">    &gt;&gt;&gt; y = model.apply(params, x)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    key : Array</span>
+<span class="sd">        Random key for initialization</span>
+<span class="sd">    layers : Sequence[int]</span>
+<span class="sd">        Number of neurons in each layer. This must include input and output layer.</span>
+<span class="sd">    activation : Optional[Activation], defaults to ``tanh``</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple[MLP, flax.core.FrozenDict]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">key</span><span class="p">,</span> <span class="n">init_key</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">MLP</span><span class="p">(</span><span class="n">layers</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">activation</span><span class="p">)</span>
+    <span class="n">x_init</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">features</span><span class="p">,))</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">init_key</span><span class="p">,</span> <span class="n">x_init</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">impose_ic</span><span class="p">(</span>
+    <span class="n">m0</span><span class="p">:</span> <span class="n">Model</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">Model</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">t0</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">decay_rate</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+    <span class="n">argnums_m0</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">argnum_t</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Imposes the prescribed initial conditions given by m0.</span>
+<span class="sd">    This follows an exponential decay `exp(-decay_rate*(t-t0)) * m0 + (1-exp(-decay_rate*(t-t0))) * model`</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        m0 (Model): initial condition model</span>
+<span class="sd">        model (Model | None, optional): free model. Defaults to None.</span>
+<span class="sd">        t0 (_type_, optional): initial time. Defaults to 0..</span>
+<span class="sd">        decay_rate (_type_, optional): exponential decay rate. Defaults to 10..</span>
+<span class="sd">        argnums_m0 (int | Sequence[int], optional):</span>
+<span class="sd">            specifies which positional arguments should be taken into account for m0.</span>
+<span class="sd">            Defaults to 0.</span>
+<span class="sd">        argnum_t (int, optional):</span>
+<span class="sd">            specifies which positional arguments represents time `t`.</span>
+<span class="sd">            Defaults to 1.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Callable: Model or decorator</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums_m0</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">argnums_m0</span> <span class="o">=</span> <span class="p">[</span><span class="n">argnums_m0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">impose</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">inner</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums_m0</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">args_m0</span> <span class="o">=</span> <span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">argnums_m0</span><span class="p">)</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="n">argnum_t</span><span class="p">]</span>
+            <span class="n">decay</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">decay_rate</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">t0</span><span class="p">))</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">m0</span><span class="p">(</span><span class="o">*</span><span class="n">args_m0</span><span class="p">)</span> <span class="o">*</span> <span class="n">decay</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">decay</span><span class="p">)</span> <span class="o">*</span> <span class="n">value</span>
+
+        <span class="k">return</span> <span class="n">inner</span>
+
+    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">impose</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">impose</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">impose_dirichlet_bc</span><span class="p">(</span>
+    <span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">Model</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">g</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Array</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">argnums_adf</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">argnums_g</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Imposes Dirichlet boundary conditions `g` onto the model.</span>
+<span class="sd">    If `g` is not given, homogenious zero boundary conditions are assumed.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        adf (ADF): 1st order normalized approximate distance function.</span>
+<span class="sd">        g (Callable[..., Array] | None, optional): prescribed boundary conditions. Defaults to None.</span>
+<span class="sd">        model (Model | None, optional):</span>
+<span class="sd">            Unconstrained model. If not provided, the function acts as a decorator.</span>
+<span class="sd">            Defaults to None.</span>
+<span class="sd">        argnums_adf (int | Sequence[int], optional):</span>
+<span class="sd">            specifies which positional arguments are passed to `adf`. Defaults to 0.</span>
+<span class="sd">        argnums_g (int | Sequence[int], optional):</span>
+<span class="sd">            specifies which positional arguments are passed to `g`.</span>
+<span class="sd">            Defaults to 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Callable: a new model with the exact imposition of the prescribed</span>
+<span class="sd">        boundary conditions or a decorator for such a model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_h</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">:</span> <span class="n">asarray</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_h</span> <span class="o">=</span> <span class="n">g</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums_adf</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">argnums_adf</span> <span class="o">=</span> <span class="p">[</span><span class="n">argnums_adf</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums_g</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">argnums_g</span> <span class="o">=</span> <span class="p">[</span><span class="n">argnums_g</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">impose</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">_model</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums_adf</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums_g</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="n">x_adf</span> <span class="o">=</span> <span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">argnums_adf</span><span class="p">)</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="n">adf</span><span class="p">(</span><span class="o">*</span><span class="n">x_adf</span><span class="p">)</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">x_g</span> <span class="o">=</span> <span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">argnums_g</span><span class="p">)</span>
+            <span class="n">value_g</span> <span class="o">=</span> <span class="n">_h</span><span class="p">(</span><span class="o">*</span><span class="n">x_g</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">l</span> <span class="o">*</span> <span class="n">value</span> <span class="o">+</span> <span class="n">value_g</span>
+
+        <span class="k">return</span> <span class="n">_model</span>
+
+    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">impose</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">impose</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">impose_neumann_bc</span><span class="p">(</span>
+    <span class="n">adf</span><span class="p">:</span> <span class="n">ADF</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">Model</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">h</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Array</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">argnums_adf</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">argnum_model</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">argnums_h</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Imposes Neumann boundary conditions `h` onto the model.</span>
+<span class="sd">    If `h` is not given, homogenious zero boundary conditions are assumed.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        adf (ADF): 1st order normalized approximate distance function.</span>
+<span class="sd">        model (Model | None, optional):</span>
+<span class="sd">            Unconstrained model. If not provided, the function acts as a decorator.</span>
+<span class="sd">            Defaults to None.</span>
+<span class="sd">        h (Callable[..., Array] | None, optional): prescribed boundary conditions. Defaults to None.</span>
+<span class="sd">        argnums_adf (int | Sequence[int], optional):</span>
+<span class="sd">            specifies which positional arguments are passed to `adf`. Defaults to 0.</span>
+<span class="sd">        argnum_model (int, optional):</span>
+<span class="sd">            specifies which positional argument which is used to compute the normal derivative. Defaults to 0.</span>
+<span class="sd">        argnums_h (int | Sequence[int], optional):</span>
+<span class="sd">            specifies which positional arguments are passed to `h`.</span>
+<span class="sd">            Defaults to 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Callable: a new model with the exact imposition of the prescribed</span>
+<span class="sd">        boundary conditions or a decorator for such a model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">h</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_h</span> <span class="o">=</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">k</span><span class="p">:</span> <span class="n">asarray</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_h</span> <span class="o">=</span> <span class="n">h</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums_adf</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">argnums_adf</span> <span class="o">=</span> <span class="p">[</span><span class="n">argnums_adf</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums_h</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">argnums_h</span> <span class="o">=</span> <span class="p">[</span><span class="n">argnums_h</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">impose</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">_model</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums_adf</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argnums_h</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="n">argnum_model</span><span class="p">]</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">model</span><span class="p">(</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">[:</span><span class="n">argnum_model</span><span class="p">],</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="n">argnum_model</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:],</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+            <span class="n">x_adf</span> <span class="o">=</span> <span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">argnums_adf</span><span class="p">)</span>
+            <span class="n">l</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">value_and_jacfwd</span><span class="p">(</span><span class="n">adf</span><span class="p">)(</span><span class="o">*</span><span class="n">x_adf</span><span class="p">)</span>
+            <span class="n">value</span><span class="p">,</span> <span class="n">normal_derivative</span> <span class="o">=</span> <span class="n">jvp</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="p">[</span><span class="n">n</span><span class="p">])</span>
+            <span class="n">x_h</span> <span class="o">=</span> <span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">argnums_h</span><span class="p">)</span>
+            <span class="n">value_h</span> <span class="o">=</span> <span class="n">_h</span><span class="p">(</span><span class="o">*</span><span class="n">x_h</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">value</span> <span class="o">-</span> <span class="n">l</span> <span class="o">*</span> <span class="n">normal_derivative</span> <span class="o">-</span> <span class="n">l</span> <span class="o">*</span> <span class="n">value_h</span>
+
+        <span class="k">return</span> <span class="n">_model</span>
+
+    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">impose</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">impose</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Sebastian Schaffer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

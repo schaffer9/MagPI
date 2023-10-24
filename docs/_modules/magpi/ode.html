@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>magpi.ode &mdash; MagPI 0.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            MagPI
+          </a>
+              <div class="version">
+                0.0.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">MagPi</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MagPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">magpi.ode</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for magpi.ode</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This code was adoped from https://implicit-layers-tutorial.org/implicit_functions/</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">chex</span> <span class="kn">import</span> <span class="n">ArrayTree</span>
+
+<span class="kn">from</span> <span class="nn">.prelude</span> <span class="kn">import</span> <span class="o">*</span>
+
+
+<span class="k">def</span> <span class="nf">rk4</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">y1</span> <span class="o">=</span> <span class="n">tree_scalar_mul</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">df</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">))</span>
+    <span class="n">y2</span> <span class="o">=</span> <span class="n">tree_scalar_mul</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">df</span><span class="p">(</span><span class="n">tree_add</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">tree_scalar_mul</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y1</span><span class="p">)),</span> <span class="n">t</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">))</span>
+    <span class="n">y3</span> <span class="o">=</span> <span class="n">tree_scalar_mul</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">df</span><span class="p">(</span><span class="n">tree_add</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">tree_scalar_mul</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)),</span> <span class="n">t</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">))</span>
+    <span class="n">y4</span> <span class="o">=</span> <span class="n">tree_scalar_mul</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">df</span><span class="p">(</span><span class="n">tree_add</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y3</span><span class="p">),</span> <span class="n">t</span> <span class="o">+</span> <span class="n">dt</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">))</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">y</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">y3</span><span class="p">,</span> <span class="n">y4</span><span class="p">:</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">6</span> <span class="o">*</span> <span class="p">(</span><span class="n">y1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">y2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">y3</span> <span class="o">+</span> <span class="n">y4</span><span class="p">),</span> <span class="n">y</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">y3</span><span class="p">,</span> <span class="n">y4</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">y</span>
+
+
+<span class="k">def</span> <span class="nf">explicit_euler</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">dy</span> <span class="o">=</span> <span class="n">df</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">tree_add</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">tree_scalar_mul</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">dy</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">y</span>
+
+
+<div class="viewcode-block" id="odeint">
+<a class="viewcode-back" href="../../source/magpi.html#magpi.ode.odeint">[docs]</a>
+<span class="k">def</span> <span class="nf">odeint</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">ArrayTree</span><span class="p">,</span> <span class="n">ts</span><span class="p">:</span> <span class="n">Array</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">unroll</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="n">Callable</span><span class="o">=</span><span class="n">rk4</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ArrayTree</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ODE integration.</span>
+<span class="sd">    This function fully supports forward and backward automatic differentiation by using</span>
+<span class="sd">    `jax.checkpoint`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : Callable</span>
+<span class="sd">        function describing the dynamics of the system</span>
+<span class="sd">    y : ArrayTree</span>
+<span class="sd">        initial value</span>
+<span class="sd">    ts : Array</span>
+<span class="sd">        timesteps</span>
+<span class="sd">    unroll : int, optional</span>
+<span class="sd">        by default 1</span>
+<span class="sd">    method : Callable, optional</span>
+<span class="sd">        method for integration, by default rk4</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ArrayTree</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_odeint</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">unroll</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_odeint</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">unroll</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="nd">@partial</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">checkpoint_policies</span><span class="o">.</span><span class="n">dots_with_no_batch_dims_saveable</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_step</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="n">y</span><span class="p">,</span> <span class="n">t_prev</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">t</span> <span class="o">-</span> <span class="n">t_prev</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">method</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">t</span><span class="p">),</span> <span class="n">y</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="n">lax</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">_step</span><span class="p">,</span> <span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">ts</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">ts</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">unroll</span><span class="o">=</span><span class="n">unroll</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">concatenate</span><span class="p">([</span><span class="n">a</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">b</span><span class="p">]),</span> <span class="n">y</span><span class="p">,</span> <span class="n">ys</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Sebastian Schaffer.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
