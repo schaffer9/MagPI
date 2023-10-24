@@ -1,5 +1,7 @@
 # MagPI
 
+[Documentation](https://schaffer9.github.io/MagPI/source/magpi.html)
+
 This project was done in the course of my PhD thesis and is a collection of useful algorithms and methods for the training 
 of Physics Informed Neural Networks (PINNs).
 
@@ -13,3 +15,4 @@ Here is a short summary of the features which are offered by MagPI:
 - Implementation of Quaterion rotation
 - Some simple domains and useful transformations
 - Simple importance sampling algorithm
+
