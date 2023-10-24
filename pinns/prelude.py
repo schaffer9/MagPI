@@ -79,7 +79,7 @@ __all__ = (
     "tree_vdot",
     "tree_scalar_mul",
     "tree_add_scalar_mul",
-    "tree_l2_norm", 
+    "tree_l2_norm",
     "tree_negative",
     "tree_ones_like",
     "tree_zeros_like",
@@ -142,19 +142,19 @@ from jax.nn import selu, elu, tanh, sigmoid, swish
 from jax.tree_util import tree_map, tree_reduce, tree_leaves
 import jaxopt
 from jaxopt.tree_util import (
-    tree_add, 
-    tree_sum, 
-    tree_sub, 
-    tree_div, 
-    tree_mul, 
+    tree_add,
+    tree_sum,
+    tree_sub,
+    tree_div,
+    tree_mul,
     tree_dot,
     tree_vdot,
     tree_scalar_mul,
     tree_add_scalar_mul,
-    tree_l2_norm, 
+    tree_l2_norm,
     tree_negative,
     tree_ones_like,
-    tree_zeros_like
+    tree_zeros_like,
 )
 import flax
 from flax import linen as nn

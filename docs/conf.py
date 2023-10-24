@@ -26,7 +26,7 @@ copyright = '2022, Sebastian Schaffer'
 author = 'Sebastian Schaffer'
 
 # The short X.Y version
-version = ''
+version = '0.0.1'
 # The full version, including alpha/beta/rc tags
 release = '0.0.1'
 

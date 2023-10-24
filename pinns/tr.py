@@ -27,6 +27,28 @@ class TrState(T.NamedTuple):
 
 @dataclass(eq=False)
 class TR(jaxopt_base.IterativeSolver):
+    """
+    Trust Region method optimizer which uses the
+    CGSteihaug algorithm to solve the trust region sub-problem.
+
+    Attributes
+    ----------
+    fun: Callable
+    value_and_grad: bool
+    has_aux: bool = False
+    init_tr_radius: float
+    max_tr_radius: float
+    min_tr_radius: float
+    rho_increase: float
+    increase_factor: float
+    rho_decrease: float
+    decrease_factor: float
+    rho_accept: float
+    tol: float
+    maxiter: int
+    maxiter_steihaug: int | None
+    eps_min_steihaug: float
+    """
     fun: Callable
     value_and_grad: bool = False
     has_aux: bool = False
@@ -55,7 +77,6 @@ class TR(jaxopt_base.IterativeSolver):
 
     def init_state(self, init_params: chex.ArrayTree, *args, **kwargs):
         if isinstance(init_params, jaxopt_base.OptStep):
-            # `init_params` can either be a pytree or an OptStep object
             state = init_params.state
             tr_radius = state.tr_radius
             iter_num = state.iter_num
@@ -225,10 +246,6 @@ def steihaug(
     z = tree_zeros_like(grad_f)
     r = grad_f
     d = tree_negative(r)
-    # norm_df = tree_l2_norm(grad_f)
-
-    # eps = jnp.minimum(1 / 2, sqrt(norm_df)) * norm_df  # forcing sequence
-    # eps = jnp.minimum(1 / 2, norm_df) * norm_df  # forcing sequence
 
     def limit_step(z, d):
         a, b, c = tree_vdot(d, d), tree_vdot(z, d), tree_vdot(z, z) - tr_radius**2
@@ -301,7 +318,6 @@ def steihaug(
         p=state["z"],
     )
     return result
-    # return converged, state["iter_num"], state["z"], state["curvature"]
 
 
 def update_tr_radius(

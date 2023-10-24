@@ -1,6 +1,7 @@
 """
 This code was adoped from https://implicit-layers-tutorial.org/implicit_functions/
 """
+from chex import ArrayTree
 
 from .prelude import *
 
@@ -20,11 +21,32 @@ def explicit_euler(df, y, t, dt, *args):
     return y
 
 
-def odeint(df, y, ts, *args, unroll=1, method=rk4):
+def odeint(df: Callable, y: ArrayTree, ts: Array, *args, unroll: int=1, method: Callable=rk4) -> ArrayTree:
+    """
+    ODE integration.
+    This function fully supports forward and backward automatic differentiation by using
+    `jax.checkpoint`.
+
+    Parameters
+    ----------
+    df : Callable
+        function describing the dynamics of the system
+    y : ArrayTree
+        initial value
+    ts : Array
+        timesteps
+    unroll : int, optional
+        by default 1
+    method : Callable, optional
+        method for integration, by default rk4
+
+    Returns
+    -------
+    ArrayTree
+    """
     return _odeint(df, unroll, method, y, ts, *args)
 
 
-#@partial(jax.custom_jvp, nondiff_argnums=(0, 1, 2))
 def _odeint(df, unroll, method, y, ts, *args):
     @partial(jax.checkpoint, policy=jax.checkpoint_policies.dots_with_no_batch_dims_saveable)
     def _step(state, t):
@@ -35,19 +57,3 @@ def _odeint(df, unroll, method, y, ts, *args):
 
     _, ys = lax.scan(_step, (y, ts[0]), ts[1:], unroll=unroll)
     return tree_map(lambda a, b: concatenate([a[None], b]), y, ys)
-
-
-# @_odeint.defjvp
-# def _odeint_jvp(df, unroll, method, primals, tangents):
-#     print("fooo")
-#     y0, ts, *args = primals
-#     delta_y0, _, *delta_args = tangents
-    
-#     def df_aug(aug_state, t, args, delta_args):
-#         primal_state, tangent_state = aug_state
-#         primal_dot, tangent_dot = jax.jvp(df, (primal_state, t, *args), (tangent_state, 0., *delta_args))
-#         return (primal_dot, tangent_dot)
-
-#     aug_init_state = (y0, delta_y0)
-#     ys, ys_dot = odeint(df_aug, aug_init_state, ts, args, delta_args, method=method, unroll=unroll)
-#     return ys, ys_dot

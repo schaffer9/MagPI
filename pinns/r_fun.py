@@ -23,6 +23,11 @@ ADF = T.Annotated[Callable[[Array | Scalar], Scalar], _annotation]
 
 
 class RFun:
+    """
+    Implements the basic set theoretic operations for a system of R-Functions.
+    In essence, only `conjugation` and `disjunction` needs to be implemented.
+    """
+
     def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
         raise NotADirectoryError
 
@@ -53,37 +58,62 @@ class RFun:
 
 
 class RAlpha(RFun):
-    def __init__(self, alpha: Callable[[Scalar, Scalar], Scalar]):
+    """
+    Implements the system :math:`R_\\alpha` for some value of `alpha` in (-1, 1].
+
+    Parameters
+    ----------
+    alpha : Scalar
+    """
+
+    def __init__(self, alpha: Scalar):
+        assert -1.0 < alpha <= 1.0
         self.alpha = alpha
 
     def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
         def op(a, b):
-            alpha = self.alpha(a, b)
-            return 1 / (1 + alpha) * (a + b - sqrt(a**2 + b**2 - 2 * alpha * a * b))
+            return (
+                1
+                / (1 + self.alpha)
+                * (a + b - sqrt(a**2 + b**2 - 2 * self.alpha * a * b))
+            )
 
         return lambda x: op(adf1(x), adf2(x))
 
     def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
         def op(a, b):
-            alpha = self.alpha(a, b)
-            return 1 / (1 + alpha) * (a + b + sqrt(a**2 + b**2 - 2 * alpha * a * b))
+            return (
+                1
+                / (1 + self.alpha)
+                * (a + b + sqrt(a**2 + b**2 - 2 * self.alpha * a * b))
+            )
 
         return lambda x: op(adf1(x), adf2(x))
 
 
 class RAlphaM(RFun):
-    def __init__(self, m: Scalar, alpha: Callable[[Scalar, Scalar], Scalar]):
+    """
+    Implements the system :math:`R_\\alpha^m` for some value of `alpha` in (-1, 1].
+    Note that this system is not normalized.
+
+    Parameters
+    ----------
+    m: Scalar
+    alpha : Scalar
+    """
+
+    def __init__(self, m: Scalar, alpha: Scalar):
+        assert -1.0 < alpha <= 1.0
         self.m = m
         self.alpha = alpha
 
     def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
         def op(a, b):
-            alpha = self.alpha(a, b)
             r = a**2 + b**2
             return (
                 1
-                / (1 + alpha)
-                * (a + b - sqrt(r - 2 * alpha * a * b))
+                / (1 + self.alpha)
+                * (a + b - sqrt(r - 2 * self.alpha * a * b))
                 * r ** (self.m / 2)
             )
 
@@ -91,12 +121,11 @@ class RAlphaM(RFun):
 
     def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
         def op(a, b):
-            alpha = self.alpha(a, b)
             r = a**2 + b**2
             return (
                 1
-                / (1 + alpha)
-                * (a + b + sqrt(r - 2 * alpha * a * b))
+                / (1 + self.alpha)
+                * (a + b + sqrt(r - 2 * self.alpha * a * b))
                 * r ** (self.m / 2)
             )
 
@@ -104,6 +133,15 @@ class RAlphaM(RFun):
 
 
 class RP(RFun):
+    """
+    Implements the system :math:`R_p` for some even integer value `p`.
+    This system is normalized to the `p-1`th order.
+
+    Parameters
+    ----------
+    p : int
+    """
+
     def __init__(self, p: int):
         assert p % 2 == 0, "`p` must be an even integer"
         self.p = p
@@ -161,24 +199,38 @@ class RhoBlending(RFun):
         return lambda x: op(adf1(x), adf2(x))
 
 
-r1 = RAlpha(lambda a, b: 1)  # min, max
-r0 = RAlpha(
-    lambda a, b: 0
-)  # analytic everywhere but the origin and normalized to first order
+r1 = RAlpha(1.0)  # min, max
+r0 = RAlpha(0.0)  # analytic everywhere but the origin and normalized to first order
 rp2 = RP(2)  # same as r0
 rp4 = RP(4)  # analytic everywhere and normalized to 3rd order.
 
 
-def cuboid(side_lengths: Vec, centering: bool = False, normalize: int = 1) -> ADF:
+def cuboid(edge_lengths: Vec, centering: bool = False, normalize: int = 1) -> ADF:
+    """
+    Returns the ADF of a cuboid.
+
+    Parameters
+    ----------
+    edge_lengths : Vec
+        geometry of the cuboid. The lenght of the vector determines the dimension.
+    centering : bool, optional
+        centers the cuboid at the origin, by default False
+    normalize : int, optional
+        normalization degree of the ADF, by default 1
+
+    Returns
+    -------
+    ADF
+    """
     assert normalize % 2 == 1, "Only odd degrees of normalization allowed for cuboid"
-    side_lengths = asarray(side_lengths)
+    _edge_lengths = asarray(edge_lengths)
 
     if centering:
-        lb = -side_lengths / 2
-        ub = side_lengths / 2
+        lb = -_edge_lengths / 2
+        ub = _edge_lengths / 2
     else:
-        lb = zeros_like(side_lengths)
-        ub = side_lengths
+        lb = zeros_like(_edge_lengths)
+        ub = _edge_lengths
 
     # use a RP function to compute the intersection for all 6 sides
     p = normalize + 1
@@ -193,20 +245,75 @@ def cuboid(side_lengths: Vec, centering: bool = False, normalize: int = 1) -> AD
     return adf
 
 
-def cube(side_length: Scalar, centering: bool = False, normalize: int = 1) -> ADF:
-    return cuboid(side_length, centering, normalize)
+def cube(edge_lenght: Scalar, centering: bool = False, normalize: int = 1) -> ADF:
+    """
+    Return the ADF of a cube.
+
+    Parameters
+    ----------
+    edge_lenght : Scalar
+        edge length of the cube
+    centering : bool, optional
+        centers the cuboid at the origin, by default False
+    normalize : int, optional
+        normalization degree of the ADF, by default 1
+
+    Returns
+    -------
+    ADF
+    """
+    return cuboid(edge_lenght, centering, normalize)
 
 
 def sphere(r: Scalar) -> ADF:
+    """
+    Returns the ADF of a sphere which is normalized to first order.
+    The dimension is arbitrary.
+
+    Parameters
+    ----------
+    r : Scalar
+        radius
+
+    Returns
+    -------
+    ADF
+    """
     return lambda x: (r**2 - norm(x) ** 2) / (2 * r)
 
 
-def cylinder(r: Scalar):
+def cylinder(r: Scalar) -> ADF:
+    """
+    1st order ADF of a cylinder of infinte length.
+    The base of the cylinder lies in the first two dimensions of the
+    input.
+
+    Parameters
+    ----------
+    r : Scalar
+        radius
+
+    Returns
+    -------
+    ADF
+    """
     s = sphere(r)
-    return lambda x: s(x[:2])
+    return lambda x: s(asarray(x)[:2])
 
 
 def ellipsoid(axes_lengths: Vec) -> ADF:
+    """
+    1st order ADF of a ellipsoid.
+
+    Parameters
+    ----------
+    axes_lengths : Vec
+        length of the vector determines the dimension
+
+    Returns
+    -------
+    ADF
+    """
     adf = sphere(1.0)
     adf = scale_without_normalization(adf, axes_lengths)
     adf = normalize_1st_order(adf)
@@ -225,36 +332,92 @@ def compose(func: Callable[[Scalar, Scalar], Scalar]) -> Callable[..., ADF]:
 
 
 def translate(adf: ADF, y: Vec) -> ADF:
-    y = asarray(y)
-    return lambda x: adf(x - y)
+    """
+    Translates the ADF by the vector y.
+
+    Parameters
+    ----------
+    adf : ADF
+    y : Vec
+
+    Returns
+    -------
+    ADF
+    """
+    _y = asarray(y)
+    return lambda x: adf(x - _y)
 
 
 def scale(adf: ADF, scaling_factor: Scalar) -> ADF:
-    scaling_factor = asarray(scaling_factor).ravel()
-    assert scaling_factor.shape == (
+    """
+    Scales the ADF by the given `scaling_factor`.
+    First order normalization is preserved.
+
+    Parameters
+    ----------
+    adf : ADF
+    scaling_factor : Scalar
+
+    Returns
+    -------
+    ADF
+    """
+    _scaling_factor = asarray(scaling_factor).ravel()
+    assert _scaling_factor.shape == (
         1,
     ), "`scaling_factor` must be a scalar to preserve normalization"
-    scaling_factor = scaling_factor[0]
-    return lambda x: adf(x / scaling_factor) * scaling_factor
+    _scaling_factor = _scaling_factor[0]
+    return lambda x: adf(x / _scaling_factor) * _scaling_factor
 
 
-def scale_without_normalization(adf, scaling_factor) -> ADF:
-    scaling_factor = asarray(scaling_factor).ravel()
-    return lambda x: adf(x / scaling_factor)
+def scale_without_normalization(adf: ADF, scaling_factor: Vec | Scalar) -> ADF:
+    """
+    Scales the ADF without normalization. This allows
+    different scaling factors for each dimension but does
+    not preserve normalization. First order normalization can be
+    estabished by `normalize_1st_order`.
+
+    Parameters
+    ----------
+    adf : ADF
+    scaling_factor : Vec | Scalar
+
+    Returns
+    -------
+    ADF
+    """
+    _scaling_factor = asarray(scaling_factor).ravel()
+    return lambda x: adf(x / _scaling_factor)
 
 
 def rotate2d(adf: ADF, angle: Scalar, o: Vec2d = (0.0, 0.0)) -> ADF:
-    o = asarray(o)
-    angle = asarray(angle)
-    _adf = translate(adf, -o)
-    M = array([[cos(angle), sin(angle)], [-sin(angle), cos(angle)]], dtype=angle.dtype)
+    """
+    Rotates the given 2d ADF by some `angle` around the point `o`.
+
+    Parameters
+    ----------
+    adf : ADF
+    angle : Scalar
+    o : Vec2d, optional
+        by default (0.0, 0.0)
+
+    Returns
+    -------
+    ADF
+    """
+    _o = asarray(o)
+    _angle = asarray(angle)
+    _adf = translate(adf, -_o)
+    M = array(
+        [[cos(_angle), sin(_angle)], [-sin(_angle), cos(_angle)]], dtype=_angle.dtype
+    )
 
     def rot_op(x):
         msg = f"Cannot rotate vector of size {x.shape} in 2d. Please pass a 2d vector."
         assert x.shape == (2,), msg
         return _adf(M @ x)
 
-    return translate(rot_op, o)
+    return translate(rot_op, _o)
 
 
 def rotate3d(
@@ -263,19 +426,40 @@ def rotate3d(
     rot_axis: None | Vec3d = None,
     o: Vec3d = (0.0, 0.0, 0.0),
 ) -> ADF:
-    o = asarray(o)
-    _adf = translate(adf, -o)
+    """
+    Rotates the 3d ADF by some angle around the rotation axis `rot_axis` or
+    if a three euler angles are provided around the point `o`.
 
-    angle = -asarray(angle)
-    if angle.shape == ():
+    Parameters
+    ----------
+    adf : ADF
+    angle : Scalar | Vec3d
+    rot_axis : None | Vec3d, optional
+        by default None
+    o : Vec3d, optional
+        by default (0.0, 0.0, 0.0)
+
+    Returns
+    -------
+    ADF
+
+    Raises
+    ------
+    ValueError
+    """
+    _o = asarray(o)
+    _adf = translate(adf, -_o)
+
+    _angle = -asarray(angle)
+    if _angle.shape == ():
         if rot_axis is None:
             msg = "If only the angle is specified, the rotation axis must be provided"
             raise ValueError(msg)
-        rot_quaternion = from_axis_angle(angle, rot_axis)
-    elif angle.shape == (3,):
+        rot_quaternion = from_axis_angle(_angle, rot_axis)
+    elif _angle.shape == (3,):
         if rot_axis is not None:
             raise ValueError("If Euler angles are given, the `rot_axis` must be `None`")
-        rot_quaternion = from_euler_angles(angle)
+        rot_quaternion = from_euler_angles(_angle)
     else:
         raise ValueError("Provide axis-angle representation or Euler angles.")
 
@@ -285,26 +469,55 @@ def rotate3d(
         x = quaternion_rotation(x, rot_quaternion)
         return _adf(x)
 
-    return translate(rot_op, o)
+    return translate(rot_op, _o)
 
 
-def reflect(adf: ADF, normal_vec: Vec2d, o: Vec = 0.0) -> ADF:
-    o, n = asarray(o), asarray(normal_vec)
-    _adf = translate(adf, -o)
+def reflect(adf: ADF, normal_vec: Vec, o: Vec = 0.0) -> ADF:
+    """
+    Reflects the ADF along the provided normal vector of the reflection plane with origin `o`.
+
+
+    Parameters
+    ----------
+    adf : ADF
+    normal_vec : Vec
+    o : Vec, optional
+        by default 0.0
+
+    Returns
+    -------
+    ADF
+    """
+    _o, _n = asarray(o), asarray(normal_vec)
+    _adf = translate(adf, -_o)
 
     def ref_op(x):
-        x = x - 2 * (x @ n) / (norm(n) ** 2) * n
+        x = x - 2 * (x @ _n) / (norm(_n) ** 2) * _n
         return _adf(x)
 
-    return translate(ref_op, o)
+    return translate(ref_op, _o)
 
 
-def project(adf: ADF, normal_vec: Vec2d, o: Vec = 0.0) -> ADF:
-    o, n = asarray(o), asarray(normal_vec)
-    _adf = translate(adf, -o)
+def project(adf: ADF, normal_vec: Vec, o: Vec = 0.0) -> ADF:
+    """
+    Projects the ADF onto the plane devined by the normal vector `normal_vec` and `o`.
+
+    Parameters
+    ----------
+    adf : ADF
+    normal_vec : Vec
+    o : Vec, optional
+        by default 0.0
+
+    Returns
+    -------
+    ADF
+    """
+    _o, _n = asarray(o), asarray(normal_vec)
+    _adf = translate(adf, -_o)
 
     def proj_op(x):
-        x = x - (x @ n) / (norm(n) ** 2) * n
+        x = x - (x @ _n) / (norm(_n) ** 2) * _n
         return _adf(x)
 
     return translate(proj_op, o)
@@ -337,6 +550,18 @@ def revolution(adf: ADF, axis: int = 0) -> ADF:
 
 
 def normalize_1st_order(adf: ADF) -> ADF:
+    """
+    Normalizes the ADF to first order. Note that the gradient
+    cannot vanish on the boundary for this function to work.
+
+    Parameters
+    ----------
+    adf : ADF
+
+    Returns
+    -------
+    ADF
+    """
     df = jacfwd(adf)
 
     def normalize(x):

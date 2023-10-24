@@ -25,8 +25,10 @@ class Quaternion:
     def zero_quaternion(cls):
         return cls(0.0, (0.0, 0.0, 0.0))
 
-    def __eq__(self, other: "Quaternion"):
-        assert isinstance(other, self.__class__)
+    def __eq__(self, other: object):
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+        
         real_eq = self.real == other.real
         imag_eq = jnp.all(self.imag == other.imag)
         return real_eq and imag_eq
@@ -43,7 +45,7 @@ class Quaternion:
             q = self.imag + other
         return self.__class__(a, q)
 
-    def __radd__(self, other: Scalar) -> "Quaternion":
+    def __radd__(self, other) -> "Quaternion":
         return self + other
 
     def __sub__(self, other: Union["Quaternion", Scalar]) -> "Quaternion":
@@ -55,7 +57,7 @@ class Quaternion:
             q = self.imag - other
         return self.__class__(a, q)
 
-    def __rsub__(self, other: Scalar) -> "Quaternion":
+    def __rsub__(self, other) -> "Quaternion":
         return self - other
 
     def __mul__(self, other: Union["Quaternion", Scalar]) -> "Quaternion":
@@ -71,7 +73,7 @@ class Quaternion:
             q = self.imag * other
         return self.__class__(a, q)
 
-    def __rmul__(self, other: Scalar) -> "Quaternion":
+    def __rmul__(self, other) -> "Quaternion":
         return self * other
 
     def __abs__(self) -> Scalar:
@@ -81,13 +83,15 @@ class Quaternion:
         e = quanternion_log(self) * pow
         return quanternion_exp(e)
 
-    def __rpow__(self, base: Scalar) -> "Quaternion":
+    def __rpow__(self, base) -> "Quaternion":
         b = jnp.log(base)
         return quanternion_exp(self * b)
-
+    
     def __truediv__(self, other: Scalar) -> "Quaternion":
-        # TODO: implement Quaternion div. There is left and right division
-        return self * (1 / other)
+        if isinstance(other, self.__class__):
+            return quaternion_right_div(self, other)
+        else:
+            return self * (1 / other)
 
     def reciprocal(self) -> "Quaternion":
         return self.conj() * (1 / abs(self) ** 2)
@@ -103,6 +107,14 @@ class Quaternion:
     def tree_unflatten(cls, aux_data, children):
         return cls(children[0], children[1])
 
+
+def quaternion_right_div(q1: Quaternion, q2: Quaternion) -> Quaternion:
+    return q1 * q2.reciprocal()
+
+
+def quaternion_left_div(q1: Quaternion, q2: Quaternion) -> Quaternion:
+    return q2.reciprocal() * q1
+   
 
 def quanternion_exp(q: Quaternion) -> Quaternion:
     """
@@ -167,9 +179,9 @@ def quaternion_rotation(x: Vec, q: Quaternion) -> Array:
     -------
     Array
     """
-    x = asarray(x)
+    x_arr = asarray(x)
     qinv = q.reciprocal()
-    p = Quaternion(zeros((), dtype=x.dtype), x)
+    p = Quaternion(zeros((), dtype=x_arr.dtype), x_arr)
     return (qinv * p * q).imag
 
 
@@ -185,10 +197,10 @@ def quaternion_reflection(x: Vec, normal_vec: Vec) -> Array:
     -------
     Array
     """
-    x = asarray(x)
+    x_arr = asarray(x)
     normal_vec = asarray(normal_vec)
     n = normal_vec / norm(normal_vec)
-    z = zeros((), dtype=x.dtype)
+    z = zeros((), dtype=x_arr.dtype)
     p = Quaternion(z, x)
     q = Quaternion(z, n)
     return (q * p * q).imag
@@ -206,10 +218,10 @@ def from_euler_angles(angles: Vec) -> Quaternion:
     -------
     Quaternion
     """
-    angles = asarray(angles)
-    angles = angles / 2
-    s = sin(angles)
-    c = cos(angles)
+    angles_arr = asarray(angles)
+    angles_arr = angles_arr / 2
+    s = sin(angles_arr)
+    c = cos(angles_arr)
     a = prod(c) + prod(s)
     q = (
         s[0] * c[1] * c[2] - c[0] * s[1] * s[2],
@@ -232,6 +244,6 @@ def from_axis_angle(angle: Scalar, axis: Vec) -> Quaternion:
     -------
     Quaternion
     """
-    axis = asarray(axis)
+    axis_arr = asarray(axis)
     angle = angle / 2
-    return Quaternion(cos(angle), axis * sin(angle))
+    return Quaternion(cos(angle), axis_arr * sin(angle))

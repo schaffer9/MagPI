@@ -21,7 +21,7 @@ class TestImposeNeumannBC(JaxTestCase):
 
         adf = cube(1.0)
         h = lambda x: array([1.0, 0])
-        f_new = model.impose_neumann_bc(adf, f, f, h)
+        f_new = model.impose_neumann_bc(adf, f, h)
         _, normal_derivative = jvp(f_new, [array([0.0, 0.5])], [array([-1.0, 0.0])])
         self.assertIsclose(normal_derivative, array([1.0, 0]))
 

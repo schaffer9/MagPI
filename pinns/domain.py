@@ -110,7 +110,7 @@ def linear_map(X_ref: Array, X: Array) -> Array:
     return B.T
 
 
-def affine_plane(a: Array, b: Array, c: Array) -> tuple[Array, Array, Array]:
+def affine_plane(a: Array, b: Array, c: Array) -> tuple[Array, Array]:
     X_ref = array([[0, 0, 1], [1, 0, 1], [0, 1, 1.0]])
     X = stack([a, b, c])
     B = linear_map(X_ref, X)
@@ -313,7 +313,7 @@ def transform_triangle(x: Array, a: Array, b: Array, c: Array) -> Array:
     return i + x[..., 0] * d1 + x[..., 1] * d2
 
 
-def transform_polyline(s: Array, points: tuple[Array]) -> Array:
+def transform_polyline(s: Array, points: tuple[Array, ...]) -> Array:
     line = stack(points)
     assert len(s.shape) == 0 or len(s.shape) == 1
     segments = norm(line[1:] - line[:-1], axis=1)

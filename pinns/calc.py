@@ -201,7 +201,7 @@ def value_and_jacrev(
 
 
 def hvp(
-    f: Callable[..., Array], primals: Sequence[Array], tangents: Sequence[Array]
+    f: Callable[..., chex.ArrayTree], primals: Sequence[Array], tangents: Sequence[Array]
 ) -> Array:
     return jvp(jacfwd(f), primals, tangents)[1]
 

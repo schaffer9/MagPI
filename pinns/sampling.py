@@ -3,6 +3,7 @@ from chex import ArrayTree
 
 
 Sample = ArrayTree
+Samples = ArrayTree
 PDF = Callable[[Sample], float]
 SampleFn = Callable[[random.KeyArray], Sample]
 
@@ -13,7 +14,7 @@ def rejection_sampling(
     sample_fn: SampleFn,
     n: int,
     m: int,
-):
+) -> Samples:
     """Draws `n` samples according to the given PDF. It takes on average
     `m` iterations for each sample. Samples are drawn in parallel.
 
