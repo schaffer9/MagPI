@@ -11,7 +11,6 @@ __all__ = (
     "value_and_derivative",
     "hvp",
     "curl",
-    "cross",
     "divergence",
     "laplace",
 )
@@ -260,7 +259,6 @@ def hvp_reverse_over_reverse(
 
 def hessian_diag(f: Callable[..., PyTree], primals: Array) -> PyTree:
     primals = asarray(primals)
-    primals = primals
     is_1d = primals.shape == ()
     primals = primals.ravel()
 
