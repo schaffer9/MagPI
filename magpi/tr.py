@@ -52,7 +52,7 @@ class TR(jaxopt_base.IterativeSolver):
     implicit_diff: bool = True
     implicit_diff_solve: Optional[Callable] = None
 
-    jit: jaxopt_base.AutoOrBoolean = "auto"
+    jit: bool = True
     unroll: jaxopt_base.AutoOrBoolean = "auto"
 
     verbose: bool = False
@@ -103,7 +103,7 @@ class TR(jaxopt_base.IterativeSolver):
         if isinstance(params, jaxopt_base.OptStep):
             params = params.params
         state, hvp = self.hvp(state, params, *args, **kwargs)
-        jit, unroll = self._get_loop_options()
+        unroll = self._get_unroll_option()
         norm_df = state.error
         eps = jnp.minimum(1 / 2, norm_df) * norm_df
         eps = jnp.minimum(state.steihaug_eps, eps)
@@ -114,7 +114,7 @@ class TR(jaxopt_base.IterativeSolver):
             eps=eps,
             maxiter=self.maxiter_steihaug,
             eps_min=self.eps_min_steihaug,
-            jit=jit,
+            jit=self.jit,
             unroll=unroll,
         )
         p = steihaug_result.p

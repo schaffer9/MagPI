@@ -106,7 +106,7 @@ def integrate(
     --------
     This integrates ``f`` over the domain :math:`[0, 1]`
         >>> f = lambda x: 2 * x
-        >>> d = array([0, 1])
+        >>> d = array([0.0, 1.0])
         >>> float(integrate(f, d, method=midpoint))
         1.0
 
@@ -152,16 +152,21 @@ def integrate(
         if len(domain.shape) == 1:
             domain = [domain]
 
-    w, nodes = zip(*(method(d) for d in domain))
-    W = stack(jnp.meshgrid(*w), axis=-1)
-    X = stack(jnp.meshgrid(*nodes), axis=-1)
-    W = jnp.prod(W, axis=-1)
+    W, X = zip(*(method(d) for d in domain))
+    if len(domain) > 1:
+        W = stack(jnp.meshgrid(*W), axis=-1)
+        X = stack(jnp.meshgrid(*X), axis=-1)
+        W = jnp.prod(W, axis=-1)
+    else:
+        W = W[0]
+        X = X[0]
 
     def g(x):
         return f(x, *args, **kwargs)
 
     F = jnp.apply_along_axis(g, -1, X)
     return jnp.tensordot(W, F, len(domain))
+
 
 
 def integrate_disk(

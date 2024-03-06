@@ -97,7 +97,7 @@ class TestDiv(JaxTestCase):
         
 
 class TestCurl(JaxTestCase):
-    def test_curl2d(self):
+    def test_01_curl2d(self):
         def f(x):
             o = stack([x[1] ** 2, x[0] ** 2])
             return o
@@ -106,7 +106,7 @@ class TestCurl(JaxTestCase):
         curl = vmap(calc.curl(f))(x)
         self.assertIsclose(curl, array([2.0, 2.0]))
 
-    def test_curl3d(self):
+    def test_02_curl3d(self):
         def f(x):
             o = stack([x[1] ** 2 * x[2], x[0] * x[2] ** 2, x[0] ** 2 * x[1]])
             return o
@@ -114,6 +114,45 @@ class TestCurl(JaxTestCase):
         x = array([[2.0, 1.0, 2.0], [2.0, 1.0, 2.0]])
         curl = vmap(calc.curl(f))(x)
         self.assertIsclose(curl, array([[-4, -3, 0.0], [-4, -3, 0.0]]))
+
+    def test_03_curl2d_matrix_nx3(self):
+        def f(x):
+            o = stack([x[1] ** 2, x[0] ** 2])
+            return stack([o, o, o])
+
+        x = array([[2.0, 1.0], [2.0, 1.0]])
+        curl = vmap(calc.curl(f))(x)
+        self.assertIsclose(curl, array([[2.0, 2.0, 2.0], [2.0, 2.0, 2.0]]))
+
+
+    def test_04_curl3d_matrix_nx3(self):
+        def f(x):
+            o = stack([x[1] ** 2 * x[2], x[0] * x[2] ** 2, x[0] ** 2 * x[1]])
+            return stack([o, o])
+
+        x = array([2.0, 1.0, 2.0])
+        curl = calc.curl(f)(x)
+        self.assertIsclose(curl, array([[-4, -3, 0.0], [-4, -3, 0.0]]))
+
+    def test_05_curl2d_pytree(self):
+        def f(x):
+            o = stack([x[1] ** 2, x[0] ** 2])
+            return stack([o, o, o]), stack([o, o, o])
+
+        x = array([2.0, 1.0])
+        curl = calc.curl(f)(x)
+        result = array([[2.0, 2.0, 2.0]] * 2), array([[2.0, 2.0, 2.0]] * 2)
+        self.assertIsclose(curl, result)
+
+    def test_06_curl3d_pytree(self):
+        def f(x):
+            o = stack([x[1] ** 2 * x[2], x[0] * x[2] ** 2, x[0] ** 2 * x[1]])
+            return stack([o, o]), stack([o, o])
+
+        x = array([2.0, 1.0, 2.0])
+        curl = calc.curl(f)(x)
+        result = array([[-4, -3, 0.0], [-4, -3, 0.0]]), array([[-4, -3, 0.0], [-4, -3, 0.0]])
+        self.assertIsclose(curl, result)
 
 
 class TestLaplace(JaxTestCase):

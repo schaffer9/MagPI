@@ -263,7 +263,7 @@ def hessian_diag(f: Callable[..., PyTree], primals: Array) -> PyTree:
     primals = primals.ravel()
 
     vs = jnp.eye(primals.shape[0])
-    comp = lambda v: tree_map(lambda a: a @ v, hvp(f, [primals], [v]))
+    def comp(v): return tree_map(lambda a: a @ v, hvp(f, [primals], [v]))
     diag_entries = jax.vmap(comp)(vs)
     if is_1d:
         return diag_entries[0]
@@ -331,7 +331,7 @@ def value_and_divergence(
 
 
 @apply_to_module
-def curl(f: Callable[..., Array]) -> Callable[..., Array]:
+def curl(f: Callable[..., PyTree]) -> Callable[..., PyTree]:
     """Computes the curl :math:`\\nabla \\times f` wrt. the first argument.
 
     Parameters
@@ -351,26 +351,27 @@ def curl(f: Callable[..., Array]) -> Callable[..., Array]:
 
 
 def curl3d(f):
-    def _f(
-        x,
-        *args,
-    ):
+    def _f(x, *args):
         J = jacfwd(f, 0)(x, *args)
-        x = J[2, 1] - J[1, 2]
-        y = J[0, 2] - J[2, 0]
-        z = J[1, 0] - J[0, 1]
-        c = jnp.stack((x, y, z))
-        return c
 
+        def _curl(J):
+            x = J[..., 2, 1] - J[..., 1, 2]
+            y = J[..., 0, 2] - J[..., 2, 0]
+            z = J[..., 1, 0] - J[..., 0, 1]
+            c = jnp.stack((x, y, z), axis=-1)
+            return c
+        return tree_map(_curl, J)
     return _f
 
 
 def curl2d(f):
     def _f(x, *args):
         J = jacfwd(f, 0)(x, *args)
-        c = J[1, 0] - J[0, 1]
-        return c
 
+        def _curl(J):
+            c = J[..., 1, 0] - J[..., 0, 1]
+            return c
+        return tree_map(_curl, J)
     return jit(_f)
 
 
