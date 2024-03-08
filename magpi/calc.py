@@ -352,8 +352,12 @@ def curl(f: Callable[..., PyTree]) -> Callable[..., PyTree]:
 
 def curl3d(f):
     def _f(x, *args):
-        J = jacfwd(f, 0)(x, *args)
-
+        def h(x, *args):
+            v = f(x, *args)
+            return v, v
+        J, v = jacfwd(h, 0, has_aux=True)(x, *args)
+        assert is_3d(v), "Function must have 3d output"
+        
         def _curl(J):
             x = J[..., 2, 1] - J[..., 1, 2]
             y = J[..., 0, 2] - J[..., 2, 0]
@@ -366,7 +370,11 @@ def curl3d(f):
 
 def curl2d(f):
     def _f(x, *args):
-        J = jacfwd(f, 0)(x, *args)
+        def h(x, *args):
+            v = f(x, *args)
+            return v, v
+        J, v = jacfwd(h, 0, has_aux=True)(x, *args)
+        assert is_2d(v), "Function must have 2d output"
 
         def _curl(J):
             c = J[..., 1, 0] - J[..., 0, 1]
@@ -376,8 +384,8 @@ def curl2d(f):
 
 
 def is_2d(*args) -> bool:
-    return all(map(lambda x: x.shape[-1] == 2, args))
+    return all(tree_leaves(tree_map(lambda x: x.shape[-1] == 2, args)))
 
 
 def is_3d(*args) -> bool:
-    return all(map(lambda x: x.shape[-1] == 3, args))
+    return all(tree_leaves(tree_map(lambda x: x.shape[-1] == 3, args)))

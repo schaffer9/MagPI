@@ -1,4 +1,4 @@
-from magpi.integrate import integrate, gauss3, midpoint
+from magpi.integrate import integrate, gauss, midpoint
 
 from . import *
 
@@ -20,7 +20,7 @@ class TestIntegrate(JaxTestCase):
             linspace(0, 2 * pi, 100),
             linspace(0, 2 * pi, 200),
         ]
-        F = integrate(f, d, method=gauss3)
+        F = integrate(f, d, method=gauss(3))
         self.assertTrue(jnp.all(jnp.isclose(F, zeros((2, 2)), atol=1e-05)))
 
     def test_002_integrate_scalar_fun_with_midpoint(self):

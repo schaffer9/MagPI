@@ -1,3 +1,5 @@
+from numpy.polynomial.legendre import leggauss
+
 from magpi.prelude import *
 
 Scalar = Array
@@ -39,57 +41,17 @@ def simpson(domain: Array) -> tuple[Array, Array]:
     return w, nodes
 
 
-def gauss2(domain: Array) -> tuple[Array, Array]:
-    def weights_nodes(a, b):
-        t = lambda x: (a + b) / 2 + x * (b - a) / 2
-        w = (b - a) / 2
-        return stack([w, w]), stack([t(-1 / sqrt(3)), t(1 / sqrt(3))])
-
-    w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
-    return jnp.ravel(w), jnp.ravel(nodes)
-
-
-def gauss3(domain: Array) -> tuple[Array, Array]:
-    def weights_nodes(a, b):
-        t = lambda x: (a + b) / 2 + x * (b - a) / 2
-        w = (b - a) / 2
-        return (
-            w * stack([5 / 9, 8 / 9, 5 / 9]),
-            stack([t(-sqrt(3 / 5)), t(0.0), t(sqrt(3 / 5))]),
-        )
-
-    w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
-    return jnp.ravel(w), jnp.ravel(nodes)
-
-
-def gauss4(domain: Array) -> tuple[Array, Array]:
-    def weights_nodes(a, b):
-        t = lambda x: (a + b) / 2 + x * (b - a) / 2
-        w = (b - a) / 2
-        u, v = (sqrt(3 / 7 - 2 / 7 * sqrt(6 / 5)), sqrt(3 / 7 + 2 / 7 * sqrt(6 / 5)))
-        w1, w2 = (18 + sqrt(30)) / 36, (18 - sqrt(30)) / 36
-        return (w * stack([w1, w1, w2, w2]), stack([t(u), t(-u), t(v), t(-v)]))
-
-    w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
-    return jnp.ravel(w), jnp.ravel(nodes)
-
-
-def gauss5(domain: Array) -> tuple[Array, Array]:
-    def weights_nodes(a, b):
-        t = lambda x: (a + b) / 2 + x * (b - a) / 2
-        w = (b - a) / 2
-        u = 1 / 3 * sqrt(5 - 2 * sqrt(10 / 7))
-        v = 1 / 3 * sqrt(5 + 2 * sqrt(10 / 7))
-        w0 = 128 / 225
-        w1 = (322 + 13 * sqrt(70)) / 900
-        w2 = (322 - 13 * sqrt(70)) / 900
-        return (
-            w * stack([w0, w1, w1, w2, w2]),
-            stack([t(0), t(u), t(-u), t(v), t(-v)]),
-        )
-
-    w, nodes = vmap(weights_nodes)(domain[:-1], domain[1:])
-    return jnp.ravel(w), jnp.ravel(nodes)
+def gauss(degree: int) -> QuadRule:
+    nodes, weights = map(asarray, leggauss(degree))
+    
+    def quad(domain: Array) -> tuple[Array, Array]:
+        def weights_nodes(a, b):
+            w = (b - a) / 2 * asarray(weights)
+            n = (a + b) / 2 + nodes * (b - a) / 2
+            return w, n
+        w, n = vmap(weights_nodes)(domain[:-1], domain[1:])
+        return jnp.ravel(w), jnp.ravel(n)
+    return quad
 
 
 def integrate(
@@ -128,7 +90,7 @@ def integrate(
         ...     linspace(-1, 1, 2),
         ...     linspace(0, 1, 2),
         ... ]
-        >>> F = integrate(f, d, 1., method=gauss2, b=2.)
+        >>> F = integrate(f, d, 1., method=gauss(2), b=2.)
         >>> bool(jnp.isclose(F, 2.66666666))
         True
 
@@ -166,7 +128,6 @@ def integrate(
 
     F = jnp.apply_along_axis(g, -1, X)
     return jnp.tensordot(W, F, len(domain))
-
 
 
 def integrate_disk(

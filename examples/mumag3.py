@@ -5,7 +5,7 @@ from jaxopt.linear_solve import solve_lu
 
 from magpi.calc import divergence, laplace
 from magpi.domain import Hypercube
-from magpi.integrate import QuadRule, gauss5, integrate, simpson
+from magpi.integrate import QuadRule, gauss, integrate, simpson
 from magpi.prelude import *
 from magpi.r_fun import cuboid, translate
 
@@ -204,7 +204,7 @@ def charge_taylor_coefs2(
         g = grad_f(x)
         H = hessian_f(x)
         i, j = face.axis1, face.axis2
-        coefs = f(x), g[i], g[j], 1 / 2 * H[i, i], H[i, j], 1 / 2 * H[j, j]
+        coefs = f(x), g[..., i], g[..., j], 1 / 2 * H[..., i, i], H[..., i, j], 1 / 2 * H[..., j, j]
         return stack(coefs)
 
     return jnp.apply_along_axis(_f, -1, face.midpoints)
@@ -293,8 +293,8 @@ def create_stray_field_solver(
     domain,
     W_elm,
     b_elm,
-    method: QuadRule = gauss5,
-    subintervals=(1, 1, 1),
+    method: QuadRule = gauss(5),
+    subintervals=1,
     use_precomputed_grad_tensors: bool = False,
 ):
     h_elm = lambda x: tanh(W_elm @ (domain.normalize(x)) + b_elm)

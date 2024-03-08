@@ -141,7 +141,7 @@ class TestCurl(JaxTestCase):
 
         x = array([2.0, 1.0])
         curl = calc.curl(f)(x)
-        result = array([[2.0, 2.0, 2.0]] * 2), array([[2.0, 2.0, 2.0]] * 2)
+        result = array([2.0, 2.0, 2.0]), array([2.0, 2.0, 2.0])
         self.assertIsclose(curl, result)
 
     def test_06_curl3d_pytree(self):

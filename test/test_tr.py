@@ -99,7 +99,7 @@ class TestTR(JaxTestCase):
         x0 = jnp.ones(4)
         solver = tr.TR(f, maxiter=5, init_tr_radius=0.5, jit=False)
         params, state = solver.run(x0)
-        self.assertIsclose(params, 0.)
+        self.assertIsclose(params, zeros((4,)))
         self.assertTrue(state.steihaug_converged)
         self.assertGreater(state.iter_num_steihaug, 0)
     

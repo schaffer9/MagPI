@@ -319,10 +319,14 @@ def transform_polyline(s: Array, points: tuple[Array, ...]) -> Array:
     segments = norm(line[1:] - line[:-1], axis=1)
     length = jnp.sum(segments)
     cumlengths = jnp.cumsum(segments)
-    s = s % 1
-    s = (s * length).ravel()
-    idx = jnp.argmax(s[:, None] <= cumlengths, axis=-1)
+    _s = s % 1
+    _s = (_s * length).ravel()
+    idx = jnp.argmax(_s[:, None] <= cumlengths, axis=-1)
 
     p1, p2 = line[idx], line[idx + 1]
-    d = cumlengths[idx] - s
-    return p2 + (p1 - p2) * d[:, None] / (norm(p1 - p2, axis=-1, keepdims=True))
+    d = cumlengths[idx] - _s
+    p = p2 + (p1 - p2) * d[:, None] / (norm(p1 - p2, axis=-1, keepdims=True))
+    if s.shape == ():
+        return p[0]
+    else:
+        return p

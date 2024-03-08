@@ -52,7 +52,7 @@ class TestTransforms(JaxTestCase):
         o = array([0.0, 0.0, 1.0])
 
         x_tran = jit(domain.transform_sphere_bnd)(x, r, o)
-        self.assertIsclose(norm(x_tran - o, axis=-1), 0.1)
+        self.assertIsclose(norm(x_tran - o, axis=-1), ones((100, 10)) * 0.1)
         self.assertEqual(x_tran.shape, (100, 10, 3))
 
     def test_05_transform_circ_bnd(self):
@@ -62,7 +62,7 @@ class TestTransforms(JaxTestCase):
         o = array([0.0, 1.0])
 
         x_tran = domain.transform_circle_bnd(x, r, o)
-        self.assertIsclose(norm(x_tran - o, axis=-1), 5.0)
+        self.assertIsclose(norm(x_tran - o, axis=-1), ones((100, 10)) * 5.0)
         self.assertEqual(x_tran.shape, (100, 10, 2))
 
     def test_06_transform_circ_bnd_with_single_angle(self):
@@ -98,7 +98,6 @@ class TestTransforms(JaxTestCase):
         x = array(0.0)
         a, b, c = array(((0.0, 0.0), (2.0, 0), (0.0, 2.0)))
         x_tran = domain.transform_polyline(x, (a, b, c))
-        print(x_tran)
         self.assertIsclose(x_tran, array([0.0, 0.0]))
         self.assertTrue(x_tran.shape, (2,))
 
@@ -114,7 +113,6 @@ class TestTransforms(JaxTestCase):
         ub = array([1, 1.0])
         x = array([[0], [0.75], [0.25]])
         x_trans = domain.transform_hypercube_bnd(x, lb, ub)
-        print(x_trans)
         self.assertIsclose(x_trans, array([[-1, -1], [-1, 1.0], [-1, -1.0]]))
 
     def test_12_transform_hypercube_bnd(self):
@@ -219,7 +217,7 @@ class TestDomain(JaxTestCase):
         x_bnd = cube.transform_bnd(x)
         n = cube.normal_vec(x_bnd)
         self.assertIsNotNone(n)
-        self.assertIsclose(norm(n, axis=-1), 1.0)
+        self.assertIsclose(norm(n, axis=-1), ones((20, )))
 
     def test_05_normal_vec_on_corner_is_defined(self):
         cube = domain.Hypercube((0.0, 0.0, -1), (1.0, 1.0, 2))
