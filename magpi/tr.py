@@ -61,12 +61,17 @@ class TR(jaxopt_base.IterativeSolver):
         if isinstance(init_params, jaxopt_base.OptStep):
             state = init_params.state
             tr_radius = state.tr_radius
+            tr_radius = lax.cond(
+                tr_radius <= self.min_tr_radius,
+                lambda: self.init_tr_radius,
+                lambda: tr_radius
+            )
             iter_num = state.iter_num
             init_params = init_params.params
         else:
             iter_num = jnp.asarray(0)
             tr_radius = jnp.asarray(self.init_tr_radius)
-
+        
         (value, aux), grad = self._value_and_grad_with_aux(init_params, *args, **kwargs)
         norm_df = tree_l2_norm(grad)
         return TrState(
@@ -104,11 +109,16 @@ class TR(jaxopt_base.IterativeSolver):
             params = params.params
         state, hvp = self.hvp(state, params, *args, **kwargs)
         unroll = self._get_unroll_option()
-        norm_df = state.error
+        (old_value, old_aux), old_grad = self._value_and_grad_with_aux(
+            params, *args, **kwargs
+        )
+        # norm_df = state.error
+        norm_df = tree_l2_norm(old_grad)
         eps = jnp.minimum(1 / 2, norm_df) * norm_df
         eps = jnp.minimum(state.steihaug_eps, eps)
         steihaug_result = steihaug(
-            state.grad,
+            # state.grad,
+            old_grad,
             hvp,
             tr_radius=state.tr_radius,
             eps=eps,
@@ -121,11 +131,14 @@ class TR(jaxopt_base.IterativeSolver):
 
         def update():
             new_params = tree_add(params, p)
+  
             (value, aux), grad = self._value_and_grad_with_aux(
                 new_params, *args, **kwargs
             )
-            nom = state.value - value
-            denom = -(tree_vdot(state.grad, p) + 1 / 2 * tree_vdot(p, hvp(p)))
+            # nom = state.value - value
+            nom = old_value - value
+            # denom = -(tree_vdot(state.grad, p) + 1 / 2 * tree_vdot(p, hvp(p)))
+            denom = -(tree_vdot(old_grad, p) + 1 / 2 * tree_vdot(p, hvp(p)))
             rho = nom / denom
             tr_radius = update_tr_radius(
                 state.tr_radius,
@@ -157,12 +170,16 @@ class TR(jaxopt_base.IterativeSolver):
                 ),
                 lambda: TrState(
                     iter_num=state.iter_num + 1,
-                    value=state.value,
-                    grad=state.grad,
-                    error=state.error,
+                    # value=state.value,
+                    value=old_value,
+                    # grad=state.grad,
+                    grad=old_grad,
+                    # error=state.error,
+                    error=tree_l2_norm(old_grad),
                     rho=rho,
                     tr_radius=tr_radius,
-                    aux=state.aux,
+                    # aux=state.aux,
+                    aux=old_aux,
                     iter_num_steihaug=steihaug_result.iter_num,
                     steihaug_converged=steihaug_result.converged,
                     steihaug_curvature=steihaug_result.curvature,
@@ -196,6 +213,8 @@ class TR(jaxopt_base.IterativeSolver):
         if self.rho_accept > self.rho_decrease:
             msg = "`rho_accept` must be smaller than `rho_decrease` for convergence reasons!"
             raise ValueError(msg)
+        
+        super().__post_init__()
 
 
 def tree_size(tree: chex.ArrayTree) -> int:
