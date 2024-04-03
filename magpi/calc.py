@@ -211,6 +211,7 @@ def hvp_forward_over_reverse(
     primals: Sequence[PyTree],
     tangents: Sequence[PyTree],
     *args: Any,
+    alpha: Optional[float | Array] = None,
     value_and_grad: bool = False,
     has_aux: bool = False,
     **kwargs: Any,
@@ -226,15 +227,18 @@ def hvp_forward_over_reverse(
         has_aux (bool, optional): Defaults to False.
     """
 
-    def grad_f(p):
+    def grad_f(*p):
         if value_and_grad:
-            _, _grad_f = f(p, *args, **kwargs)
+            _, _grad_f = f(*p, *args, **kwargs)
         else:
-            _, _grad_f = jax.value_and_grad(f, has_aux=has_aux)(p, *args, **kwargs)
+            _, _grad_f = jax.value_and_grad(f, has_aux=has_aux)(*p, *args, **kwargs)
         return _grad_f
-
-    return jvp(grad_f, primals, tangents)[1]
-
+    _hvp = jvp(grad_f, primals, tangents)[1]
+    if alpha is None:
+        return _hvp
+    else:
+        return tree_add(_hvp, tree_scalar_mul(alpha, tangents[0]))
+        
 
 def hvp_reverse_over_reverse(
     f: Callable,

@@ -42,6 +42,8 @@ class TR(jaxopt_base.IterativeSolver):
     rho_decrease: float = 1 / 4
     decrease_factor: float = 1 / 4
     rho_accept: float = 1 / 4
+    alpha: Optional[float] = None
+    forcing_parameter: float = 1 / 2
     tol: float = 1e-2  # gradient tolerance
     maxiter: int = 100
     maxiter_steihaug: int | None = None
@@ -97,6 +99,7 @@ class TR(jaxopt_base.IterativeSolver):
             (p,),
             *args,
             **kwargs,
+            alpha=self.alpha,
             value_and_grad=True,
             has_aux=True
         )
@@ -114,8 +117,8 @@ class TR(jaxopt_base.IterativeSolver):
         )
         # norm_df = state.error
         norm_df = tree_l2_norm(old_grad)
-        eps = jnp.minimum(1 / 2, norm_df) * norm_df
-        eps = jnp.minimum(state.steihaug_eps, eps)
+        eps = jnp.minimum(self.forcing_parameter, norm_df ** self.forcing_parameter) * norm_df
+        #eps = jnp.minimum(state.steihaug_eps, eps)
         steihaug_result = steihaug(
             # state.grad,
             old_grad,
