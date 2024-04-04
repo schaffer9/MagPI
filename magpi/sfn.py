@@ -103,15 +103,18 @@ class SFN(jaxopt_base.IterativeSolver):
         V, W, _, _ = lanczos_iteration(self.k, state.grad, hvp, state.last_update)
         G = tree_matmul(V, W)
         eigval, eigvec = jnp.linalg.eigh(G)
-        if self.dampling_parameter is None:
+        if self.damping_parameter is None:
             H_inv = lambda lam: eigvec.T * 1 / (jnp.abs(eigval) + lam) @ eigvec
         else:
-            H_inv = lambda lam: eigvec.T * 1 / (jnp.abs(eigval) + self.dampling_parameter + lam) @ eigvec
-            
+            H_inv = lambda lam: eigvec.T * 1 / (jnp.abs(eigval) + self.damping_parameter + lam) @ eigvec
+        
+        def alpha_dot_V(alpha):
+            return tree_map(lambda v: jnp.tensordot(alpha, v, ((0,), (0,))), V)
+          
         def fun(lam, params, g):
             lam = lam[0]
             alpha = H_inv(lam) @ g
-            p = tree_add(params, tree_map(lambda v: alpha @ v, V))
+            p = tree_add(params, alpha_dot_V(alpha))
             value, _ = self._fun(p, *args, **kwargs)
             return value
         
@@ -119,23 +122,28 @@ class SFN(jaxopt_base.IterativeSolver):
             params_old = state["params_new"]
             (value_f, aux), grad_f = self._value_and_grad_with_aux(params_old, *args, **kwargs)
             g = -tree_matvec(V, grad_f)
-            result = minimize(fun, array([1.0]), (params_old, g),
+            
+            
+            # todo: minimize!!
+            result = minimize(fun, asarray([state["lam"]]), (params_old, g),
                               tol=self.bfgs_tol, method="BFGS",
-                              options=self.bfgs_options)
+                              options=self.bfgs_options)  
+            
+            
             lam = result.x[0]
             alpha = H_inv(lam) @ g
-            params_update = tree_map(lambda v: alpha @ v, V)
+            params_update = alpha_dot_V(alpha)
             params_new = tree_add(params_old, params_update)
             error = tree_l2_norm(tree_sub(params_old, params_new))
             return dict(
-                iter_num=state["iter_num"] + 1,
+                iter_num=state["iter_num"] + 1, lam=lam,
                 params_new=params_new, params_old=params_old, error=error,
                 value=value_f, aux=aux, grad=grad_f, converged=error < self.tol_subproblem,
                 lbfgs_status=result.status, lbfgs_value=result.fun, lbfgs_iter=result.nit
             )
         
         _init_state = dict(
-            iter_num=0,
+            iter_num=0, lam=0.0,
             params_new=params, params_old=params, error=jnp.inf,
             value=state.value, aux=state.aux, grad=state.grad,
             converged=False, lbfgs_status=-1, lbfgs_value=state.value, lbfgs_iter=0,
@@ -168,8 +176,8 @@ class SFN(jaxopt_base.IterativeSolver):
         )
         _step = jaxopt_base.OptStep(params_new, state)
         if self.callback is not None:
-            cb = lambda step, _: self.callback(_step)
-            hcb.id_tap(cb, _step)
+            cb = lambda step, _: self.callback(step)
+            hcb.id_tap(cb, (_step, eigval, V, W, _state))
         return _step
 
     def optimality_fun(self, params, *args, **kwargs):
