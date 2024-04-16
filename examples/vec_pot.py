@@ -123,7 +123,7 @@ def _midpoints(a, b, const_axis, const_val):
 
 def solve_A2(
     domain: Cuboid,
-    A1: Callable[..., Array],
+    A: Callable[..., Array],
     m: Callable[..., Array],
     args_A1: tuple = (),
     args_m: tuple = (),
@@ -131,14 +131,14 @@ def solve_A2(
     def g(y):
         _m = m(y, *args_m)
         n = domain.normal_vec(y)
-        return jnp.cross(_m, n) + A1(y, *args_A1)
+        return jnp.cross(_m, n) + A(y, *args_A1)  #  - jacfwd(A1)(y, *args_A1) @ n
 
     c = charges(domain, g)
 
     def A2_curl_A2_grad_A2(z, grad_z):
         A2 = 1 / (4 * pi) * _solve_sufrace_integral_A2(c, z)
         curl_A2 = 1 / (4 * pi) * _solve_curl_sufrace_integral_curl_A2(c, grad_z)
-        grad_A2 = 1 / (4 * pi) * _solve_grad_sufrace_integral_grad_A2(c, z)
+        grad_A2 = 1 / (4 * pi) * _solve_grad_sufrace_integral_grad_A2(c, grad_z)
         return A2, curl_A2, grad_A2
 
     return A2_curl_A2_grad_A2
@@ -396,6 +396,4 @@ def cayley_rotation(p, x):
     assert p.shape[0] == 3, f"{p.shape}"
     Q = to_skew_simmetric_matrix(p)
     I = jnp.eye(3)
-    b = (I + Q) @ x
-    A = I - Q
-    return solve_lu(lambda x: A @ x, b)
+    return jnp.linalg.inv(I - Q) @ (I + Q) @ x

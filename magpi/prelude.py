@@ -70,6 +70,7 @@ __all__ = (
     "nn",
     "optax",
     "jaxopt",
+    "tree",
     "tree_add",
     "tree_sum",
     "tree_sub",
@@ -131,7 +132,7 @@ from jax.numpy.linalg import norm, solve
 
 import jax.numpy as jnp
 
-from jax import Array, grad, jit, jacfwd, jacrev, vmap, jvp, value_and_grad
+from jax import Array, grad, jit, jacfwd, jacrev, vmap, jvp, value_and_grad, tree
 from jax.typing import ArrayLike
 import jax.lax as lax
 import jax.random as random

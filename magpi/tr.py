@@ -47,7 +47,6 @@ class TR(jaxopt_base.IterativeSolver):
     tol: float = 1e-2  # gradient tolerance
     maxiter: int = 100
     maxiter_steihaug: int | None = None
-    eps_min_steihaug: float = 1e-9
 
     callback: None | Callable[[jaxopt_base.OptStep], None] = None
 
@@ -126,7 +125,6 @@ class TR(jaxopt_base.IterativeSolver):
             tr_radius=state.tr_radius,
             eps=eps,
             maxiter=self.maxiter_steihaug,
-            eps_min=self.eps_min_steihaug,
             jit=self.jit,
             unroll=unroll,
         )
@@ -239,7 +237,6 @@ def steihaug(
     hvp: Callable[[chex.ArrayTree], chex.ArrayTree],
     tr_radius: float | Array,
     eps: float | Array,
-    eps_min: float = 1e-9,
     maxiter: int | None = None,
     unroll: bool = True,
     jit: bool = True,
@@ -253,14 +250,20 @@ def steihaug(
 
     def limit_step(z, d):
         a, b, c = tree_vdot(d, d), tree_vdot(z, d), tree_vdot(z, z) - tr_radius**2
-        discriminant = b**2 - 4 * a * c
+        discriminant = (b / a) ** 2 - c / a
         discriminant = lax.cond(discriminant < 0.0, lambda: 0.0, lambda: discriminant)
-        tau1 = (-b + sqrt(discriminant)) / (2 * a)
-        tau2 = (-b - sqrt(discriminant)) / (2 * a)
-        tau = maximum(tau1, tau2)
+        tau = - b / a + sqrt(discriminant)
+        tau = jnp.maximum(0.0, tau)
         z = tree_add_scalar_mul(z, tau, d)
-        z = tree_scalar_mul(tr_radius / tree_l2_norm(z), z)
         return z
+        # discriminant = b**2 - 4 * a * c
+        # discriminant = lax.cond(discriminant < 0.0, lambda: 0.0, lambda: discriminant)
+        # tau1 = (-b + sqrt(discriminant)) / (2 * a)
+        # tau2 = (-b - sqrt(discriminant)) / (2 * a)
+        # tau = maximum(tau1, tau2)
+        # z = tree_add_scalar_mul(z, tau, d)
+        # z = tree_scalar_mul(tr_radius / tree_l2_norm(z), z)
+        # return z
 
     def step(state):
         z, d, r = state["z"], state["d"], state["r"]
@@ -293,9 +296,7 @@ def steihaug(
 
     def condition(state):
         curvature, norm_z, norm_r = state["curvature"], state["norm_z"], state["norm_r"]
-        cond = (
-            (curvature <= 0) | (norm_z >= tr_radius) | (norm_r < eps) | (eps < eps_min)
-        )
+        cond = (curvature <= 0) | (norm_z >= tr_radius) | (norm_r < eps)
         return jnp.invert(cond)
 
     dtype = utils.tree_single_dtype(grad_f)

@@ -102,6 +102,19 @@ class TestTR(JaxTestCase):
         self.assertIsclose(params, zeros((4,)))
         self.assertTrue(state.steihaug_converged)
         self.assertGreater(state.iter_num_steihaug, 0)
+        
+    def test_008_aux_and_grad(self):
+        def f(x):
+            y = jnp.sum(x ** 2)
+            df = 2 * x
+            return (y, y), df
+        
+        x0 = jnp.ones(4)
+        solver = tr.TR(f, maxiter=5, init_tr_radius=0.5, has_aux=True, value_and_grad=True)
+        params, state = solver.run(x0)
+        self.assertIsclose(params, zeros((4,)))
+        self.assertTrue(state.steihaug_converged)
+        self.assertGreater(state.iter_num_steihaug, 0)
     
     # def test_008_steihaug_not_converged(self):
     #     f = lambda x: (x[1] - 0.129 * x[0] ** 2 + 1.6 * x[0] - 6) ** 2 + 6.07 * cos(x[0]) + 10

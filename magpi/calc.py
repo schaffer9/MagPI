@@ -238,8 +238,62 @@ def hvp_forward_over_reverse(
         return _hvp
     else:
         return tree_add(_hvp, tree_scalar_mul(alpha, tangents[0]))
-        
+   
 
+HVP = Callable
+
+@T.overload
+def value_grad_hvp(
+    f: Callable,
+    primals: PyTree,
+    *args: Any,
+    value_and_grad: bool = False,
+    has_aux: bool = False,
+    **kwargs: Any,
+) -> tuple[Array, PyTree, HVP, Any]:
+    ...
+
+def value_grad_hvp(
+    f: Callable,
+    primals: PyTree,
+    *args: Any,
+    value_and_grad: bool = False,
+    has_aux: bool = False,
+    **kwargs: Any,
+) -> tuple[Array, PyTree, HVP]:
+    """Computes the value, gradient and hvp of a function.
+
+    Args:
+        f (Callable):
+        primals PyTree:
+        value_and_grad (bool, optional): Defaults to False.
+        has_aux (bool, optional): Defaults to False.
+    
+    Returns:
+        If `has_aux` is `False`, it returns a tuple 
+        `(f(*primals), grad(f)(*primals), hvp)`. If `has_aux` is
+        `True` it returns `(f(*primals), grad(f)(*primals), hvp, aux)`.
+        
+    """
+
+    def grad_f(p: PyTree) -> PyTree:
+        if value_and_grad:
+            value, _grad_f = f(p, *args, **kwargs)
+        else:
+            value, _grad_f = jax.value_and_grad(f, has_aux=has_aux)(p, *args, **kwargs)
+        return _grad_f, value
+    
+    _grad_f, hvp, value = jax.linearize(grad_f, primals, has_aux=True)
+    if has_aux:
+        value, aux = value
+        return value, _grad_f, hvp, aux
+    else:
+        return value, _grad_f, hvp
+
+
+
+    
+    
 def hvp_reverse_over_reverse(
     f: Callable,
     primals: Sequence[PyTree],
