@@ -17,8 +17,8 @@ Eigenvectors = Array
 
 
 class EighResult(T.NamedTuple):
-    eigenvalues: jax.Array
-    eigenvectors: jax.Array
+    eigenvalues: Eigenvalues
+    eigenvectors: Eigenvectors
 
 
 class SubproblemResult(T.NamedTuple):
@@ -31,6 +31,7 @@ class SubproblemResult(T.NamedTuple):
 
 class RARCState(T.NamedTuple):
     iter_num: chex.ArrayTree
+    key: Key
     value: Array
     error: Array
     aux: Any
@@ -39,12 +40,10 @@ class RARCState(T.NamedTuple):
     accepted: Array
     grad: chex.ArrayTree
     last_update: chex.ArrayTree
-    S: Array
-    U: chex.ArrayTree
-    # S_min: Array
-    # S_max: Array
-    # U_min: chex.ArrayTree
-    # U_max: chex.ArrayTree
+    eig: EighResult
+    search_space: Array
+    search_curvature: Array
+    reduced_update: Array
     subproblem_result: SubproblemResult
 
 
@@ -54,7 +53,7 @@ class RARC(jaxopt_base.IterativeSolver):
     value_and_grad: bool = False
     has_aux: bool = False
     r: int = 10
-    q: int = 2
+    q: int = 3
     key: Array = field(default_factory=lambda: random.PRNGKey(0))
     init_alpha: float = 1.0
     alpha_min: float = 1e-5
@@ -68,6 +67,7 @@ class RARC(jaxopt_base.IterativeSolver):
     maxiter_subproblem: int | None = None
     tol: float = 1e-2  # gradient tolerance
     tol_subproblem: float = 1e-3
+    eig_select_threshold: float = 0.0
     callback: None | Callable[[jaxopt_base.OptStep], None] = None
 
     implicit_diff: bool = True
@@ -98,13 +98,15 @@ class RARC(jaxopt_base.IterativeSolver):
             zeros((self.r,)),
             jnp.asarray(False),
         )
-        U, unravel = ravel_pytree(grad_f)
-        U = random.normal(self.key, (*U.shape, self.r))
-        U, _ = jnp.linalg.qr(U)
-        U = vmap(unravel, -1, -1)(U)
+        key, subkey2 = random.split(self.key)
+        grad_f_ravel, _ = ravel_pytree(grad_f)
+        # U = random.normal(subkey1, (*grad_f_ravel.shape, self.r))
+        # U, _ = jnp.linalg.qr(U)
+        V = random.normal(subkey2, (*grad_f_ravel.shape, self.r))
 
         return RARCState(
             iter_num=iter_num,
+            key=key,
             value=value,
             error=norm_df,
             aux=aux,
@@ -113,12 +115,10 @@ class RARC(jaxopt_base.IterativeSolver):
             accepted=jnp.asarray(False),
             grad=grad_f,
             last_update=tree_zeros_like(init_params),
-            S=zeros((self.r,)),
-            U=U,
-            # S_min=zeros((self.r,)),
-            # S_max=zeros((self.r,)),
-            # U_min=U,
-            # U_max=U,
+            eig=EighResult(zeros((self.r,)), zeros((self.r, self.r))),
+            search_space=V,
+            search_curvature=zeros((self.r,)),
+            reduced_update=zeros((self.r,)),
             subproblem_result=subproblem_res,
         )
 
@@ -139,20 +139,27 @@ class RARC(jaxopt_base.IterativeSolver):
         )
         unroll = self._get_unroll_option()
 
-        # update smallest and largest eigenvalues and eigenvectors
-        S, U = approx_eigh(state.U, hvp, self.q, unroll=unroll)
-        # shift = jnp.maximum(0.0, jnp.max(S_max))
-        # S_min, U_min = approx_eigh(state.U_min, shift, hvp, self.q, unroll=unroll)
+        _g, unravel = ravel_pytree(grad_f)
+
+        def _hvp(Q):
+            Q_new = hvp(unravel(Q))
+            Q_new, _ = ravel_pytree(Q_new)
+            return Q_new
+
+        key, subkey = random.split(state.key)
+        # eig = approx_eigh(state.eig.eigenvectors, _hvp, self.q, unroll=unroll)
+        # P = sample_search_space(subkey, eig, threshold=self.eig_select_threshold)
+        P = sample_search_space(subkey, state)
+
+        # compute reduced hessian and reduced eigendecomposition
+        H = P.T @ vmap(_hvp, -1, -1)(P)
+        curvature = diag(H)
+        S, U = jnp.linalg.eigh(H)
         if self.damping_parameter is not None:
-            # S = jnp.where(jnp.abs(S_min) < self.damping_parameter, self.damping_parameter, S_min)
-            S = jnp.where(
-                jnp.abs(S) < self.damping_parameter, self.damping_parameter, S
-            )
+            S = asarray(jnp.where(jnp.abs(S) < self.damping_parameter, self.damping_parameter, S))
 
-        # compute solution to subproblem
-        # g = tree_matvec(U_min, grad_f)
-        g = tree_matvec(U, grad_f)
-
+        # diagonalize system
+        g = U.T @ P.T @ _g
         if self.maxiter_subproblem is None:
             maxiter_subproblem = dim(params)
         else:
@@ -170,7 +177,7 @@ class RARC(jaxopt_base.IterativeSolver):
 
         # update params and regularization parameter
         p = result.p
-        params_update = tree_map(lambda v: v @ p, U)
+        params_update = unravel(P @ U @ result.p)
         params_new = tree_add(params, params_update)
         (value_new, aux_new), grad_f_new = self._value_and_grad_with_aux(
             params_new, *args, **kwargs
@@ -197,6 +204,7 @@ class RARC(jaxopt_base.IterativeSolver):
             accept,
             lambda: RARCState(
                 iter_num=state.iter_num + asarray(1),
+                key=key,
                 value=value_new,
                 error=tree_l2_norm(grad_f_new),
                 rho=rho,
@@ -205,16 +213,17 @@ class RARC(jaxopt_base.IterativeSolver):
                 grad=grad_f_new,
                 aux=aux_new,
                 last_update=params_update,
-                S=S,
-                U=U,
-                # S_max=S_max,
-                # S_min=S_min,
-                # U_max=U_max,
-                # U_min=U_min,
+                #eig=eig,
+                eig=EighResult(S, U),
+                search_space=P,
+                #search_curvature=S,
+                search_curvature=curvature,
+                reduced_update=p,
                 subproblem_result=result,
             ),
             lambda: RARCState(
                 iter_num=state.iter_num + asarray(1),
+                key=key,
                 value=value,
                 error=tree_l2_norm(grad_f),
                 alpha=alpha,
@@ -223,12 +232,12 @@ class RARC(jaxopt_base.IterativeSolver):
                 aux=aux,
                 grad=grad_f,
                 last_update=state.last_update,
-                S=S,
-                U=U,
-                # S_max=S_max,
-                # S_min=S_min,
-                # U_max=U_max,
-                # U_min=U_min,
+                # eig=eig,
+                eig=EighResult(S, U),
+                search_space=P,
+                #search_curvature=S,
+                search_curvature=curvature,
+                reduced_update=p,
                 subproblem_result=result,
             ),
         )
@@ -282,104 +291,48 @@ def update_regularization_parameter(
     return alpha
 
 
-def approx_eigh(
-    Q_init: chex.ArrayTree,
-    # shift: Array | float,
-    matvec: Callable[[chex.ArrayTree], chex.ArrayTree],
-    q: int = 2,
-    unroll: None | int | bool = None,
-) -> EighResult:
-    """Performs an Eigenvalue Decomposition via random subspace iteration.
-    See Algorithm 4.4 and 5.3 in [1].
+# def sample_search_space(key, eig: EighResult, threshold):
+#     U, S = eig.eigenvectors, eig.eigenvalues
+#     V = random.normal(key, eig.eigenvectors.shape)
+#     V = V - (U @ (U.T @ V))
+#     V, _ = jnp.linalg.qr(V)
+#     V = jnp.where((S < threshold)[None, :], U, V)
+#     print(V.shape)
+#     return V
+#     #V = jnp.concatenate([U, V], axis=-1)
+#     #return V
 
-    Parameters
-    ----------
-    Q_init : chex.ArrayTree
-        initial Eigenvector guess
-    matvec : Callable[[Array], Array]
-        Hermitian matrix vector product
-    q : int
-        number of power iterations to run, by default 2
-    unroll : None | int | bool, optional
-        unroll option for `jax.lax.fori_loop`
-
-    Returns
-    -------
-    tuple[Eigenvalues, Eigenvectors]
-
-    Notes
-    -----
-    .. [1] Halko, Nathan, Per-Gunnar Martinsson, and Joel A. Tropp.
-    "Finding structure with randomness: Probabilistic algorithms for
-    constructing approximate matrix decompositions."
-    SIAM review 53.2 (2011): 217-288.
-    """
-    _, unravel = ravel_pytree(tree.map(lambda t: t[..., 0], Q_init))
-
-    def _ravel_tree(Q):
-        Q_ravel, _ = ravel_pytree(Q)
-        return Q_ravel
-
-    Q = vmap(_ravel_tree, -1, -1)(Q_init)
-    r = Q.shape[-1]
-    lam = zeros((r,))
-    # subspace iteration:
-
-    def _matvec(Q):
-        Q_new = matvec(unravel(Q))
-        Q_new, _ = ravel_pytree(Q_new)
-        return Q_new  # - shift * Q
-
-    def body(i, Q_lam):
-        Q, lam = Q_lam
-        Q = vmap(_matvec, -1, -1)(Q)
-        Q, R = jnp.linalg.qr(Q)
-        return Q, diag(R)
-
-    Q, lam = lax.fori_loop(0, q, body, (Q, lam), unroll=unroll)
-
-    # Eigenvalue decomposition:
-    # def _matvec_without_shift(Q):
-    #     Q_new = matvec(unravel(Q))
-    #     Q_new, _ = ravel_pytree(Q_new)
-    #     return Q_new
-
-    # Y = vmap(_matvec, -1, -1)(Q)
-    # B = Q.T @ Y
-    # S, U = jnp.linalg.eigh(B)
-    # U = Q @ U
-    Q = vmap(unravel, -1, -1)(Q)
-    return EighResult(lam, Q)
+def sample_search_space(key, state: RARCState):
+    V_new = random.normal(key, state.search_space.shape)
+    V_old = state.search_space
+    V = jnp.where((jnp.abs(state.reduced_update) > state.search_curvature)[None, :], V_old, V_new)
+    V, _ = jnp.linalg.qr(V)
+    return V
 
 
-# def random_eigh(
-#     key: Key,
-#     matvec: Callable[[chex.ArrayTree], chex.ArrayTree],
-#     Q_init: chex.ArrayTree,
-#     r: int,
-#     q: int = 2,
-#     unroll: None | int | bool = None,
+# def approx_eigh(
+#     Q: Array,
+#     matvec: Callable[[Array], Array],
+#     q: int,
+#     unroll: None | int | bool = None
 # ) -> EighResult:
 #     """Performs an Eigenvalue Decomposition via random subspace iteration.
-#     See Algorithm 4.4 and 5.3 in [1].
+#     See Algorithm 4.4 [1].
 
 #     Parameters
 #     ----------
-#     key : Key
+#     Q : chex.ArrayTree
+#         initial Eigenvector guess
 #     matvec : Callable[[Array], Array]
 #         Hermitian matrix vector product
-#     Q_init : chex.ArrayTree
-#         initial structure of vector applied to `matvec`
-#     r : int
-#         computes the `r` largest Eigenpairs of `matvec`
 #     q : int
-#         number of power iterations to run, by default 2
+#         number of iterations
 #     unroll : None | int | bool, optional
 #         unroll option for `jax.lax.fori_loop`
 
 #     Returns
 #     -------
-#     tuple[Eigenvalues, Eigenvectors]
+#     EighResult
 
 #     Notes
 #     -----
@@ -388,29 +341,27 @@ def approx_eigh(
 #     constructing approximate matrix decompositions."
 #     SIAM review 53.2 (2011): 217-288.
 #     """
-#     Q, unravel = ravel_pytree(Q_init)
-#     Q = random.normal(key, (*Q.shape, r))
-
-#     # subspace iteration:
-
-#     def _matvec(Q):
-#         Q = matvec(unravel(Q))
-#         Q, _ = ravel_pytree(Q)
-#         return Q
+#     # def body(i, Q_lam):
+#     #     Q, _ = Q_lam
+#     #     Q = vmap(matvec, -1, -1)(Q)
+#     #     Q, R = jnp.linalg.qr(Q)
+#     #     return Q, diag(R)
+    
+#     # Q, lam = lax.fori_loop(0, q, body, (Q, zeros((Q.shape[-1]),)), unroll=unroll)
 
 #     def body(i, Q):
-#         Q = vmap(_matvec, -1, -1)(Q)
+#         Q = vmap(matvec, -1, -1)(Q)
 #         Q, _ = jnp.linalg.qr(Q)
 #         return Q
-
+    
 #     Q = lax.fori_loop(0, q, body, Q, unroll=unroll)
-#     # Eigenvalue decomposition:
-#     Y = vmap(_matvec, -1, -1)(Q)
-#     B = Q.T @ Y
-#     S, U = jnp.linalg.eigh(B)
-#     U = Q @ U
-#     U = vmap(unravel, -1, -1)(U)
-#     return EighResult(S, U)
+
+#     def compute_lam(q):
+#         return q @ matvec(q)
+    
+#     lam = vmap(compute_lam, -1)(Q)
+
+#     return EighResult(lam, Q)
 
 
 def solve_subproblem(
