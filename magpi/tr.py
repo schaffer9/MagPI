@@ -18,6 +18,8 @@ class CgSteihaugResult(T.NamedTuple):
     step_length: Array
     curvature: Array
     p: chex.ArrayTree
+    eps: Array
+    norm_r: Array
 
 
 class TrState(T.NamedTuple):
@@ -88,7 +90,8 @@ class TR(jaxopt_base.IterativeSolver):
         (value, aux), grad_f = self._value_and_grad_with_aux(init_params, *args, **kwargs)
         norm_df = tree_l2_norm(grad_f)
         subproblem_result = CgSteihaugResult(
-            0, False, False, asarray(0.0), asarray(0.0), tree_zeros_like(init_params)
+            0, False, False, asarray(0.0), asarray(0.0), tree_zeros_like(init_params),
+            asarray(jnp.inf), asarray(jnp.inf),
         )
         return TrState(
             iter_num=iter_num,
@@ -129,8 +132,10 @@ class TR(jaxopt_base.IterativeSolver):
 
         unroll = self._get_unroll_option()
         norm_df = tree_l2_norm(old_grad)
-        eps = jnp.minimum(self.forcing_parameter, norm_df ** self.forcing_parameter) * norm_df
-        
+        eps = jnp.minimum(self.forcing_parameter / 2, norm_df ** self.forcing_parameter) * norm_df
+        #norm_df = tree_l2_norm(old_grad)
+        #eps = jnp.minimum(self.forcing_parameter / 2, (norm_df ** 2) ** self.forcing_parameter) * norm_df
+        eps = jnp.minimum(state.subproblem_result.eps, eps)
         steihaug_result = steihaug(
             old_grad,
             hvp,
@@ -311,6 +316,8 @@ def steihaug(
         curvature=state["curvature"],
         step_length=steplength,
         p=state["z"],
+        norm_r=state["norm_r"],
+        eps=asarray(eps),
     )
     return result
 

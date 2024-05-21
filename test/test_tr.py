@@ -100,8 +100,8 @@ class TestTR(JaxTestCase):
         solver = tr.TR(f, maxiter=5, init_tr_radius=0.5, jit=False)
         params, state = solver.run(x0)
         self.assertIsclose(params, zeros((4,)))
-        self.assertTrue(state.steihaug_converged)
-        self.assertGreater(state.iter_num_steihaug, 0)
+        self.assertTrue(state.subproblem_result.converged)
+        self.assertGreater(state.subproblem_result.iter_num, 0)
         
     def test_008_aux_and_grad(self):
         def f(x):
@@ -113,8 +113,8 @@ class TestTR(JaxTestCase):
         solver = tr.TR(f, maxiter=5, init_tr_radius=0.5, has_aux=True, value_and_grad=True)
         params, state = solver.run(x0)
         self.assertIsclose(params, zeros((4,)))
-        self.assertTrue(state.steihaug_converged)
-        self.assertGreater(state.iter_num_steihaug, 0)
+        self.assertTrue(state.subproblem_result.converged)
+        self.assertGreater(state.subproblem_result.iter_num, 0)
     
     # def test_008_steihaug_not_converged(self):
     #     f = lambda x: (x[1] - 0.129 * x[0] ** 2 + 1.6 * x[0] - 6) ** 2 + 6.07 * cos(x[0]) + 10

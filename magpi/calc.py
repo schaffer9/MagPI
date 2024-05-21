@@ -201,8 +201,8 @@ def value_and_jacrev(
 
 
 def hvp(
-    f: Callable[..., PyTree], primals: Sequence[Array], tangents: Sequence[Array]
-) -> Array:
+    f: Callable[..., PyTree], primals: Sequence[PyTree], tangents: Sequence[PyTree]
+) -> PyTree:
     return jvp(jacfwd(f), primals, tangents)[1]
 
 
@@ -233,14 +233,16 @@ def hvp_forward_over_reverse(
         else:
             _, _grad_f = jax.value_and_grad(f, has_aux=has_aux)(*p, *args, **kwargs)
         return _grad_f
+
     _hvp = jvp(grad_f, primals, tangents)[1]
     if alpha is None:
         return _hvp
     else:
         return tree_add(_hvp, tree_scalar_mul(alpha, tangents[0]))
-   
+
 
 HVP = Callable
+
 
 @T.overload
 def value_grad_hvp(
@@ -250,8 +252,8 @@ def value_grad_hvp(
     value_and_grad: bool = False,
     has_aux: bool = False,
     **kwargs: Any,
-) -> tuple[Array, PyTree, HVP, Any]:
-    ...
+) -> tuple[Array, PyTree, HVP, Any]: ...
+
 
 def value_grad_hvp(
     f: Callable,
@@ -268,12 +270,12 @@ def value_grad_hvp(
         primals PyTree:
         value_and_grad (bool, optional): Defaults to False.
         has_aux (bool, optional): Defaults to False.
-    
+
     Returns:
-        If `has_aux` is `False`, it returns a tuple 
+        If `has_aux` is `False`, it returns a tuple
         `(f(*primals), grad(f)(*primals), hvp)`. If `has_aux` is
         `True` it returns `(f(*primals), grad(f)(*primals), hvp, aux)`.
-        
+
     """
 
     def grad_f(p: PyTree) -> PyTree:
@@ -282,7 +284,7 @@ def value_grad_hvp(
         else:
             value, _grad_f = jax.value_and_grad(f, has_aux=has_aux)(p, *args, **kwargs)
         return _grad_f, value
-    
+
     _grad_f, hvp, value = jax.linearize(grad_f, primals, has_aux=True)
     if has_aux:
         value, aux = value
@@ -291,9 +293,6 @@ def value_grad_hvp(
         return value, _grad_f, hvp
 
 
-
-    
-    
 def hvp_reverse_over_reverse(
     f: Callable,
     primals: Sequence[PyTree],
@@ -318,26 +317,31 @@ def hvp_reverse_over_reverse(
 def hessian_diag(f: Callable[..., PyTree], primals: Array) -> PyTree:
     primals = asarray(primals)
     is_1d = primals.shape == ()
-    primals = primals.ravel()
-
-    vs = jnp.eye(primals.shape[0])
-    def comp(v): return tree_map(lambda a: a @ v, hvp(f, [primals], [v]))
-    diag_entries = jax.vmap(comp)(vs)
+    
     if is_1d:
-        return diag_entries[0]
+        v = asarray(1.0)
+        diag_entrie = hvp(f, [primals], [v])
+        return tree_map(lambda t: asarray([t]), diag_entrie)
     else:
+        primals = primals.ravel()
+        vs = jnp.eye(primals.shape[0])
+
+        def comp(v):
+            return tree_map(lambda a: a @ v, hvp(f, [primals], [v]))
+
+        diag_entries = jax.vmap(comp)(vs)
         return diag_entries
 
 
 @apply_to_module
-def laplace(f: Callable[..., PyTree]) -> Callable[..., PyTree]:
+def laplace(f: Callable[..., PyTree]) -> Callable:
     """Computes the laplacian :math:`\\Delta f` wrt. the first argument.
     If `f` is a vector valued function, the laplacian of each output is
     computed.
 
     Parameters
     ----------
-    f : Callable[..., Scalar]
+    f : Callable
     """
 
     def lap(x, *args, **kwargs):
@@ -413,16 +417,19 @@ def curl3d(f):
         def h(x, *args):
             v = f(x, *args)
             return v, v
+
         J, v = jacfwd(h, 0, has_aux=True)(x, *args)
         assert is_3d(v), "Function must have 3d output"
-        
+
         def _curl(J):
             x = J[..., 2, 1] - J[..., 1, 2]
             y = J[..., 0, 2] - J[..., 2, 0]
             z = J[..., 1, 0] - J[..., 0, 1]
             c = jnp.stack((x, y, z), axis=-1)
             return c
+
         return tree_map(_curl, J)
+
     return _f
 
 
@@ -431,13 +438,16 @@ def curl2d(f):
         def h(x, *args):
             v = f(x, *args)
             return v, v
+
         J, v = jacfwd(h, 0, has_aux=True)(x, *args)
         assert is_2d(v), "Function must have 2d output"
 
         def _curl(J):
             c = J[..., 1, 0] - J[..., 0, 1]
             return c
+
         return tree_map(_curl, J)
+
     return jit(_f)
 
 

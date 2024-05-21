@@ -200,12 +200,26 @@ class TestLaplace(JaxTestCase):
 
     def test_laplace_on_scalar_input_and_scalar_output(self):
         def f(x):
+            self.assertEqual(x.shape, ())
             return x**3
 
         x = 1.0
         lap = calc.laplace(f)(x)
         self.assertEqual(lap.shape, ())
         self.assertIsclose(lap, 6)
+        
+    def test_laplace_on_scalar_input_and_vec_output(self):
+        def f(x):
+            self.assertEqual(x.shape, ())
+            return array([x**3, x**3]), x**3
+
+        x = 1.0
+        lap = calc.laplace(f)(x)
+        self.assertEqual(lap[0].shape, (2,))
+        self.assertEqual(lap[1].shape, ())
+        self.assertIsclose(lap[0][0], 6)
+        self.assertIsclose(lap[0][1], 6)
+        self.assertIsclose(lap[1], 6)
 
 
 class TestValueAndJacfwd(JaxTestCase):
