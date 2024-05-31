@@ -2,7 +2,7 @@ import operator
 from dataclasses import dataclass
 
 import chex
-from jax.experimental import host_callback as hcb
+from jax.experimental import io_callback
 from jaxopt import base as jaxopt_base
 from jaxopt import loop
 
@@ -133,8 +133,6 @@ class TR(jaxopt_base.IterativeSolver):
         unroll = self._get_unroll_option()
         norm_df = tree_l2_norm(old_grad)
         eps = jnp.minimum(self.forcing_parameter / 2, norm_df ** self.forcing_parameter) * norm_df
-        #norm_df = tree_l2_norm(old_grad)
-        #eps = jnp.minimum(self.forcing_parameter / 2, (norm_df ** 2) ** self.forcing_parameter) * norm_df
         eps = jnp.minimum(state.subproblem_result.eps, eps)
         steihaug_result = steihaug(
             old_grad,
@@ -204,8 +202,8 @@ class TR(jaxopt_base.IterativeSolver):
                 new_state
             )
             if self.callback is not None:
-                cb = lambda step, _: self.callback(step)
-                hcb.id_tap(cb, _step)
+                #cb = lambda step: self.callback(step)
+                io_callback(self.callback, None, _step)
 
             return _step
 

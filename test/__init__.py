@@ -4,7 +4,7 @@ from magpi.prelude import *
 
 
 class JaxTestCase(TestCase):
-    def assertIsclose(self, a, b):
+    def assertIsclose(self, a, b, rtol=1e-05, atol=1e-6):
         def _asarray(a):
             return tree_map(lambda a: asarray(a), a)
         
@@ -17,6 +17,6 @@ class JaxTestCase(TestCase):
         self.assertTrue(shapes_are_the_same, 
                         f"Arrays a ({_shape(a)}) and b ({_shape(b)}) don't have the same shape.")
         self.assertTrue(
-            tree_map(lambda a, b: jnp.isclose(a, b, atol=1e-6).all(), a, b),
+            tree_map(lambda a, b: jnp.isclose(a, b, atol=atol, rtol=rtol).all(), a, b),
             f"Arrays a ({_shape(a)}) and b ({_shape(b)}) are not close.",
         )

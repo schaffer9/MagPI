@@ -1,6 +1,7 @@
 from magpi.r_fun import (
     r0,
     r1,
+    RP,
     cube,
     cuboid,
     sphere,
@@ -104,7 +105,8 @@ class TestTransformations(JaxTestCase):
     def test_02_scale(self):
         @jit
         def f(x):
-            df = cuboid([1.0, 1.0], normalize=3)
+            rp = RP(p=4)
+            df = cuboid([1.0, 1.0], r_system=rp)
             df = scale(df, [1.0])
             return df(x)
 

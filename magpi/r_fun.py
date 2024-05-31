@@ -28,20 +28,32 @@ class RFun:
     In essence, only `conjugation` and `disjunction` needs to be implemented.
     """
 
-    def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+    def conjunction(self, a: Scalar, b: Scalar) -> Scalar:
         raise NotADirectoryError
 
-    def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+    def disjunction(self, a: Scalar, b: Scalar) -> Scalar:
         raise NotADirectoryError
+
+    def _conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        def op(a, b):
+            return self.conjunction(a, b)
+
+        return lambda x: op(adf1(x), adf2(x))
+
+    def _disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
+        def op(a, b):
+            return self.disjunction(a, b)
+
+        return lambda x: op(adf1(x), adf2(x))
 
     def negate(self, adf: ADF) -> ADF:
         return lambda x: -adf(x)
 
     def union(self, adf1: ADF, adf2: ADF) -> ADF:
-        return self.disjunction(adf1, adf2)
+        return self._disjunction(adf1, adf2)
 
     def intersection(self, adf1: ADF, adf2: ADF) -> ADF:
-        return self.conjunction(adf1, adf2)
+        return self._conjunction(adf1, adf2)
 
     def equivalence(self, adf1: ADF, adf2: ADF) -> ADF:
         return self.negate(self.xor(adf1, adf2))
@@ -70,25 +82,15 @@ class RAlpha(RFun):
         assert -1.0 < alpha <= 1.0
         self.alpha = alpha
 
-    def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
-        def op(a, b):
-            return (
-                1
-                / (1 + self.alpha)
-                * (a + b - sqrt(a**2 + b**2 - 2 * self.alpha * a * b))
-            )
+    def conjunction(self, a: Scalar, b: Scalar) -> Scalar:
+        return (
+            1 / (1 + self.alpha) * (a + b - sqrt(a**2 + b**2 - 2 * self.alpha * a * b))
+        )
 
-        return lambda x: op(adf1(x), adf2(x))
-
-    def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
-        def op(a, b):
-            return (
-                1
-                / (1 + self.alpha)
-                * (a + b + sqrt(a**2 + b**2 - 2 * self.alpha * a * b))
-            )
-
-        return lambda x: op(adf1(x), adf2(x))
+    def disjunction(self, a: Scalar, b: Scalar) -> Scalar:
+        return (
+            1 / (1 + self.alpha) * (a + b + sqrt(a**2 + b**2 - 2 * self.alpha * a * b))
+        )
 
 
 class RAlphaM(RFun):
@@ -107,29 +109,23 @@ class RAlphaM(RFun):
         self.m = m
         self.alpha = alpha
 
-    def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
-        def op(a, b):
-            r = a**2 + b**2
-            return (
-                1
-                / (1 + self.alpha)
-                * (a + b - sqrt(r - 2 * self.alpha * a * b))
-                * r ** (self.m / 2)
-            )
+    def conjunction(self, a: Scalar, b: Scalar) -> Scalar:
+        r = a**2 + b**2
+        return (
+            1
+            / (1 + self.alpha)
+            * (a + b - sqrt(r - 2 * self.alpha * a * b))
+            * r ** (self.m / 2)
+        )
 
-        return lambda x: op(adf1(x), adf2(x))
-
-    def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
-        def op(a, b):
-            r = a**2 + b**2
-            return (
-                1
-                / (1 + self.alpha)
-                * (a + b + sqrt(r - 2 * self.alpha * a * b))
-                * r ** (self.m / 2)
-            )
-
-        return lambda x: op(adf1(x), adf2(x))
+    def disjunction(self, a: Scalar, b: Scalar) -> Scalar:
+        r = a**2 + b**2
+        return (
+            1
+            / (1 + self.alpha)
+            * (a + b + sqrt(r - 2 * self.alpha * a * b))
+            * r ** (self.m / 2)
+        )
 
 
 class RP(RFun):
@@ -146,17 +142,11 @@ class RP(RFun):
         assert p % 2 == 0, "`p` must be an even integer"
         self.p = p
 
-    def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
-        def op(a, b):
-            return a + b - (a**self.p + b**self.p) ** (1 / self.p)
+    def conjunction(self, a: Scalar, b: Scalar) -> Scalar:
+        return a + b - (a**self.p + b**self.p) ** (1 / self.p)
 
-        return lambda x: op(adf1(x), adf2(x))
-
-    def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
-        def op(a, b):
-            return a + b + (a**self.p + b**self.p) ** (1 / self.p)
-
-        return lambda x: op(adf1(x), adf2(x))
+    def disjunction(self, a: Scalar, b: Scalar) -> Scalar:
+        return a + b + (a**self.p + b**self.p) ** (1 / self.p)
 
 
 class RhoBlending(RFun):
@@ -176,27 +166,13 @@ class RhoBlending(RFun):
     def __init__(self, rho: float):
         self.rho = rho
 
-    def conjunction(self, adf1: ADF, adf2: ADF) -> ADF:
-        def op(a, b):
-            s = a**2 + b**2 - self.rho**2
-            return (
-                a
-                + b
-                - sqrt(a**2 + b**2 + 1 / (8 * self.rho) * s * (s - jnp.abs(s)))
-            )
+    def conjunction(self, a: Scalar, b: Scalar) -> Scalar:
+        s = a**2 + b**2 - self.rho**2
+        return a + b - sqrt(a**2 + b**2 + 1 / (8 * self.rho) * s * (s - jnp.abs(s)))
 
-        return lambda x: op(adf1(x), adf2(x))
-
-    def disjunction(self, adf1: ADF, adf2: ADF) -> ADF:
-        def op(a, b):
-            s = a**2 + b**2 - self.rho**2
-            return (
-                a
-                + b
-                + sqrt(a**2 + b**2 + 1 / (8 * self.rho) * s * (s - jnp.abs(s)))
-            )
-
-        return lambda x: op(adf1(x), adf2(x))
+    def disjunction(self, a: Scalar, b: Scalar) -> Scalar:
+        s = a**2 + b**2 - self.rho**2
+        return a + b + sqrt(a**2 + b**2 + 1 / (8 * self.rho) * s * (s - jnp.abs(s)))
 
 
 r1 = RAlpha(1.0)  # min, max
@@ -205,7 +181,7 @@ rp2 = RP(2)  # same as r0
 rp4 = RP(4)  # analytic everywhere and normalized to 3rd order.
 
 
-def cuboid(edge_lengths: Vec, centering: bool = False, normalize: int = 1) -> ADF:
+def cuboid(edge_lengths: Vec, centering: bool = False, r_system: RFun = r0) -> ADF:
     """
     Returns the ADF of a cuboid.
 
@@ -215,14 +191,13 @@ def cuboid(edge_lengths: Vec, centering: bool = False, normalize: int = 1) -> AD
         geometry of the cuboid. The lenght of the vector determines the dimension.
     centering : bool, optional
         centers the cuboid at the origin, by default False
-    normalize : int, optional
-        normalization degree of the ADF, by default 1
+    r_system : int, optional
+        the system of R-functions to construct the cuboid
 
     Returns
     -------
     ADF
     """
-    assert normalize % 2 == 1, "Only odd degrees of normalization allowed for cuboid"
     _edge_lengths = asarray(edge_lengths)
 
     if centering:
@@ -232,20 +207,19 @@ def cuboid(edge_lengths: Vec, centering: bool = False, normalize: int = 1) -> AD
         lb = zeros_like(_edge_lengths)
         ub = _edge_lengths
 
-    # use a RP function to compute the intersection for all 6 sides
-    p = normalize + 1
-    _intersection = compose(lambda a, b: a + b - (a**p + b**p) ** (1 / p))
+    _intersection = compose(r_system.conjunction)
 
     @_intersection
     def adf(x):
+        # the output is a list of R-functions which is iteratively reduced
         a = (ub - x).ravel()
         b = (x - lb).ravel()
-        return concatenate([a, b])
+        return jnp.stack([a, b], axis=-1).ravel()
 
     return adf
 
 
-def cube(edge_lenght: Scalar, centering: bool = False, normalize: int = 1) -> ADF:
+def cube(edge_lenght: Scalar, centering: bool = False, r_system: RFun = r0) -> ADF:
     """
     Return the ADF of a cube.
 
@@ -255,14 +229,14 @@ def cube(edge_lenght: Scalar, centering: bool = False, normalize: int = 1) -> AD
         edge length of the cube
     centering : bool, optional
         centers the cuboid at the origin, by default False
-    normalize : int, optional
-        normalization degree of the ADF, by default 1
+    r_system : int, optional
+        the system of R-functions to construct the cube
 
     Returns
     -------
     ADF
     """
-    return cuboid(edge_lenght, centering, normalize)
+    return cuboid(edge_lenght, centering, r_system)
 
 
 def sphere(r: Scalar) -> ADF:

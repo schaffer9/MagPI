@@ -1,86 +1,131 @@
 from magpi.prelude import *
 
 
-def bspline(x, grid, coefs, degree=3):
-    b = bbasis(x, grid, degree)
-    return b @ coefs
-
-
-# @partial(jit, static_argnames=("degree",))
-# def bbasis(x, grid, degree = 3):
-#     # todo: optimize loop, arbitrary input shape, distance precomputing
-#     m = len(grid)
-#     n = m + degree - 1
-#     N = zeros((n,))
-#     k = jnp.searchsorted(grid, x) + degree - 1
-#     grid = jnp.concatenate([jnp.repeat(grid[0], degree), grid, jnp.repeat(grid[-1], degree)])
-
-#     # extrapolation:
-#     k = lax.cond(x <= grid[0], lambda: k + 1, lambda: k)
-#     k = lax.cond(x > grid[-1], lambda: k - 1, lambda: k)
-
-#     N = N.at[k].set(1.0)
-#     for d in range(1, degree + 1):
-#         N = N.at[k - d].set((grid[k + 1] - x) / (grid[k + 1] - grid[k - d + 1]) * N[k - d + 1])
-#         for z in range(0, d-1):
-#             i = k - d + z + 1
-#             N = N.at[i].set((x - grid[i]) / (grid[i + d] - grid[i]) * N[i]
-#                             + (grid[i + d + 1] - x) / (grid[i + d + 1] - grid[i + 1]) * N[i + 1])
-#         N = N.at[k].set((x - grid[k]) / (grid[k + d] - grid[k]) * N[k])
-
-#     return N
-
-
-def _base_fun(x, k, i, t, degree):
-    # this is faster but takes longer to compile
+def _base_fun(x: Array, k: int, i: int, t: Array) -> Array:
     if k == 0:
-        n = len(t) - k - 1
-        a1 = jnp.where((t[i] <= x) & (x < t[i + 1]), 1.0, 0.0)
-        # a2 and a3 for extrapolation
-        a2 = jnp.where((x < t[0]) & (i <= degree), 1.0, 0.0)
-        a3 = jnp.where((x >= t[-1]) & (i >= n - degree - 1), 1.0, 0.0)
-        return a1 + a2 + a3
+        return jnp.where((t[..., i] <= x) & (x < t[..., i + 1]), 1.0, 0.0)
 
-    c1 = jnp.where(
-        t[i + k] == t[i],
+    c1: Array = jnp.where(
+        t[..., i + k] == t[..., i],
         0.0,
-        ((x - t[i]) / (t[i + k] - t[i])
-         * _base_fun(x, k - 1, i, t, degree)),
+        (x - t[..., i]) / (t[..., i + k] - t[..., i]) * _base_fun(x, k - 1, i, t)
     )
-    c2 = jnp.where(
-        t[i + k + 1] == t[i + 1],
+    c2: Array = jnp.where(
+        t[..., i + k + 1] == t[..., i + 1],
         0.0,
-        ((t[i + k + 1] - x) / (t[i + k + 1] - t[i + 1])
-         * _base_fun(x, k - 1, i + 1, t, degree)),
+        (t[..., i + k + 1] - x) / (t[..., i + k + 1] - t[..., i + 1]) * _base_fun(x, k - 1, i + 1, t),
     )
     return c1 + c2
 
 
-@partial(jit, static_argnames=("degree"))
-def bbasis(x, t, degree=3):
-    n = len(t) + degree - 1
-    t = jnp.concatenate([jnp.repeat(t[0], degree), t, jnp.repeat(t[-1], degree)])
-    return vmap(_base_fun, (None, None, 0, None, None), -1)(
-        x, degree, jnp.arange(n), t, degree
-    )
+@partial(jit, static_argnames=("degree",))
+def basis(x: Array, grid: Array, degree: int = 3) -> Array:
+    """Computes the spine basis with respect to the provided grid.
+
+    Parameters
+    ----------
+    x : Array
+        input
+    grid : Array
+        spline grid
+    degree : int, optional
+        spline degree
+
+    Returns
+    -------
+    Array
+    """
+    n = grid.shape[-1] - degree - 1
+    return vmap(lambda i: _base_fun(x, degree, i, grid), 0, -1)(jnp.arange(n))
 
 
-def fit_bspline(x, y, grid, degree=3):
-    # C = vmap(bbasis, (0, None, None))(x, grid, degree)
-    C = bbasis(x, grid, degree)
-    Cinv = jnp.linalg.pinv(C)
-    return Cinv @ y
+def make_grid(start: float, stop: float, power: float, num: int) -> Array:
+    """Crates a grid with power spacing centered at the center of
+    `start` and `stop`.
+
+    Parameters
+    ----------
+    start : float
+    stop : float
+    power : float
+    num : int
+
+    Returns
+    -------
+    Array
+    """
+    t = jnp.linspace(-1, 1, num)
+    t = jnp.sign(t) * (jnp.abs(t) ** power)
+    t = (t + 1) / 2
+    t = t * jnp.abs(start - stop) + start
+    return t
 
 
-def adjust_grid(x, grid, coefs, grid_eps=0.1, degree=3):
-    # y = vmap(bspline, (0, None, None, None))(x, grid, coefs, degree)
-    y = bspline(x, grid, coefs, degree)
+def _grid_init(node_min, node_max, grid_power, nodes):
+    def init(shape, dtype):
+        t = make_grid(node_min, node_max, grid_power, nodes)
+        return nn.initializers.constant(t)(random.key(0), shape, dtype)
 
-    x_min = jnp.min(x)
-    x_max = jnp.max(x)
-    h = len(grid)
-    grid_uniform = jnp.linspace(x_min, x_max, h)
-    grid_adaptive = jnp.quantile(x, jnp.linspace(0, 1, len(grid)))
-    grid = grid_eps * grid_uniform + (1 - grid_eps) * grid_adaptive
-    c_new = fit_bspline(x, y, grid, degree)
-    return grid, c_new
+    return init
+
+
+class SplineActivation(nn.Module):
+    """A Spline activation function module.
+
+    This module adds a trainable spline function to a standard activation
+    function.
+
+    Parameters
+    ----------
+    nodes : int
+        number of grid nodes, default is -3.0
+        There are `nodes - degree - 1` coefficients for each activation
+    node_min : float
+        placement of the starting node of the grid, default is -3.0
+    node_max : float
+        placement of the final node of the grid, default is 3.0
+    degree : int
+        spline degree, default is 3
+    grid_power : float
+        the power spacing of the grid, default is 2.0
+    activation : Callable
+        base activation function, default is `tanh`
+    coef_init : Initializer
+        initializer for the spline coefficients, default is zero initialization
+    parameterize_grid : bool
+        if `True`, the spline grid is found inside the `grids` collection and
+        can be changed or trained, this allows for a different grid for each activation,
+        default is `False`
+
+    """
+
+    nodes: int = 14
+    node_min: float = -3.0
+    node_max: float = 3.0
+    degree: int = 3
+    grid_power: float = 2.0
+    activation: Callable = nn.tanh
+    coef_init: nn.initializers.Initializer = nn.initializers.zeros_init()
+    parameterize_grid: bool = False
+
+    @nn.compact
+    def __call__(self, x) -> Array:
+        if x.shape == ():
+            x = x.ravel()
+
+        if self.parameterize_grid:
+            grid = self.variable(
+                "grids",
+                "grid",
+                _grid_init(self.node_min, self.node_max, self.grid_power, self.nodes),
+                (x.shape[-1], self.nodes),
+                x.dtype,
+            )
+            grid = grid.value
+        else:
+            grid = make_grid(self.node_min, self.node_max, self.grid_power, self.nodes)
+
+        coefs = self.param("coefs", self.coef_init, (x.shape[-1], self.nodes - self.degree - 1))
+
+        y = jnp.sum((basis(x, grid, degree=self.degree) * coefs), axis=-1)
+        return self.activation(x) + y
