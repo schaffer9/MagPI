@@ -1,11 +1,20 @@
+from typing import Any, TypeAlias, TypeVar, Protocol
 from numpy.polynomial.legendre import leggauss
 
 from magpi.prelude import *
+from chex import ArrayTree
 
-Scalar = Array
-Origin = Array
-Integrand = Callable[..., Array]
-QuadRule = Callable[[Array], tuple[Array, Array]]
+T = TypeVar("T", bound=Callable[..., ArrayTree], covariant=True)
+Scalar: TypeAlias = Array
+Origin: TypeAlias = Array
+
+
+class Integrand(Protocol[T]):
+    def __call__(self, *args: Any, **kwds: Any) -> T:
+        ...
+
+
+QuadRule: TypeAlias = Callable[[Array], tuple[Array, Array]]
 
 
 def midpoint(domain: Array) -> tuple[Array, Array]:
@@ -55,12 +64,12 @@ def gauss(degree: int) -> QuadRule:
 
 
 def integrate(
-    f: Integrand,
+    f: Integrand[T],
     domain: Array | list[Array],
     *args,
     method: QuadRule = simpson,
     **kwargs
-) -> Array:
+) -> T:
     """Integrates over the given domain with the provided quadrature
     rule. The domain can either be an array or a list of arrays.
 
@@ -106,7 +115,7 @@ def integrate(
 
     Returns
     -------
-    Array
+    ArrayTree
     """
     if not isinstance(domain, (list, tuple)):
         assert len(domain.shape) > 0
@@ -127,11 +136,12 @@ def integrate(
         return f(x, *args, **kwargs)
 
     F = jnp.apply_along_axis(g, -1, X)
-    return jnp.tensordot(W, F, len(domain))
+    
+    return tree.map(lambda z: jnp.tensordot(W, z, len(domain)), F)
 
 
 def integrate_disk(
-    f: Integrand,
+    f: Integrand[T],
     r: Scalar,
     o: Origin,
     n: int | tuple[int, int],
@@ -141,7 +151,7 @@ def integrate_disk(
     *args,
     method: QuadRule = simpson,
     **kwargs
-) -> Array:
+) -> T:
     """Integrates over a disk of radius ``r`` and origin ``o``.
 
     Examples
@@ -168,7 +178,7 @@ def integrate_disk(
 
     Returns
     -------
-    Array
+    ArrayTree
     """
     if not isinstance(n, tuple):
         n = (n, n)
@@ -180,7 +190,7 @@ def integrate_disk(
         x = r * cos(phi)
         y = r * sin(phi)
         p = stack([x, y]) + o
-        return f(p, *args, **kwargs) * r
+        return tree.map(lambda f: f * r, f(p, *args, **kwargs))
 
     domain = [
         jnp.linspace(r_inner, r, n[0]),
@@ -190,7 +200,7 @@ def integrate_disk(
 
 
 def integrate_sphere(
-    f: Integrand,
+    f: Integrand[T],
     r: Scalar,
     o: Origin,
     n: int | tuple[int, int, int],
@@ -202,7 +212,7 @@ def integrate_sphere(
     *args,
     method: QuadRule = simpson,
     **kwargs
-) -> Array:
+) -> T:
     """Integrates over a sphere of radius ``r`` and origin ``o``.
 
     Parameters
@@ -224,7 +234,7 @@ def integrate_sphere(
 
     Returns
     -------
-    Array
+    ArrayTree
     """
     if not isinstance(n, tuple):
         n = (n, n, n)
@@ -237,7 +247,7 @@ def integrate_sphere(
         y = r * sin(phi) * sin(theta)
         z = r * cos(phi)
         p = stack([x, y, z]) + o
-        return f(p, *args, **kwargs) * r**2 * sin(phi)
+        return tree.map(lambda f: f * r ** 2 * sin(phi), f(p, *args, **kwargs))
 
     domain = [
         jnp.linspace(r_inner, r, n[0]),

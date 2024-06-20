@@ -31,9 +31,7 @@ class MLP(nn.Module):
             return x
 
 
-def mlp(
-    key: Array, layers: Sequence[int], activation: Optional[Activation] = None
-) -> tuple[MLP, Params]:
+def mlp(key: Array, layers: Sequence[int], activation: Optional[Activation] = None) -> tuple[MLP, Params]:
     """Creates a Multi Layer Perceptron with the given layers and activation function.
 
     Examples
@@ -74,23 +72,29 @@ def impose_ic(
     argnums_m0: int | Sequence[int] = 0,
     argnum_t: int = 1,
 ) -> Callable:
-    """Imposes the prescribed initial conditions given by m0.
-    This follows an exponential decay `exp(-decay_rate*(t-t0)) * m0 + (1-exp(-decay_rate*(t-t0))) * model`
+    """
+    Imposes the prescribed initial conditions given by m0.
+    This follows an exponential decay `exp(-decay_rate*(t-t0)) * m0 + (1-exp(-decay_rate*(t-t0))) * model`.
 
-    Args:
-        m0 (Model): initial condition model
-        model (Model | None, optional): free model. Defaults to None.
-        t0 (_type_, optional): initial time. Defaults to 0..
-        decay_rate (_type_, optional): exponential decay rate. Defaults to 10..
-        argnums_m0 (int | Sequence[int], optional):
-            specifies which positional arguments should be taken into account for m0.
-            Defaults to 0.
-        argnum_t (int, optional):
-            specifies which positional arguments represents time `t`.
-            Defaults to 1.
+    Parameters
+    ----------
+    m0 : Model
+        initial condition model
+    model : Model | None, optional
+        free model, by default None
+    t0 : float, optional
+        initial time, by default 0.0
+    decay_rate : float, optional
+        exponential decay rate, by default 10.0
+    argnums_m0 : int | Sequence[int], optional
+        specifies which positional arguments should be taken into account for m0, by default 0
+    argnum_t : int, optional
+        specifies which positional arguments represents time `t`, by default 1
 
-    Returns:
-        Callable: Model or decorator
+    Returns
+    -------
+    Callable
+        Model or decorator
     """
     if isinstance(argnums_m0, int):
         argnums_m0 = [argnums_m0]
@@ -123,21 +127,24 @@ def impose_dirichlet_bc(
     """Imposes Dirichlet boundary conditions `g` onto the model.
     If `g` is not given, homogenious zero boundary conditions are assumed.
 
-    Args:
-        adf (ADF): 1st order normalized approximate distance function.
-        g (Callable[..., Array] | None, optional): prescribed boundary conditions. Defaults to None.
-        model (Model | None, optional):
-            Unconstrained model. If not provided, the function acts as a decorator.
-            Defaults to None.
-        argnums_adf (int | Sequence[int], optional):
-            specifies which positional arguments are passed to `adf`. Defaults to 0.
-        argnums_g (int | Sequence[int], optional):
-            specifies which positional arguments are passed to `g`.
-            Defaults to 0.
+    Parameters
+    ----------
+    adf : ADF
+        approximate distance function
+    model : Model | None, optional
+        unconstrained model, if not provided, the function acts as a decorator, by default None
+    g : Callable[..., Array] | None, optional
+        prescribed boundary conditions, by default None and homogeneous Dirichlet BC.
+    argnums_adf : int | Sequence[int], optional
+        specifies which positional arguments are passed to `adf`, by default 0
+    argnums_g : int | Sequence[int], optional
+        specifies which positional arguments are passed to `g`, by default 0
 
-    Returns:
-        Callable: a new model with the exact imposition of the prescribed
-        boundary conditions or a decorator for such a model.
+    Returns
+    -------
+    Callable
+        a new model with the exact imposition of the prescribed
+        boundary conditions or a decorator for such a model
     """
     if g is None:
         _h = lambda *a, **k: asarray(0.0)
@@ -180,23 +187,26 @@ def impose_neumann_bc(
     """Imposes Neumann boundary conditions `h` onto the model.
     If `h` is not given, homogenious zero boundary conditions are assumed.
 
-    Args:
-        adf (ADF): 1st order normalized approximate distance function.
-        model (Model | None, optional):
-            Unconstrained model. If not provided, the function acts as a decorator.
-            Defaults to None.
-        h (Callable[..., Array] | None, optional): prescribed boundary conditions. Defaults to None.
-        argnums_adf (int | Sequence[int], optional):
-            specifies which positional arguments are passed to `adf`. Defaults to 0.
-        argnum_model (int, optional):
-            specifies which positional argument which is used to compute the normal derivative. Defaults to 0.
-        argnums_h (int | Sequence[int], optional):
-            specifies which positional arguments are passed to `h`.
-            Defaults to 0.
+    Parameters
+    ----------
+    adf : ADF
+        1st order normalized approximate distance function
+    model : Model | None, optional
+        unconstrained model, if not provided, the function acts as a decorator, by default None
+    h : Callable[..., Array] | None, optional
+        prescribed boundary conditions, by default None
+    argnums_adf : int | Sequence[int], optional
+        specifies which positional arguments are passed to `adf`, by default 0
+    argnum_model : int, optional
+        specifies which positional argument which is used to compute the normal derivative, by default 0
+    argnums_h : int | Sequence[int], optional
+        specifies which positional arguments are passed to `h`, by default 0
 
-    Returns:
-        Callable: a new model with the exact imposition of the prescribed
-        boundary conditions or a decorator for such a model.
+    Returns
+    -------
+    Callable
+        a new model with the exact imposition of the prescribed
+        boundary conditions or a decorator for such a model
     """
     if h is None:
         _h = lambda *a, **k: asarray(0.0)
@@ -214,9 +224,7 @@ def impose_neumann_bc(
             assert not isinstance(argnums_adf, int)
             assert not isinstance(argnums_h, int)
             x = args[argnum_model]
-            f = lambda x: model(
-                *args[:argnum_model], x, *args[argnum_model + 1 :], **kwargs
-            )
+            f = lambda x: model(*args[:argnum_model], x, *args[argnum_model + 1:], **kwargs)
             x_adf = (args[i] for i in argnums_adf)
             l, n = value_and_jacfwd(adf)(*x_adf)
             value, normal_derivative = jvp(f, [x], [n])
