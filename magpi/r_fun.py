@@ -56,17 +56,32 @@ class RFun:
         return self._conjunction(adf1, adf2)
 
     def equivalence(self, adf1: ADF, adf2: ADF) -> ADF:
-        return self.negate(self.xor(adf1, adf2))
+        def op(a, b):
+            c1 = self.disjunction(a, -b)
+            c2 = self.disjunction(-a, b)
+            return self.conjunction(c1, c2)
+
+        return lambda x: op(adf1(x), adf2(x))
 
     def implication(self, adf1: ADF, adf2: ADF) -> ADF:
-        return self.union(self.negate(adf1), adf2)
+        def op(a, b):
+            return self.disjunction(-a, b)
+            
+        return lambda x: op(adf1(x), adf2(x))
 
     def difference(self, adf1: ADF, adf2: ADF) -> ADF:
-        return self.intersection(adf1, self.negate(adf2))
+        def op(a, b):
+            return self.conjunction(a, -b)
+            
+        return lambda x: op(adf1(x), adf2(x))
 
     def xor(self, adf1: ADF, adf2: ADF) -> ADF:
-        adf1, adf2 = self.union(adf1, adf2), self.negate(self.intersection(adf1, adf2))
-        return self.intersection(adf1, adf2)
+        def op(a, b):
+            c1 = self.conjunction(a, -b)
+            c2 = self.conjunction(-a, b)
+            return self.disjunction(c1, c2)
+            
+        return lambda x: op(adf1(x), adf2(x))
 
 
 class RAlpha(RFun):

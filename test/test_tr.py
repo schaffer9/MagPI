@@ -80,6 +80,7 @@ class TestTR(JaxTestCase):
             maxiter_steihaug=2
         )
         params, state = jit(solver.run)(x0)
+        print(params['params'])
         self.assertIsclose(params['params'], array([3.1415927, 2.2466307]))
         self.assertEqual(state.tr_radius, 2.)
         self.assertLess(tree_l2_norm(state.grad), 0.001)
@@ -112,6 +113,7 @@ class TestTR(JaxTestCase):
         x0 = jnp.ones(4)
         solver = tr.TR(f, maxiter=5, init_tr_radius=0.5, has_aux=True, value_and_grad=True)
         params, state = solver.run(x0)
+        print(params)
         self.assertIsclose(params, zeros((4,)))
         self.assertTrue(state.subproblem_result.converged)
         self.assertGreater(state.subproblem_result.iter_num, 0)

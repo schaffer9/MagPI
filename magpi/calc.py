@@ -13,6 +13,7 @@ __all__ = (
     "curl",
     "divergence",
     "laplace",
+    "value_and_jacfwd",
 )
 
 

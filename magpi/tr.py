@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import chex
 from jax.experimental import io_callback
 from jaxopt import base as jaxopt_base
+from jax.flatten_util import ravel_pytree
 from jaxopt import loop
 
 from .prelude import *
@@ -56,6 +57,7 @@ class TR(jaxopt_base.IterativeSolver):
     decrease_factor: float = 1 / 4
     rho_accept: float = 1 / 4
     forcing_parameter: float = 1 / 2
+    damping_factor: float | None = None
     tol: float = 1e-2  # gradient tolerance
     maxiter: int = 100
     maxiter_steihaug: int | None = None
@@ -129,14 +131,19 @@ class TR(jaxopt_base.IterativeSolver):
                 self._value_and_grad_with_aux, params, *args,
                 value_and_grad=True, has_aux=True, **kwargs
             )
-
+        if self.damping_factor is None:
+            _hvp = hvp
+        else:
+            _hvp = lambda x: tree_add_scalar_mul(hvp(x), self.damping_factor, x)
+        
         unroll = self._get_unroll_option()
         norm_df = tree_l2_norm(old_grad)
-        eps = jnp.minimum(self.forcing_parameter / 2, norm_df ** self.forcing_parameter) * norm_df
+        eps = jnp.minimum(1 / 2, norm_df ** self.forcing_parameter) * norm_df
         eps = jnp.minimum(state.subproblem_result.eps, eps)
+        eps = jnp.maximum(self.tol, eps)
         steihaug_result = steihaug(
             old_grad,
-            hvp,
+            _hvp,
             tr_radius=state.tr_radius,
             eps=eps,
             maxiter=self.maxiter_steihaug,
@@ -153,7 +160,7 @@ class TR(jaxopt_base.IterativeSolver):
             )
             nom = old_value - value
             denom = -(tree_vdot(old_grad, p) + 1 / 2 * tree_vdot(p, hvp(p)))
-            rho = nom / denom
+            rho = (nom) / (denom)
             tr_radius = update_tr_radius(
                 state.tr_radius,
                 self.max_tr_radius,
@@ -202,7 +209,6 @@ class TR(jaxopt_base.IterativeSolver):
                 new_state
             )
             if self.callback is not None:
-                #cb = lambda step: self.callback(step)
                 io_callback(self.callback, None, _step)
 
             return _step
@@ -210,7 +216,7 @@ class TR(jaxopt_base.IterativeSolver):
         def no_update():
             # in case steihaug does not make any progress, p = 0
             return jaxopt.OptStep(params, state)
-        make_update = (steihaug_result.iter_num == 0) | (state.tr_radius <= self.min_tr_radius)
+        make_update = (state.tr_radius <= self.min_tr_radius)
         return lax.cond(make_update, no_update, update)
 
     def optimality_fun(self, params, *args, **kwargs):
@@ -243,7 +249,7 @@ def steihaug(
     jit: bool = True,
 ) -> CgSteihaugResult:  # tuple[Array, int, Array, chex.ArrayTree]:
     if maxiter is None:
-        maxiter = tree_size(grad_f)
+        maxiter = 10 * tree_size(grad_f)
 
     z = tree_zeros_like(grad_f)
     r = grad_f
