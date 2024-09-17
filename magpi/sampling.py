@@ -1,3 +1,5 @@
+from typing import Callable
+
 from .prelude import *
 from chex import ArrayTree
 

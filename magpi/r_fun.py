@@ -1,3 +1,5 @@
+from typing import Annotated, Callable
+
 from .prelude import *
 from .quaternions import (
     quaternion_rotation,
@@ -19,7 +21,7 @@ the normal derivative has a magnitude of one everywhere on the
 boundary. Higher order normalization yields a function
 where higher order normal derivatives are zero.
 """
-ADF = T.Annotated[Callable[[Array | Scalar], Scalar], _annotation]
+ADF = Annotated[Callable[[Array | Scalar], Scalar], _annotation]
 
 
 class RFun:

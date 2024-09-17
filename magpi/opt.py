@@ -1,3 +1,5 @@
+from typing import Callable, Sequence, ParamSpec, Iterator
+
 import chex
 
 from magpi.prelude import *
@@ -12,7 +14,7 @@ __all__ = (
 )
 
 
-P = T.ParamSpec("P")
+P = ParamSpec("P")
 PyTree = chex.ArrayTree
 Batch = PyTree
 BatchFn = Callable[[Array], Sequence[Batch]]
@@ -63,7 +65,7 @@ def batches_with_replacement(
 
 def make_iterator(
     key: Array, epochs: int, batch_fn: BatchFn, add_rng: bool = False
-) -> T.Iterator[Batch]:
+) -> Iterator[Batch]:
     for _ in range(epochs):
         key, sample_key, batch_key = random.split(key, 3)
         batches = batch_fn(sample_key)

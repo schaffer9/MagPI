@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Callable
 
 from chex import Array
 from jaxopt.linear_solve import solve_lu

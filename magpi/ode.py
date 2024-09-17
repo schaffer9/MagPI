@@ -1,6 +1,8 @@
 """
 This code was adoped from https://implicit-layers-tutorial.org/implicit_functions/
 """
+from typing import Callable
+
 from chex import ArrayTree
 
 from .prelude import *

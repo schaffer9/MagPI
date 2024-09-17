@@ -3,6 +3,8 @@ This module contains some useful transformations. All transformations
 perform a uniform mapping from :math:`[0,1]^d` to the respective domain.
 """
 
+from typing import Protocol
+
 from flax.struct import dataclass, field
 from itertools import repeat, chain
 from jaxopt.linear_solve import solve_lu
@@ -12,7 +14,7 @@ from .prelude import *
 BoolArray = Array
 
 
-class Domain(T.Protocol):
+class Domain(Protocol):
     dimension: property
 
     def support(self) -> Array:
@@ -47,7 +49,7 @@ class Hypercube:
         lb, ub = array((self.lb, self.ub))
         return transform_hypercube_bnd(uniform_sample, lb, ub)
 
-    def normal_vec(self, bnd_sample: Array, rtol=1e-05, atol=1e-08) -> Optional[Array]:
+    def normal_vec(self, bnd_sample: Array, rtol=1e-05, atol=1e-08) -> Array | None:
         lb, ub = array((self.lb, self.ub))
 
         in_domain = (
@@ -125,7 +127,7 @@ class _Spherical:
         r, o = array(self.radius), array(self.origin)
         return norm(sample - o, axis=-1) < r
 
-    def normal_vec(self, bnd_sample: Array, rtol=1e-05, atol=1e-08) -> Optional[Array]:
+    def normal_vec(self, bnd_sample: Array, rtol=1e-05, atol=1e-08) -> Array | None:
         r, o = array(self.radius), array(self.origin)
         sample = bnd_sample - o
 

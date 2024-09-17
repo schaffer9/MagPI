@@ -1,5 +1,6 @@
 import operator
 from dataclasses import dataclass
+from typing import Any, Callable, NamedTuple
 
 import chex
 from jax.experimental import io_callback
@@ -12,7 +13,7 @@ from . import calc
 from . import utils
 
 
-class CgSteihaugResult(T.NamedTuple):
+class CgSteihaugResult(NamedTuple):
     iter_num: int
     converged: bool | Array
     limit_step: bool | Array
@@ -23,7 +24,7 @@ class CgSteihaugResult(T.NamedTuple):
     norm_r: Array
 
 
-class TrState(T.NamedTuple):
+class TrState(NamedTuple):
     iter_num: Array
     accepted: bool
     value: Array

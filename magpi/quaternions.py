@@ -1,6 +1,9 @@
-from .prelude import *
 from dataclasses import dataclass
+from typing import Self
+
 from jax.tree_util import register_pytree_node_class
+
+from .prelude import *
 
 Scalar = Array | float | int
 Vec = Array | tuple[Scalar, Scalar, Scalar]
@@ -33,10 +36,10 @@ class Quaternion:
         imag_eq = jnp.all(self.imag == other.imag)
         return real_eq and imag_eq
 
-    def __neg__(self) -> "Quaternion":
+    def __neg__(self) -> Self:
         return self.__class__(-self._a, -self._q)
 
-    def __add__(self, other: Union["Quaternion", Scalar]) -> "Quaternion":
+    def __add__(self, other: Self | Scalar) -> Self:
         if isinstance(other, self.__class__):
             a = self.real + other.real
             q = self.imag + other.imag
@@ -45,10 +48,10 @@ class Quaternion:
             q = self.imag + other
         return self.__class__(a, q)
 
-    def __radd__(self, other) -> "Quaternion":
+    def __radd__(self, other) -> Self:
         return self + other
 
-    def __sub__(self, other: Union["Quaternion", Scalar]) -> "Quaternion":
+    def __sub__(self, other: Self | Scalar) -> Self:
         if isinstance(other, self.__class__):
             a = self.real - other.real
             q = self.imag - other.imag
@@ -57,10 +60,10 @@ class Quaternion:
             q = self.imag - other
         return self.__class__(a, q)
 
-    def __rsub__(self, other) -> "Quaternion":
+    def __rsub__(self, other) -> Self:
         return self - other
 
-    def __mul__(self, other: Union["Quaternion", Scalar]) -> "Quaternion":
+    def __mul__(self, other: Self | Scalar) -> Self:
         if isinstance(other, self.__class__):
             a = self.real * other.real - self.imag @ other.imag
             q = (
@@ -73,30 +76,30 @@ class Quaternion:
             q = self.imag * other
         return self.__class__(a, q)
 
-    def __rmul__(self, other) -> "Quaternion":
+    def __rmul__(self, other) -> Self:
         return self * other
 
     def __abs__(self) -> Scalar:
         return sqrt(self.real**2 + jnp.sum(self.imag * self.imag))
 
-    def __pow__(self, pow: Scalar) -> "Quaternion":
+    def __pow__(self, pow: Scalar) -> Self:
         e = quanternion_log(self) * pow
         return quanternion_exp(e)
 
-    def __rpow__(self, base) -> "Quaternion":
+    def __rpow__(self, base) -> Self:
         b = jnp.log(base)
         return quanternion_exp(self * b)
     
-    def __truediv__(self, other: Scalar) -> "Quaternion":
+    def __truediv__(self, other: Scalar) -> Self:
         if isinstance(other, self.__class__):
             return quaternion_right_div(self, other)
         else:
             return self * (1 / other)
 
-    def reciprocal(self) -> "Quaternion":
+    def reciprocal(self) -> Self:
         return self.conj() * (1 / abs(self) ** 2)
 
-    def conj(self) -> "Quaternion":
+    def conj(self) -> Self:
         return self.__class__(self.real, -self.imag)
 
     def tree_flatten(self):

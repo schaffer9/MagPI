@@ -1,17 +1,19 @@
+from typing import Mapping, Callable, Sequence
+
 from .prelude import *
 from .r_fun import ADF
 from .calc import value_and_jacfwd
 
 
-Collection = T.Mapping[str, Array]
-Params = T.Mapping[str, Collection]
+Collection = Mapping[str, Array]
+Params = Mapping[str, Collection]
 Activation = Callable[[Array], Array]
 Model = Callable[..., Array]
 
 
 class MLP(nn.Module):
     layers: Sequence[int]
-    activation: Optional[Activation] = None
+    activation: Activation | None= None
 
     @nn.compact
     def __call__(self, x):
@@ -31,7 +33,7 @@ class MLP(nn.Module):
             return x
 
 
-def mlp(key: Array, layers: Sequence[int], activation: Optional[Activation] = None) -> tuple[MLP, Params]:
+def mlp(key: Array, layers: Sequence[int], activation: Activation | None = None) -> tuple[MLP, Params]:
     """Creates a Multi Layer Perceptron with the given layers and activation function.
 
     Examples

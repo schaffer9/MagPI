@@ -1,10 +1,10 @@
-from typing import Any, TypeAlias, TypeVar, Protocol
+from typing import Any, TypeAlias, TypeVar, Protocol, Callable
 from numpy.polynomial.legendre import leggauss
 
 from magpi.prelude import *
 from chex import ArrayTree
 
-T = TypeVar("T", bound=Callable[..., ArrayTree], covariant=True)
+T = TypeVar("T", bound=Callable[..., ArrayTree])
 Scalar: TypeAlias = Array
 Origin: TypeAlias = Array
 

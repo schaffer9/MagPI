@@ -1,4 +1,5 @@
 from inspect import signature
+from typing import Any, Callable, Sequence, Optional, Literal, overload
 
 from chex import ArrayTree
 
@@ -73,7 +74,7 @@ def value_and_derivative(
 @apply_to_module
 def derivative(
     wrt: Callable[..., Array] | Partials | Sequence[Partials],
-    argnums: T.Optional[int | Sequence[int | None]] = None,
+    argnums: Optional[int | Sequence[int | None]] = None,
 ) -> Callable[..., Callable | PyTree]:
     """This derivative operator computes the respective derivatives
     using forward mode differentiation.
@@ -245,13 +246,24 @@ def hvp_forward_over_reverse(
 HVP = Callable
 
 
-@T.overload
+@overload
 def value_grad_hvp(
     f: Callable,
     primals: PyTree,
     *args: Any,
     value_and_grad: bool = False,
-    has_aux: bool = False,
+    has_aux: Literal[False] = False,
+    **kwargs: Any,
+) -> tuple[Array, PyTree, HVP]: ...
+
+
+@overload
+def value_grad_hvp(
+    f: Callable,
+    primals: PyTree,
+    *args: Any,
+    value_and_grad: bool = False,
+    has_aux: Literal[True] = True,
     **kwargs: Any,
 ) -> tuple[Array, PyTree, HVP, Any]: ...
 
@@ -263,7 +275,7 @@ def value_grad_hvp(
     value_and_grad: bool = False,
     has_aux: bool = False,
     **kwargs: Any,
-) -> tuple[Array, PyTree, HVP]:
+) -> tuple[Array, PyTree, HVP] | tuple[Array, PyTree, HVP, Any]:
     """Computes the value, gradient and hvp of a function.
 
     Args:

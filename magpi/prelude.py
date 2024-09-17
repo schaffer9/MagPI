@@ -3,14 +3,7 @@ __all__ = (
     "jax",
     "reduce",
     "wraps",
-    "T",
-    "Any",
-    "Callable",
-    "Sequence",
-    "Optional",
-    "Union",
     "Array",
-    "ArrayLike",
     "array",
     "asarray",
     "zeros",
@@ -87,8 +80,6 @@ __all__ = (
 )
 
 from functools import partial, reduce, wraps
-import typing as T
-from typing import Any, Callable, Sequence, Optional, Union
 
 import jax
 from jax.numpy import (
@@ -133,7 +124,6 @@ from jax.numpy.linalg import norm, solve
 import jax.numpy as jnp
 
 from jax import Array, grad, jit, jacfwd, jacrev, vmap, jvp, value_and_grad, tree
-from jax.typing import ArrayLike
 import jax.lax as lax
 import jax.random as random
 import jax.flatten_util as flatten_util
