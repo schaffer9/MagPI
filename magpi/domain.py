@@ -5,7 +5,7 @@ perform a uniform mapping from :math:`[0,1]^d` to the respective domain.
 
 from typing import Protocol
 
-from flax.struct import dataclass, field
+from dataclasses import dataclass, field
 from itertools import repeat, chain
 from jaxopt.linear_solve import solve_lu
 
@@ -24,7 +24,7 @@ class Domain(Protocol):
         ...
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Hypercube:
     lb: tuple[float, ...]
     ub: tuple[float, ...]
@@ -74,7 +74,7 @@ class Hypercube:
             return None
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Parallelogram:
     a: tuple[float, ...]
     b: tuple[float, ...]
@@ -138,7 +138,7 @@ class _Spherical:
         return sample / sample_norm
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Sphere(_Spherical):
     radius: float
     origin: tuple[float, float, float]
@@ -160,7 +160,7 @@ class Sphere(_Spherical):
         return transform_sphere_bnd(uniform_sample, r, o)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Disk(_Spherical):
     radius: float
     origin: tuple[float, float]
@@ -182,7 +182,7 @@ class Disk(_Spherical):
         return transform_circle_bnd(uniform_sample, r, o)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Annulus:
     r1: float  # inner radius
     r2: float  # outer radius
