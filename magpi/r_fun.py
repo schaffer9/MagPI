@@ -27,7 +27,7 @@ ADF = Annotated[Callable[[Array | Scalar], Scalar], _annotation]
 class RFun:
     """
     Implements the basic set theoretic operations for a system of R-Functions.
-    In essence, only `conjugation` and `disjunction` needs to be implemented.
+    In essence, only `conjunction` and `disjunction` needs to be implemented.
     """
 
     def conjunction(self, a: Scalar, b: Scalar) -> Scalar:
@@ -491,7 +491,7 @@ def reflect(adf: ADF, normal_vec: Vec, o: Vec = 0.0) -> ADF:
 
 def project(adf: ADF, normal_vec: Vec, o: Vec = 0.0) -> ADF:
     """
-    Projects the ADF onto the plane devined by the normal vector `normal_vec` and `o`.
+    Projects the ADF onto the plane defined by the normal vector `normal_vec` and `o`.
 
     Parameters
     ----------
