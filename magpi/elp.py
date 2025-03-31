@@ -4,27 +4,47 @@ This module offers an implementation of Equivalent Legendre polynomials [1]_.
 Notes
 -----
 .. [1] Abedian, Alireza, and Alexander Düster.
-   "Equivalent Legendre polynomials: Numerical integration of discontinuous functions in the finite element methods." 
+   "Equivalent Legendre polynomials: Numerical integration of discontinuous functions in the finite element methods."
    Computer Methods in Applied Mechanics and Engineering 343 (2019): 690-720.
 """
 
-from typing import Any, NamedTuple, TypeAlias, Sequence
+from typing import Any, NamedTuple, TypeAlias, Sequence, Callable
+from dataclasses import dataclass
 import itertools
 import warnings
+
+from jax.tree_util import register_pytree_node_class
 
 from .prelude import *
 from .r_fun import ADF, newton_iteration
 from .utils import apply_along_last_dims
+from .integrate import make_quad_rule, gauss, Weights, Nodes
 
 
 _BrokenCellMask: TypeAlias = Array
 _PaddingMask: TypeAlias = Array
-Domain: TypeAlias = Array
-Weights: TypeAlias = Array
-Nodes: TypeAlias = Array
-Moments: TypeAlias = Array
+Domain: TypeAlias = Array | Sequence[Array]
+Coefs: TypeAlias = Array
 LegendreCoefs: TypeAlias = Array
 Scalar: TypeAlias = Array
+
+
+@register_pytree_node_class
+@dataclass(frozen=True, slots=True, weakref_slot=True)
+class ELP:
+    domain: Domain
+    coefs: LegendreCoefs
+
+    def __call__(self, x: Array) -> Array:
+        return _elp(x, self.coefs, self.domain)
+
+    def tree_flatten(self):
+        children = (self.domain, self.coefs)  # arrays / dynamic values
+        return (children, None)
+
+    @classmethod
+    def tree_unflatten(cls, aux_data, children):
+        return cls(children[0], children[1])
 
 
 class Cell(NamedTuple):
@@ -90,93 +110,141 @@ def legendre_poly_antiderivative(x: Array, n: int) -> Array:
     return p / jnp.arange(1, n + 1)
 
 
-@partial(jit, static_argnames=("degree",))
-def compute_coefs(cells: Cells, domain: Domain, degree: int):
-    D = domain
-    d = D.shape[-1]
-    def _coefs(i):
-        Di = lax.dynamic_slice(D, jnp.concatenate([i, array([0])]), (2,) * d + (d,))
-        lb = Di[*([0] * d)]
-        ub = Di[*([-1] * d)]
-        return _compute_coefs(tree.map(lambda c: c[*i], cells), lb, ub, degree + 1)
-
-    return _apply_on_indices(_coefs, tuple(dim - 1 for dim in D.shape[:-1]))
-
-
-def compute_elp_weights(
-    coefs: LegendreCoefs,
-    weights: Weights,
-    nodes: Nodes,
+@partial(jit, static_argnames=("adf", "degree", "max_cells", "split_mode"))
+def compute_elp(
+    adf: ADF,
     domain: Domain,
-) -> Weights:
-    """Evaluates the Equivalent Legendre Polynomials for the given quadrature
-    rule. Note that the domain must be the same which was used to evaluate the 
-    ELP coefficients.
+    degree: int | tuple[int],
+    *args: Any,
+    max_cells: int = 100_000,
+    eps: float = 1e-6,
+    max_depth: int = 6,
+    split_mode: str = "boundary",
+    newton_maxiter: int = 10,
+    **kwargs: Any,
+) -> ELP:
+    """Computes the Equivalent Legendre Polynomial for a given Approximate Distance Function.
 
     Parameters
     ----------
-    coefs : LegendreCoefs
-    weights : Weights
-        quadrature weights
-    nodes : Nodes
-        quadrature nodes
+    adf : ADF
     domain : Domain
-        domain grid
+    degree : int | tuple[int]
+    max_cells : int, optional
+        maximum number of cells; if less cells are required, the remaining cells are only for
+        padding; by default 100_000
+    eps : float, optional
+        controlls the precision whether a cell is contained by the `adf`, by default 1e-6
+    max_depth : int, optional
+        maximum depth of the space tree, by default 6
+    split_mode : str, optional
+        split either on the "boundary" or the "center" for each cell, by default "boundary"
+    newton_maxiter : int, optional
+        maximum newton iterations to find a point on the boundary, by default 10
 
     Returns
     -------
-    Weights
+    ELP
     """
-    d = domain.ndim - 1
-    lb = domain[*[slice(0, -1) for _ in range(d)]]
-    ub = domain[*[slice(1, None) for _ in range(d)]]
+    domain = _domain_grid(domain)
 
+    cells = partition_domain(
+        adf,
+        domain,
+        *args,
+        max_cells=max_cells,
+        eps=eps,
+        max_depth=max_depth,
+        split_mode=split_mode,
+        newton_maxiter=newton_maxiter,
+        **kwargs,
+    )
+    
+    def _coefs(lb, ub, cells):
+        return _compute_coefs(cells, lb, ub, degree)
+    
+    coefs = _apply_on_domain(_coefs, domain, cells)
+    return ELP(domain, coefs)
+
+
+def make_elp_quad_rule(
+    elp: ELP,
+) -> tuple[Weights, Nodes]:
+    """Computes a quadrature rule for the given ELP.
+
+    Parameters
+    ----------
+    elp : ELP
+
+    Returns
+    -------
+    tuple[Weights, Nodes]
+    """        
     def compute_on_node(coefs, weight, node):
         leg_poly = [legendre_polynomial(x, p) for x, p in zip(node, coefs.shape)]
-        elp = jnp.sum(coefs * jnp.prod(jnp.stack(jnp.meshgrid(*leg_poly), axis=-1), axis=-1))
+        elp = jnp.sum(coefs * jnp.prod(jnp.stack(jnp.meshgrid(*leg_poly, indexing="ij"), axis=-1), axis=-1))
         return elp * weight
-
-    def compute_new_weights(coefs, weights, nodes, lb, ub):
-        nodes = (nodes * 2 - (lb + ub)) / (ub - lb)
-        new_weights = apply_along_last_dims(lambda w, x: compute_on_node(coefs, w, x), weights, nodes)
-        return new_weights
-
-    new_weights = apply_along_last_dims(compute_new_weights, coefs, weights, nodes, lb, ub, dims=d + 1)
-    return new_weights
-
-# TODO:
-# def elp(x: Array, coefs: LegendreCoefs, domain: Domain) -> Scalar:
-
-#     d = domain.ndim - 1
-#     lb = domain[*[slice(0, -1) for _ in range(d)]]
-#     ub = domain[*[slice(1, None) for _ in range(d)]]
-
-#     def compute_on_node(coefs, weight, node):
-#         inside = 
-#         leg_poly = [legendre_polynomial(x, p) for x, p in zip(node, coefs.shape)]
-#         elp = jnp.sum(coefs * jnp.prod(jnp.stack(jnp.meshgrid(*leg_poly), axis=-1), axis=-1))
-#         return elp * weight
     
-#     def compute_new_weights(coefs, lb, ub):
-#         _x = (x * 2 - (lb + ub)) / (ub - lb)
-#         new_weights = apply_along_last_dims(lambda w, x: compute_on_node(coefs, w, x), weights, nodes)
-#         return new_weights
+    def _make_elp_quad_rule(lb, ub, coefs):
+        d = [jnp.array((l, u)) for l, u in zip(lb, ub)]
+        degrees = coefs.shape
+        weights, nodes = make_quad_rule(d, method=[gauss(_degree) for _degree in degrees])
+        weights = apply_along_last_dims(lambda w, x: compute_on_node(coefs, w, center(x, lb, ub)), weights, nodes)
+        return weights, nodes
+    
+    return _apply_on_domain(_make_elp_quad_rule, elp.domain, elp.coefs)
 
-#     new_weights = apply_along_last_dims(compute_new_weights, coefs, weights, nodes, lb, ub, dims=d + 1)
-#     return new_weights
+
+def _elp(x: Array, coefs: LegendreCoefs, domain: Domain) -> Scalar:
+    def _leg_poly(x, n):
+        L = legendre_polynomial(x, n)
+        return asarray(jnp.where(((-1 < x) & (x <= 1))[..., None], L, 0))
+
+    def _eval_elp(lb, ub, coefs):
+        _x = center(x, lb, ub)
+        leg_poly = [_leg_poly(xi, p) for xi, p in zip(_x, coefs.shape)]
+        elp = jnp.sum(coefs * jnp.prod(jnp.stack(jnp.meshgrid(*leg_poly, indexing="ij"), axis=-1), axis=-1))
+        return elp
+
+    elp = jnp.sum(_apply_on_domain(_eval_elp, domain, coefs))
+    return elp
+
 
 def partition_domain(
     adf: ADF,
-    domain: Sequence[Array],
+    domain: Domain,
     *args: Any,
-    max_cells=100_000,
-    eps=1e-6,
-    max_depth=6,
+    max_cells: int = 100_000,
+    eps: float = 1e-6,
+    max_depth: int = 6,
     split_mode: str = "boundary",
     newton_maxiter: int = 10,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Cells:
-    D = jnp.stack(jnp.meshgrid(*domain), axis=-1)
+    """Partitions the computational domain into cuboid cells
+
+    Parameters
+    ----------
+    adf : ADF
+    domain : Domain
+    max_cells : int, optional
+        maximum number of cells; if less cells are required, the remaining cells are only for
+        padding; by default 100_000
+    eps : float, optional
+        controlls the precision whether a cell is contained by the `adf`, by default 1e-6
+    max_depth : int, optional
+        maximum depth of the space tree, by default 6
+    split_mode : str, optional
+        split either on the "boundary" or the "center" for each cell, by default "boundary"
+    newton_maxiter : int, optional
+        maximum newton iterations to find a point on the boundary, by default 10
+
+    Returns
+    -------
+    Cells
+    """
+    D = _domain_grid(domain)
+
     d = D.ndim - 1
     lb = D[*[slice(0, -1) for _ in range(d)]]
     ub = D[*[slice(1, None) for _ in range(d)]]
@@ -184,14 +252,15 @@ def partition_domain(
     def _partition(lb, ub):
         return _partition_domain(
             adf,
-            lb, ub,
+            lb,
+            ub,
             *args,
             eps=eps,
             max_depth=max_depth,
             max_cells=max_cells,
             split_mode=split_mode,
             newton_maxiter=newton_maxiter,
-            **kwargs
+            **kwargs,
         )
 
     return apply_along_last_dims(_partition, lb, ub)
@@ -210,35 +279,6 @@ def _partition_domain(
     newton_maxiter: int = 10,
     **kwargs: Any,
 ) -> Cells:
-    """Partitions the domain contained by the approximate distance function `adf`
-    and `lower_bounds` and `upper_bounds` into cells with a space tree algorithm.
-    The resolution becomes smaller and smaller it the boundary of the domain is approached
-    until the maximum resolution is reached. The maximum resolution is based on `max_depth`
-    and `max_cells`.
-
-    The algorithm refines the domain iteratively since a recursive approach would require
-    huge amounts of memory in JAX.
-
-    Parameters
-    ----------
-    adf : ADF
-        approximate distance function
-    lower_bounds : Array
-    upper_bounds : Array
-    eps : float, optional
-        controlls the precision whether a cell is contained by the `adf`, by default 1e-6
-    max_depth : int, optional
-        maximum depth of the space tree, by default 8
-    max_cells : int, optional
-        maximum number of cells; if less cells are required, the remaining cells are only for
-        padding; by default 100_000
-
-    Returns
-    -------
-    Cells
-        Domain partitioned into computational cells
-    """
-
     lb, ub = asarray(lower_bounds), asarray(upper_bounds)
     lower_bounds = zeros((max_cells, lb.shape[0]))
     upper_bounds = zeros((max_cells, ub.shape[0]))
@@ -273,9 +313,9 @@ def _partition_domain(
             return new_cells
 
         def _split():
-            new_cells = _split_cell(adf, lb, ub, *args,
-                                    eps=eps, split_mode=split_mode,
-                                    tol=eps/2, maxiter=newton_maxiter, **kwargs)
+            new_cells = _split_cell(
+                adf, lb, ub, *args, eps=eps, split_mode=split_mode, tol=eps / 2, maxiter=newton_maxiter, **kwargs
+            )
             return new_cells
 
         v = jnp.prod(cell.upper_bound - cell.lower_bound)
@@ -339,7 +379,8 @@ def _partition_domain(
 def _warn_on_overflow(max_cells, new_cell_count, depth):
     if new_cell_count > max_cells:
         warnings.warn(
-            f"`max_cells`={max_cells} is not big enough at depth {depth}. There are {new_cell_count} cells. Iteration stopped!")
+            f"`max_cells`={max_cells} is not big enough at depth {depth}. There are {new_cell_count} cells. Iteration stopped!"
+        )
 
 
 def _split_broken_cell(adf, cell, *args, **kwargs):
@@ -351,9 +392,7 @@ def _split_broken_cell(adf, cell, *args, **kwargs):
     c2 = Cell(lb.at[i].set(lb[i] + s[i] / 2), ub, cell.broken, cell.padding)
     c_adf1 = adf((c1.lower_bound + c1.upper_bound) / 2, *args, **kwargs)
     c_adf2 = adf((c2.lower_bound + c2.upper_bound) / 2, *args, **kwargs)
-    return lax.cond(split,
-                    lambda: lax.cond(c_adf1 > c_adf2, lambda: c1, lambda: c2),
-                    lambda: cell)
+    return lax.cond(split, lambda: lax.cond(c_adf1 > c_adf2, lambda: c1, lambda: c2), lambda: cell)
 
 
 def _halve_broken_cells(adf, cells, *args, **kwargs):
@@ -387,11 +426,7 @@ def _split_cell(adf: ADF, lb, ub, *args: Any, eps, split_mode, tol, maxiter, **k
     elif split_mode == "boundary":
         split_point = newton_iteration(adf, c, *args, tol=tol, maxiter=maxiter, **kwargs)
         # if the split_point is outside the cell, then we take the center
-        split_point = lax.cond(
-            jnp.all((lb < split_point) & (split_point < ub)),
-            lambda: split_point,
-            lambda: c
-        )
+        split_point = lax.cond(jnp.all((lb < split_point) & (split_point < ub)), lambda: split_point, lambda: c)
     else:
         raise ValueError("`split_mode` must be 'center' or 'boundary'")
     lower_bounds, upper_bounds, broken_cells, padding_cells = [], [], [], []
@@ -412,11 +447,13 @@ def _split_cell(adf: ADF, lb, ub, *args: Any, eps, split_mode, tol, maxiter, **k
 
 
 @partial(jit, static_argnames=("adf",))
-def _broken_or_padding_cell(adf: ADF, lb, ub, *args: Any, eps=1e-6, **kwargs: Any) -> tuple[_BrokenCellMask, _PaddingMask]:
+def _broken_or_padding_cell(
+    adf: ADF, lb, ub, *args: Any, eps=1e-6, **kwargs: Any
+) -> tuple[_BrokenCellMask, _PaddingMask]:
     support = jnp.prod((ub - lb) / 2)
     assert lb.shape[0] == ub.shape[0]
     dim = lb.shape[0]
-    cell_domain = jnp.stack(jnp.meshgrid(*[jnp.array([l, u]) for l, u in zip(lb, ub)]), axis=-1)
+    cell_domain = jnp.stack(jnp.meshgrid(*[jnp.array([l, u]) for l, u in zip(lb, ub)], indexing="ij"), axis=-1)
     center = (lb + ub) / 2
 
     LD = jnp.apply_along_axis(adf, -1, cell_domain, *args, **kwargs)
@@ -431,26 +468,91 @@ def _broken_or_padding_cell(adf: ADF, lb, ub, *args: Any, eps=1e-6, **kwargs: An
     return broken_cell, padding_cell
 
 
+def shift(x, lb, ub, lb_new, ub_new):
+    """Shift from (lb, ub) -> (lb_new, ub_new)
+
+    Parameters
+    ----------
+    x : Array | float
+    lb : Array | float
+    ub : Array | float
+    lb_new : Array | float
+    ub_new : Array | float
+
+    Returns
+    -------
+    Array | float
+    """
+    k = (ub_new - lb_new) / (ub - lb)
+    return x * k - k * lb + lb_new
+
+
+def center(x, lb, ub):
+    """Centers the input; (lb, ub) -> (-1, 1)
+
+    Parameters
+    ----------
+    x : Array | float
+    lb : Array | float
+    ub : Array | float
+
+    Returns
+    -------
+    Array | float
+    """
+    return shift(x, lb, ub, -1, 1)
+
+
 def _compute_coefs(cells, lb, ub, degree):
     d = cells.lower_bound.shape[-1]
+    
+    if isinstance(degree, int):
+        degree = [degree] * d
 
-    def moment(c):
-        _lb = (c.lower_bound * 2 - (lb + ub)) / (ub - lb)
-        _ub = (c.upper_bound * 2 - (lb + ub)) / (ub - lb)
-        l_lb = legendre_poly_antiderivative(_lb, degree)
-        l_ub = legendre_poly_antiderivative(_ub, degree)
+    def _integrate_1d(lb, ub, degree):
+        l_lb = legendre_poly_antiderivative(lb, degree + 1)
+        l_ub = legendre_poly_antiderivative(ub, degree + 1)
         a = l_ub - l_lb
-        return jnp.prod(jnp.stack(jnp.meshgrid(*a), axis=-1), axis=-1)
+        return a
+    
+    def moment(c):
+        _lb = center(c.lower_bound, lb, ub)
+        _ub = center(c.upper_bound, lb, ub)
+        a = [_integrate_1d(l, u, d) for l, u, d in zip(_lb, _ub, degree)]    
+        return jnp.prod(jnp.stack(jnp.meshgrid(*a, indexing="ij"), axis=-1), axis=-1)
 
     def body(carry, c):
         m = moment(c)
         return jnp.add(carry, m), None
-    
-    c = [(2 * jnp.arange(degree) + 1) / 2 for _ in range(d)]
-    c = jnp.prod(jnp.stack(jnp.meshgrid(*c), axis=-1), axis=-1)
+
+    c = [(2 * jnp.arange(_degree + 1) + 1) / 2 for _degree in degree]
+    c = jnp.prod(jnp.stack(jnp.meshgrid(*c, indexing="ij"), axis=-1), axis=-1)
     carry = zeros_like(c)
     m, _ = lax.scan(body, carry, cells)
     return c * m
+
+
+def _domain_grid(domain: Domain) -> Array:
+    if not isinstance(domain, Array):
+        domain = jnp.stack(jnp.meshgrid(*domain, indexing="ij"), axis=-1)
+    else:
+        domain = domain
+
+    return domain
+
+
+def _apply_on_domain(fn: Callable, domain: Domain, *args):
+    domain = _domain_grid(domain)
+    d = domain.shape[-1]
+
+    def apply_fn(i):
+        Di = lax.dynamic_slice(domain, jnp.concatenate([i, array([0])]), (2,) * d + (d,))
+        lb = Di[*([0] * d)]
+        ub = Di[*([-1] * d)]
+        _args = [tree.map(lambda a: a[*i], a) for a in args]
+        return fn(lb, ub, *_args)
+
+    return _apply_on_indices(apply_fn, tuple(dim - 1 for dim in domain.shape[:-1]))
 
 
 def _apply_on_indices(fn, shape):

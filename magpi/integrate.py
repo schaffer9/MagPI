@@ -1,36 +1,20 @@
-from typing import Any, TypeAlias, TypeVar, Protocol, Callable, Sequence
-from math import ceil
-
-from numpy.polynomial.legendre import leggauss
+from typing import Any, TypeAlias, TypeVar, Callable, Sequence
 
 from chex import ArrayTree
+from numpy.polynomial.legendre import leggauss
 
 from .prelude import *
-from .r_fun import ADF
-# from .elp import (
-#     domain_masks,
-#     integrate_legendre,
-#     compute_elp_weights,
-#     BrokenCellMask,
-#     PaddingMask
-# )
 
 
-T = TypeVar("T", bound=Callable[..., ArrayTree], covariant=True)
-Scalar: TypeAlias = Array
-Origin: TypeAlias = Array
-
-
-class Integrand(Protocol[T]):
-    def __call__(self, *args: Any, **kwds: Any) -> T:
-        ...
-
-
+T = TypeVar("T", bound=ArrayTree, covariant=True)
+Integrand = Callable[..., T]
 Weights: TypeAlias = Array
 Nodes: TypeAlias = Array
 Domain: TypeAlias = Array
 Grid1d: TypeAlias = Array
 QuadRule: TypeAlias = Callable[[Grid1d], tuple[Weights, Nodes]]
+Scalar: TypeAlias = Array
+Origin: TypeAlias = Array
 
 
 def midpoint(domain: Array) -> tuple[Weights, Nodes]:
@@ -79,14 +63,15 @@ def gauss(degree: int) -> QuadRule:
     return quad
 
 
-def make_quad_rule(domain: Array | list[Array], method: QuadRule) -> tuple[Weights, Nodes, Domain]:
+def make_quad_rule(domain: Array | list[Array], method: QuadRule | Sequence[QuadRule]) -> tuple[Weights, Nodes]:
     """Creates the quadrature weights and nodes for the given domain and
     quadrature method.
 
     Parameters
     ----------
     domain : Array | list[Array]
-    method : QuadRule
+    method : QuadRule | Sequence[QuadRule]
+        quadrature rule or list or quadrature rules for each dimension
 
     Returns
     -------
@@ -97,135 +82,25 @@ def make_quad_rule(domain: Array | list[Array], method: QuadRule) -> tuple[Weigh
         if len(domain.shape) == 1:
             domain = [domain]
 
-    W, X = zip(*(method(d) for d in domain))
+    if callable(method):
+        W, X = zip(*(method(d) for d in domain))
+    else:
+        W, X = zip(*(_method(d) for _method, d in zip(method, domain)))
     assert all((w.shape == x.shape) for w, x in zip(W, X)), "Invalid quadrature method"
 
     if len(W[0].shape) <= 2:
         # gauss quadrature is given in 2d format to make it easier
         # to get the quadrature nodes for each subdomain.
-        # Cannot be done for other methods, since they share nodes.
-        D = _meshgrid(*domain)
-        W = _meshgrid(*W)
-        W = jnp.prod(W, axis=-1)
-        X = _meshgrid(*X)
-        return W, X, D
+        # Cannot be done for methods which share nodes.
+        _W = _meshgrid(*W)
+        _W = jnp.prod(_W, axis=-1)
+        _X = _meshgrid(*X)
+        return _W, _X
     else:
         msg = "Invalid quadrature method provided. "
         msg += "Output must be a tuple (Weights, Nodes) of two arrays (1d or 2d) of the same shape."
         raise ValueError(msg)
 
-
-# def make_elp_quad_rule(
-#     adf: ADF,
-#     domain: Array | list[Array],
-#     polynomial_degree: int = 3,
-#     *args: Any,
-#     splits: int | Sequence[int] = 1,
-#     support_nodes: int | Sequence[int] = 3,
-#     eps: float = 1e-6,
-#     max_depth: int = 3,
-#     batch_size: None | int = None,
-#     **kwargs: Any
-# ) -> tuple[Weights, Nodes, Domain, BrokenCellMask, PaddingMask]:
-#     """Creates an accurate quadrature rule for an arbitrary geometry, which 
-#     is defined via the ADF, by using Equivalent Legendre Polynomials.
-
-#     Parameters
-#     ----------
-#     adf : ADF
-#     domain : Array | list[Array]
-#     polynomial_degree : int, optional
-#         the maximum polynomial degree which is in theory exactly integrated, by default 3;
-#         note that actual precision depents on the accuracy of the spacetree algorithm.
-#     splits : int | Sequence[int], optional
-#         number of splits for the recursive spacetree algorithm for each dimension, by default 1;
-#         e.g. 1 corresponds to each cell being split at the center.
-#     support_nodes : int | Sequence[int], optional
-#         number of support points for each dimension which are 
-#         used to compute the support fraction, by default 3;
-#         this fraction is used on the lowest level of the tree
-#         to approximate the integral inside the domain.
-#     eps : float, optional
-#         threshold parameter for domain masks, by default 1e-6
-#     max_depth : int, optional
-#         maximum depth of the spacetree, by default 3
-
-#     Returns
-#     -------
-#     tuple[Weights, Nodes, Domain, BrokenCellMask, PaddingMask]
-#     """
-#     W, X, D = make_quad_rule(domain, method=gauss(polynomial_degree + 1))
-#     _, coefs = integrate_legendre(
-#         adf,
-#         polynomial_degree + 1,
-#         D,
-#         *args,
-#         splits=splits,
-#         max_depth=max_depth,
-#         support_nodes=support_nodes,
-#         eps=eps,
-#         batch_size=batch_size,
-#         **kwargs
-#     )
-#     W_new = compute_elp_weights(coefs, W, X, D)
-#     broken_cell_mask, padding_mask, _ = domain_masks(
-#         adf, D, *args, support_nodes=support_nodes, eps=eps, **kwargs
-#     )
-#     return W_new, X, D, broken_cell_mask, padding_mask
-
-
-# def truncate_elp_quad_rule(
-#     domain: Array | list[Array],
-#     polynomial_degree: int,
-#     broken_cell_mask: BrokenCellMask,
-#     padding_mask: PaddingMask,
-#     elp_weights: Weights,
-#     elp_nodes: Nodes,
-# ) -> tuple[Weights, Nodes]:
-#     """
-#     Truncates a ELP quadrature rule. Inner cells can be
-#     integrated with a lower Gauss quadrature rule and padding nodes
-#     are removed. Weights and Nodes are flatted.
-    
-#     Notes
-#     -----
-#     This method can not be jitted.
-
-#     Parameters
-#     ----------
-#     domain : Array | list[Array]
-#     polynomial_degree : int
-#     broken_cell_mask : BrokenCellMask
-#     padding_mask : PaddingMask
-#     elp_weights : Weights
-#     elp_nodes : Nodes
-
-#     Returns
-#     -------
-#     tuple[Weights, Nodes]
-#     """
-#     gauss_points = int(ceil((polynomial_degree + 1) / 2))
-#     W, X, D = make_quad_rule(domain, method=gauss(gauss_points))
-#     d = D.ndim - 1
-#     W = _where_with_casting(padding_mask | broken_cell_mask, 0.0, W)
-#     idx = W != 0
-#     W, X = W[idx], X[idx]
-#     W, X = W.reshape(-1), X.reshape(-1, d)
-#     elp_weights = _where_with_casting(broken_cell_mask, elp_weights, 0.0)
-#     elp_weights = _where_with_casting(padding_mask, 0.0, elp_weights)
-#     idx = elp_weights != 0
-#     elp_weights, elp_nodes = elp_weights[idx], elp_nodes[idx]
-#     elp_weights, elp_nodes = elp_weights.reshape(-1), elp_nodes.reshape(-1, d)
-#     weights = jnp.concatenate([W, elp_weights], axis=0)
-#     nodes = jnp.concatenate([X, elp_nodes], axis=0)
-#     return weights, nodes
-
-    
-# def _where_with_casting(a, b, c):
-#     max_dim = max(asarray(b).ndim, asarray(c).ndim)
-#     d = asarray(a.ndim)
-#     return jnp.where(a[..., *[None for _ in range(max_dim - d)]], b, c)
-    
 
 def integrate(
     fn: Integrand[T],
@@ -281,7 +156,7 @@ def integrate(
     -------
     ArrayTree
     """
-    W, X, _ = make_quad_rule(domain, method)
+    W, X = make_quad_rule(domain, method)
     return integrate_quad_rule(fn, W, X, *args, **kwargs)
 
 
@@ -446,13 +321,13 @@ def integrate_sphere(
 
 def _meshgrid(*X):
     if len(X[0].shape) <= 1:
-        return jnp.stack(jnp.meshgrid(*X), axis=-1)
+        return jnp.stack(jnp.meshgrid(*X, indexing="ij"), axis=-1)
 
-    indices = [jnp.arange(x.shape[0]) for x in X]
-    indices = jnp.stack(jnp.meshgrid(*indices), axis=-1)
+    _indices = [jnp.arange(x.shape[0]) for x in X]
+    indices = jnp.stack(jnp.meshgrid(*_indices, indexing="ij"), axis=-1)
     
     def f(i):
         M = [x[j] for x, j in zip(X, i)]
-        return jnp.stack(jnp.meshgrid(*M), axis=-1)
+        return jnp.stack(jnp.meshgrid(*M, indexing="ij"), axis=-1)
     
     return jnp.apply_along_axis(f, -1, indices)

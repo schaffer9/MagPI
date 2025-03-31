@@ -4,7 +4,8 @@ from .prelude import *
 import chex
 
 # some function taken from jaxopt:
-T = TypeVar("T", bound=Callable[..., chex.ArrayTree])
+T = TypeVar("T")
+
 
 def make_funs_with_aux(fun: Callable, value_and_grad: bool, has_aux: bool):
     if value_and_grad:
