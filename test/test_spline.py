@@ -1,4 +1,4 @@
-from magpi.spline import basis, SplineActivation
+from magpi.spline import basis
 
 from . import *
 
@@ -101,47 +101,3 @@ class TestSplineBasis(JaxTestCase):
             ]
         )
         self.assertIsclose(b, result)
-
-
-class TestSplineActivation(JaxTestCase):
-    def test_000_init_activation(self):
-        c = array([1, 1])
-        init = nn.initializers.constant(c)
-        act = SplineActivation(
-            nodes=5,
-            degree=2,
-            grid_power=1,
-            node_min=0,
-            node_max=1,
-            activation=lambda x: 0.0,
-            coef_init=init,
-        )
-        p = act.init(random.key(0), zeros((5,)))
-        y = act.apply(p, ones((10, 5)))
-        self.assertIsclose(y, zeros((10, 5)))
-        x = random.uniform(random.key(0), (5, 5))
-        y = act.apply(p, x)
-        self.assertTrue(jnp.all(y > 0.0))
-
-    def test_001_parameterize_grid(self):
-        c = array([1, 1])
-        init = nn.initializers.constant(c)
-        act = SplineActivation(
-            nodes=5,
-            degree=2,
-            grid_power=1,
-            node_min=0,
-            node_max=1,
-            activation=lambda x: 0.0,
-            coef_init=init,
-            parameterize_grid=True
-        )
-        p = act.init(random.key(0), zeros((4,)))
-        y = act.apply(p, ones((10, 4)))
-        self.assertIsclose(y, zeros((10, 4)))
-        x = random.uniform(random.key(0), (5, 4))
-        y = act.apply(p, x)
-        self.assertEqual(y.shape, (5, 4))
-        self.assertTrue(jnp.all(y > 0.0))
-        
-        self.assertEqual(p["grids"]["grid"].shape, (4, 5))
