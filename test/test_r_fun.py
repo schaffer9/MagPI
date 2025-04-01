@@ -1,3 +1,5 @@
+from scipy.spatial import ConvexHull
+
 from magpi.r_fun import (
     r0,
     r1,
@@ -11,7 +13,8 @@ from magpi.r_fun import (
     translate,
     scale,
     project,
-    newton_iteration
+    newton_iteration,
+    hyperplane_intersection
 )
 
 from . import *
@@ -260,3 +263,22 @@ class TestNewtonIteration(JaxTestCase):
             array([0.2, 0.2, 0.3]),  # x0
         )
         self.assertIsclose(adf(x), 0.0)
+
+
+class TestHyperplaneIntersection(JaxTestCase):
+    def test_000_cube(self):
+        cube = array([
+            [-1, -1, -1],
+            [1, -1, -1],
+            [-1, 1, -1],
+            [-1, -1, 1],
+            [1, 1, -1],
+            [1, -1, 1],
+            [-1, 1, 1],
+            [1, 1, 1.0],
+        ])
+        eq = jnp.unique(ConvexHull(cube).equations, axis=0)
+        adf = hyperplane_intersection(eq)
+        self.assertIsclose(vmap(adf)(cube), zeros((8,)))
+        self.assertIsclose(adf(array([10000, 0, 0])), -1.0)
+        self.assertGreater(float(adf(array([0, 0, 0]))), 0.0)

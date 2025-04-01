@@ -257,6 +257,52 @@ def cube(edge_lenght: Scalar, centering: bool = False, r_system: RFun = r0) -> A
     return cuboid(edge_lenght, centering, r_system)
 
 
+def hyperplane_intersection(
+    equations: Array,
+    r_system: RFun = r0,
+    min_val=-1.0,
+    max_val=1.0
+) -> ADF:
+    """Computes an ADF by intersection of hyperplanes. 
+    Note that duplicate hyperplanes result in an invalid ADF
+
+    Parameters
+    ----------
+    equations : Array
+        hyperplane equations; first dimension corresponds to the number of planes and
+        the second dimension should be of the form [inward normal, offset], the normal vector 
+        has to be normalized for a valid ADF; normal of zero is used for padding
+    r_system : RFun, optional
+    min_val : float, optional
+        minimum value of the ADF, by default -1.0
+    max_val : float, optional
+        maximum value is used for padding equations, by default 1.0
+
+    Returns
+    -------
+    ADF
+    """
+    equations = asarray(equations)
+    
+    def _conjunction(a, b):
+        con = r_system.conjunction(a, b)
+        return r_system.disjunction(con, min_val)
+        
+    _intersection = compose(_conjunction)
+
+    @_intersection
+    def adf(x):
+        n = -equations[:, :-1]
+        length = norm(n, axis=-1)
+        padding = jnp.isclose(length, 0.0)
+        b = equations[:, -1]
+        p = n * b[:, None]
+        offsets = jnp.where(padding, max_val, jnp.sum((x - p) * n, axis=-1))
+        return offsets
+
+    return adf
+
+
 def sphere(r: Scalar) -> ADF:
     """
     Returns the ADF of a sphere which is normalized to first order.

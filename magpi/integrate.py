@@ -63,7 +63,11 @@ def gauss(degree: int) -> QuadRule:
     return quad
 
 
-def make_quad_rule(domain: Array | list[Array], method: QuadRule | Sequence[QuadRule]) -> tuple[Weights, Nodes]:
+def make_quad_rule(
+    domain: Array | list[Array], 
+    method: QuadRule | Sequence[QuadRule],
+    ravel: bool = False
+) -> tuple[Weights, Nodes]:
     """Creates the quadrature weights and nodes for the given domain and
     quadrature method.
 
@@ -95,6 +99,8 @@ def make_quad_rule(domain: Array | list[Array], method: QuadRule | Sequence[Quad
         _W = _meshgrid(*W)
         _W = jnp.prod(_W, axis=-1)
         _X = _meshgrid(*X)
+        if ravel:
+            _W, _X = _W.reshape(-1), _X.reshape(-1, _X.shape[-1])
         return _W, _X
     else:
         msg = "Invalid quadrature method provided. "
