@@ -39,7 +39,7 @@ class TestApplyAlongLastAxis(JaxTestCase):
             return jnp.where(a, jnp.sum(b), 0)
 
         a = jnp.array([1, 2])
-        a = jnp.stack(jnp.meshgrid(a, a), axis=-1)
+        a = jnp.stack(jnp.meshgrid(a, a, indexing="ij"), axis=-1)
         b = jnp.array([[True, False], [False, True]])
         true_result = jnp.array([[2, 0], [0, 4]])
         result = apply_along_last_dims(f, b, a)
@@ -59,7 +59,7 @@ class TestApplyAlongLastAxis(JaxTestCase):
             return jnp.where(a, jnp.sum(b), 0)
 
         a = jnp.array([1, 2])
-        a = jnp.stack(jnp.meshgrid(a, a), axis=-1)
+        a = jnp.stack(jnp.meshgrid(a, a, indexing="ij"), axis=-1)
         b = jnp.array([True, False])
         with self.assertRaises(ValueError):
             apply_along_last_dims(f, b, a)
@@ -70,7 +70,7 @@ class TestApplyAlongLastAxis(JaxTestCase):
             return x
 
         a = jnp.array([1, 2])
-        a = jnp.stack(jnp.meshgrid(a, a), axis=-1)
+        a = jnp.stack(jnp.meshgrid(a, a, indexing="ij"), axis=-1)
         result = apply_along_last_dims(f, a, dims=2)
         self.assertPytreeEqual(result, a)
         
@@ -80,6 +80,6 @@ class TestApplyAlongLastAxis(JaxTestCase):
             return sin(jnp.sum(x))
 
         a = jnp.array([1, 2])
-        a = jnp.stack(jnp.meshgrid(a, a), axis=-1)
+        a = jnp.stack(jnp.meshgrid(a, a, indexing="ij"), axis=-1)
         result = apply_along_last_dims(f, a, dims=0)
         self.assertPytreeEqual(result, sin(a))

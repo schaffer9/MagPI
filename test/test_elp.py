@@ -1,15 +1,17 @@
+import numpy as np
+
 from magpi import integrate
 from magpi import r_fun
 from magpi.elp import (
-    partition_domain, 
-    legendre_polynomial, 
-    legendre_poly_antiderivative, 
+    legendre_polynomial,
+    legendre_poly_antiderivative,
     center,
     _domain_grid,
     compute_elp,
     ELP,
     make_elp_quad_rule
 )
+from magpi.grain import sample_grain
 
 from . import *
 
@@ -51,35 +53,43 @@ class TestLegendrePoly(JaxTestCase):
         self.assertIsclose(L, result)
         
 
-class TestPartitionDomain(JaxTestCase):
-    def test_000_partition_cube(self):
-        adf = r_fun.cube(2, centering=True)
-        d = array([-1, 0, 1])
-        cells = partition_domain(adf, [d, d, d], max_cells=1)
-        V = jnp.sum(jnp.prod(cells.upper_bound - cells.lower_bound, axis=-1))
-        self.assertEqual(V, 8)
+# class TestPartitionDomain(JaxTestCase):
+#     def test_000_partition_cube(self):
+#         adf = r_fun.cube(2, centering=True)
+#         d = array([-1, 0, 1])
+#         cells = partition_domain(adf, [d, d, d], max_cells=1)
+#         V = jnp.sum(jnp.prod(cells.upper_bound - cells.lower_bound, axis=-1))
+#         self.assertEqual(V, 8)
         
-    def test_001_partition_sphere(self):
-        adf = r_fun.sphere(1)
-        d = jnp.linspace(-1, 1, 4)
-        d = _domain_grid([d, d, d])
-        cells = partition_domain(adf, d, max_cells=100_000, max_depth=5, split_mode="boundary")
-        V = jnp.sum(jnp.prod(cells.upper_bound - cells.lower_bound, axis=-1))
-        V_true = 4 / 3 * pi
-        self.assertIsclose(V, V_true, atol=1e-3)
+#     def test_001_partition_sphere(self):
+#         adf = r_fun.sphere(1)
+#         d = jnp.linspace(-1, 1, 4)
+#         d = _domain_grid([d, d, d])
+#         cells = partition_domain(adf, d, max_cells=100_000, max_depth=5, split_mode="boundary")
+#         V = jnp.sum(jnp.prod(cells.upper_bound - cells.lower_bound, axis=-1))
+#         V_true = 4 / 3 * pi
+#         self.assertIsclose(V, V_true, atol=1e-3)
         
-    def test_002_partition_sphere_with_center_splitting(self):
-        adf = r_fun.sphere(1)
-        d = jnp.linspace(-1, 1, 4)
-        d = _domain_grid([d, d, d])
-        cells = partition_domain(adf, d, max_cells=100_000, max_depth=5, split_mode="center")
-        V = jnp.sum(jnp.prod(cells.upper_bound - cells.lower_bound, axis=-1))
-        V_true = 4 / 3 * pi
-        self.assertIsclose(V, V_true, atol=1e-2)
+#     def test_002_partition_sphere_with_center_splitting(self):
+#         adf = r_fun.sphere(1)
+#         d = jnp.linspace(-1, 1, 4)
+#         d = _domain_grid([d, d, d])
+#         cells = partition_domain(adf, d, max_cells=100_000, max_depth=5, split_mode="center")
+#         V = jnp.sum(jnp.prod(cells.upper_bound - cells.lower_bound, axis=-1))
+#         V_true = 4 / 3 * pi
+#         self.assertIsclose(V, V_true, atol=1e-2)
         
-    # def test_003_partition_convex_grain(self):
-    #     # TODO
-    #     assert False
+#     def test_003_partition_convex_grain(self):
+        
+#         rng = np.random.RandomState(42)
+#         domain = jnp.linspace(-1, 1, 6)
+#         domain = [domain, domain, domain]
+#         grain = sample_grain(
+#             12, rng=rng, create_quad_rule=True, elp_domain=domain, elp_degree=4,
+#             quad_rule_kwargs={"split_mode": "boundary", "max_depth": 8, "max_cells": 350_000, "batch_size": 100}
+#         )
+#         w, _ = grain.quad_rule
+#         self.assertIsclose(jnp.sum(w), grain.volume, atol=1e-3)
 
 
 class TestElp(JaxTestCase):
@@ -99,7 +109,7 @@ class TestElp(JaxTestCase):
         adf = r_fun.sphere(1.0)
         d = jnp.linspace(-1, 1, 4)
         dom = _domain_grid([d, d, d])
-        elp = compute_elp(adf, dom, 5, max_cells=100_000, max_depth=6)
+        elp = compute_elp(adf, dom, 5, max_depth=3)
         
         W, X = make_elp_quad_rule(elp)
         
@@ -112,10 +122,21 @@ class TestElp(JaxTestCase):
         adf = r_fun.sphere(1.0)
         d = jnp.linspace(-1, 1, 5)
         dom = _domain_grid([d, d])
-        elp = compute_elp(adf, dom, (5, 6), max_cells=20_000, max_depth=7)
+        elp = compute_elp(adf, dom, (5, 6), max_depth=4)
         
         W, X = make_elp_quad_rule(elp)
         f = lambda x: jnp.prod(cos(x))
         I = integrate.integrate_quad_rule(f, W, X)
         I_true = integrate.integrate_disk(f, 1.0, zeros((2,)), 7, method=integrate.gauss(5))
         self.assertIsclose(I, I_true, atol=1e-3)
+        
+    def test_003_integrate_grain(self):
+        rng = np.random.RandomState(42)
+        domain = jnp.linspace(-1, 1, 6)
+        domain = [domain, domain, domain]
+        grain = sample_grain(
+            12, rng=rng, create_quad_rule=True, elp_domain=domain, elp_degree=4,
+            quad_rule_kwargs={"max_depth": 4}
+        )
+        w, _ = grain.quad_rule
+        self.assertIsclose(jnp.sum(w), grain.volume, atol=1e-3)

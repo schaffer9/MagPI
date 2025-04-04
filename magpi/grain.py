@@ -1,10 +1,8 @@
 import operator
-from dataclasses import dataclass
-from typing import Self, NamedTuple
+from typing import NamedTuple, Sequence
 
-from jax.tree_util import register_pytree_node_class
 import numpy as np
-from scipy.spatial import HalfspaceIntersection, ConvexHull, QhullError
+from scipy.spatial import HalfspaceIntersection, ConvexHull
 from scipy.optimize import linprog
 try:
     from netgen.csg import CSGeometry, Pnt, Vec, Plane
@@ -15,6 +13,8 @@ except ImportError:
 
 from .prelude import *
 from .integrate import Weights, Nodes
+from .elp import compute_elp, make_elp_quad_rule
+from .r_fun import hyperplane_intersection, r0
 
 
 class Mesh(NamedTuple):
@@ -26,10 +26,10 @@ class Grain(NamedTuple):
     vertices: Array
     volume: Array
     equations: Array
-    surface_mesh: Mesh | None
-    quad_rule: tuple[Weights, Nodes]
     lower_bound: Array
     upper_bound: Array
+    mesh: Mesh | None = None
+    quad_rule: tuple[Weights, Nodes] | None = None
 
 
 def _eq_to_plane(eq):
@@ -37,30 +37,28 @@ def _eq_to_plane(eq):
     return Plane(Pnt(*p), Vec(*v))
 
 
-def generate_mesh(equations, *, maxh=0.25, volume=False):
+def _padding_equation(eq):
+    n = eq[:-1]
+    return ~np.isclose(np.linalg.norm(n), 0.0)
+
+
+def generate_mesh(equations, *, maxh=0.25, volume=False, **kwargs):
     if not NGSOLVE_INSTALLED:
         raise ImportError("NGSolve is required for this function but it is not installed.")
     geo = CSGeometry()
+    equations = filter(_padding_equation, equations)
     planes = map(_eq_to_plane, equations)
     grain = reduce(operator.mul, planes)
     geo.Add(grain)
     if volume:
-        mesh = geo.GenerateMesh(maxh=maxh)
-        vertices = np.array([p.p for p in mesh.Points()])
+        mesh = geo.GenerateMesh(maxh=maxh, **kwargs)
+        nodes = np.array([p.p for p in mesh.Points()])
         elements = np.array([[v.nr for v in e.vertices] for e in mesh.Elements3D()]) - 1
     else:
-        mesh = geo.GenerateMesh(maxh=maxh, perfstepsend=MeshingStep.MESHSURFACE)
-        vertices = np.array([p.p for p in mesh.Points()])
+        mesh = geo.GenerateMesh(maxh=maxh, perfstepsend=MeshingStep.MESHSURFACE, **kwargs)
+        nodes = np.array([p.p for p in mesh.Points()])
         elements = np.array([[v.nr for v in e.vertices] for e in mesh.Elements2D()]) - 1
-    return vertices, elements
-
-
-def scale_grain(grain: Grain, scaling_factor: float):
-    ...
-
-
-def center_grain(grain: Grain):
-    ...
+    return Mesh(asarray(nodes), asarray(elements))
 
 
 def polytope_intersection(vertices1, vertices2):
@@ -94,14 +92,72 @@ _box = np.array(
 )
 
 
-def sample_grain(max_faces, bounds=_box, rng=None, min_offset=0.4, max_offset=1.0):
+@jit
+def _adf(x, equations, r_system=r0, min_val=-1, max_val=1):
+    return hyperplane_intersection(equations, r_system=r_system, min_val=min_val, max_val=max_val)(x)
+
+
+def sample_grain(
+    max_faces: int,
+    bounds=_box,
+    rng: np.random.RandomState | None = None,
+    min_offset: float = 0.4,
+    max_offset: float = 1.0,
+    create_quad_rule: bool = False,
+    elp_domain: Array | Sequence[Array] | None = None,
+    elp_degree: int = 4,
+    quad_rule_kwargs: dict | None = None,
+    create_mesh: bool = False,
+    meshing_kwargs: dict | None = None
+):
     n = max(max_faces - bounds.shape[0], 0)
     dim = bounds.shape[-1] - 1
     equations = sample_planes(n, dim, rng=rng, min_offset=min_offset, max_offset=max_offset)
     equations = np.concatenate([bounds, equations])
-    # TODO: scale between [-1, 1]
-    # TODO: add mesh; add quad rule
-    return _intersection(equations)
+    equations = np.pad(equations, [(0, max_faces - equations.shape[0]), (0, 0)])
+    
+    return create_grain(
+        equations,
+        create_quad_rule=create_quad_rule,
+        elp_domain=elp_domain,
+        elp_degree=elp_degree,
+        quad_rule_kwargs=quad_rule_kwargs,
+        create_mesh=create_mesh,
+        meshing_kwargs=meshing_kwargs
+    )
+
+
+def create_grain(
+    equations: np.ndarray,
+    create_quad_rule: bool = False,
+    elp_domain: Array | Sequence[Array] | None = None,
+    elp_degree: int = 4,
+    quad_rule_kwargs: dict | None = None,
+    create_mesh: bool = False,
+    meshing_kwargs: dict | None = None
+):
+    grain = _intersection(equations)
+    if create_mesh:
+        if meshing_kwargs is None:
+            meshing_kwargs = {}
+        
+        equations = np.asarray(grain.equations)
+        mesh = generate_mesh(equations, **meshing_kwargs)
+        grain = grain._replace(mesh=mesh)
+    
+    if create_quad_rule:
+        if quad_rule_kwargs is None:
+            quad_rule_kwargs = {}
+        if elp_domain is None:
+            elp_domain = [array([lb, ub]) for lb, ub in zip(grain.lower_bound, grain.upper_bound)]
+        
+        _eq = asarray(equations)
+        elp = compute_elp(_adf, elp_domain, elp_degree, _eq, **quad_rule_kwargs)
+        quad_rule = make_elp_quad_rule(elp)
+        grain = grain._replace(quad_rule=quad_rule)
+    
+    grain = shift_grain(grain, -1, 1)
+    return grain
 
 
 def sample_planes(n, dim, rng=None, min_offset=0.4, max_offset=1.0):
@@ -128,9 +184,14 @@ def _intersection(equations):
     vertices = intersection.intersections
     hull = ConvexHull(vertices, qhull_options="Q5")
     equations = _unique_equations(hull)
-    vertices = hull.points[hull.vertices]
     vol = hull.volume
-    return equations, vertices, vol
+    return Grain(
+        vertices=asarray(vertices),
+        volume=asarray(vol),
+        equations=asarray(equations),
+        lower_bound=asarray(hull.min_bound),
+        upper_bound=asarray(hull.max_bound)
+    )
 
 
 def _unique_equations(convex_hull):
@@ -138,3 +199,58 @@ def _unique_equations(convex_hull):
     _, i = np.unique(eq, axis=0, return_index=True)
     eq = convex_hull.equations[i]
     return eq
+
+
+def affine_transformation(x, A, b):
+    return x @ A.T + b
+
+
+def _affine_transformation_equations(eq, A, b):
+    n, offset = eq[:, :-1], eq[:, -1]
+    Ainv = jnp.linalg.inv(A)
+    n_new = n @ Ainv
+    n_new = n_new / norm(n_new, axis=-1, keepdims=True)
+    p = n * offset[:, None]
+    p_new = affine_transformation(p, A, -b)
+    offset_new = jnp.sum(p_new * n_new, axis=-1)
+    return jnp.concatenate([n_new, offset_new[:, None]], axis=-1)
+
+
+def affine_transformation_on_grain(grain, A, b):
+    det_A = jnp.linalg.det(A)
+    eq = _affine_transformation_equations(grain.equations, A, b)
+    vol = grain.volume * det_A
+    lb = affine_transformation(grain.lower_bound, A, b)
+    ub = affine_transformation(grain.upper_bound, A, b)
+    vertices = affine_transformation(grain.vertices, A, b)
+    if grain.mesh is not None:
+        nodes = affine_transformation(grain.mesh.nodes, A, b)
+        mesh = grain.mesh._replace(nodes=nodes)
+    else:
+        mesh = None
+        
+    if grain.quad_rule is not None:
+        weights, nodes = grain.quad_rule
+        nodes = affine_transformation(nodes, A, b)
+        weights = weights * det_A
+        quad_rule = (weights, nodes)
+    else:
+        quad_rule = None
+        
+    return grain._replace(
+        vertices=vertices,
+        volume=vol,
+        equations=eq,
+        lower_bound=lb,
+        upper_bound=ub,
+        mesh=mesh,
+        quad_rule=quad_rule
+    )
+
+
+def shift_grain(grain, lb_new, ub_new):
+    lb, ub = grain.lower_bound, grain.upper_bound
+    k = (ub_new - lb_new) / (ub - lb)
+    A = diag(k)
+    b = lb_new - k * lb
+    return affine_transformation_on_grain(grain, A, b)
