@@ -94,7 +94,7 @@ def single_layer_potential(source_tensor, charge_tensor):
 
 def curl_single_layer_potential(source_tensor_derivative, charge_tensor):
     curl_s = -jnp.cross(charge_tensor, source_tensor_derivative)
-    return 1 / (4 * pi) * jnp.sum(curl_s, 0)
+    return 1 / (4 * pi) * jnp.sum(curl_s, (0, 1))
 
 
 def scalar_potential_charge(adf, mag, phi1, normalized=False):
