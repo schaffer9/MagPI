@@ -1,6 +1,8 @@
+import pytest
+
 from magpi.integrate import (
     integrate, gauss, midpoint, integrate_disk, integrate_sphere,
-    integrate_quad_rule, make_quad_rule
+    integrate_quad_rule, make_quad_rule, load_tet_quad_rule, load_tri_quad_rule
 )
 
 from . import *
@@ -81,3 +83,17 @@ class TestIntegrate(JaxTestCase):
         result = integrate_quad_rule(fn, W, X)
         self.assertEqual(result.shape, ())
         self.assertIsclose(result, true_sol)
+
+
+class TestLoadTriTetRules(JaxTestCase):
+    @pytest.mark.skipif(not has_internet(), reason="requires internet connection")
+    def test_000_load_tri_rule(self):
+        weights, nodes = load_tri_quad_rule(36)
+        print(jnp.sum(weights))
+        self.assertIsclose(jnp.sum(weights), 1 / 2)
+        
+    @pytest.mark.skipif(not has_internet(), reason="requires internet connection")
+    def test_001_load_tet_rule(self):
+        weights, nodes = load_tet_quad_rule(13)
+        print(jnp.sum(weights))
+        self.assertIsclose(jnp.sum(weights), 1 / 6)

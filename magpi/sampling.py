@@ -1,25 +1,29 @@
-from typing import Callable
+from typing import Callable, NamedTuple, TypeVar
 
 from .prelude import *
-from chex import ArrayTree
+from scipy.stats.qmc import PoissonDisk
+from .quaternions import from_euler_angles, quaternion_rotation
+from .magnetostatic import cayley_rotation, PotentialSolver, ElmPoissonSolution
 
 
-Sample = ArrayTree
-Samples = ArrayTree
-PDF = Callable[[Sample], float]
+Sample = TypeVar("Sample", covariant=True)
 Key = Array
+Accept_fn = Callable[[Sample, Key], Array]
 SampleFn = Callable[[Key], Sample]
+PDF = Callable[[Sample], float]
+ELM = Callable[..., Array]
+Errors = Array
+Scalar = float | Array
 
 
 def rejection_sampling(
     key: Key,
-    pdf: PDF,
-    sample_fn: SampleFn,
+    accept_fn: Accept_fn[Sample],
+    sample_fn: SampleFn[Sample],
     n: int,
-    m: int,
-) -> Samples:
-    """Draws `n` samples according to the given PDF. It takes on average
-    `m` iterations for each sample. Samples are drawn in parallel.
+) -> Sample:
+    """Draws `n` samples according to the given given sample function `sample_fn` and accepts the sample
+    if `accept_fn` yields True.
 
     Parameters
     ----------
@@ -31,23 +35,161 @@ def rejection_sampling(
     """
 
     def draw_sample(key):
-        key, samplekey, valkey = random.split(key, 3)
+        k1, k2, samplekey = random.split(key, 3)
         sample = sample_fn(samplekey)
-        p = random.uniform(valkey)
 
         def body(state):
-            key, p, sample = state
-            key, samplekey, valkey = random.split(key, 3)
-            p = random.uniform(valkey)
+            (k1, k2), sample = state
+            k1, k2, samplekey = random.split(k1, 3)
             sample = sample_fn(samplekey)
-            return key, p, sample
+            return (k1, k2), sample
 
         def not_valid(state):
-            _, p, sample = state
-            return p > (pdf(sample) / m)
+            (_, k2), sample = state
+            return jnp.logical_not(accept_fn(sample, k2))
 
-        _, _, sample = lax.while_loop(not_valid, body, (key, p, sample))
+        _, sample = lax.while_loop(not_valid, body, ((k1, k2), sample))
         return sample
 
     keys = random.split(key, n)
     return vmap(draw_sample)(keys)
+
+
+def rejection_sampling_from_pdf(key, pdf: PDF, sample_fn: SampleFn, n, m):
+    def accept_fn(sample, key):
+        p = random.uniform(key)
+        return p < (pdf(sample) / m)
+
+    return rejection_sampling(key, accept_fn, sample_fn, n)
+
+
+uniform_state = lambda x: zeros_like(x).at[..., -1].set(0)
+
+unit_vec = lambda x: x / norm(x, keepdims=True)
+
+
+def flower_state(x, a: Scalar = 1.0, b: Scalar = 2.0, c: Scalar = 1.0) -> Array:
+    mx = 1 / a * x[..., 0] * x[..., 2]
+    my = 1 / c * x[..., 1] * x[..., 2] + (1 / b**3 * x[..., 1] * x[..., 2]) ** 3
+    mz = ones_like(my)
+    mag = stack([mx, my, mz], axis=-1)
+    return unit_vec(mag)
+
+
+def vortex_state(x, rc: Scalar = 0.14) -> Array:
+    x, _, z = x[..., 0], x[..., 1], x[..., 2]
+    r = sqrt(z**2 + x**2)
+    k = r**2 / rc**2
+
+    my = exp(-2 * k)
+    mx = -z / r * sqrt(1 - exp(-4 * k))
+    mz = x / r * sqrt(1 - exp(-4 * k))
+
+    mag = stack([mx, my, mz], axis=-1)
+    return unit_vec(mag)
+
+
+def sample_uniform_state(key):
+    return uniform_state
+
+
+def sample_vortex_state(key, rc_min=0.1, rc_max=1.0):
+    rc = random.uniform(key, (), minval=rc_min, maxval=rc_max)
+    return partial(vortex_state, rc=rc)
+
+
+def sample_flower_state(key, a_min=0.5, a_max=2.0, b_min=1, b_max=3, c_min=0.5, c_max=2):
+    a = random.uniform(key, (), minval=a_min, maxval=a_max)
+    b = random.uniform(key, (), minval=b_min, maxval=b_max)
+    c = random.uniform(key, (), minval=c_min, maxval=c_max)
+    return partial(flower_state, a=a, b=b, c=c)
+
+
+default_init_mags = [sample_uniform_state, sample_vortex_state, sample_flower_state]
+
+
+def init_mag(x: Array, key: Array, sample_functions: list[Callable] = default_init_mags) -> Array:
+    """This function provides a broad range of initial magnetization states.
+    Note that the key must be the same for each state.
+
+    Parameters
+    ----------
+    x : Array
+    key : Array
+    sample_fn : list[Callable], optional
+        list of sample functions for the initial magnetization, by default default_init_mags
+
+    Returns
+    -------
+    Array
+        initial magnetization at x
+    """
+    k1, k2, k3 = random.split(key, 3)
+    index = random.randint(k1, (), minval=0, maxval=len(sample_functions))
+    _init_mag_sample = [lambda key: fn(key)(x) for fn in sample_functions]
+    m0 = lax.switch(index, _init_mag_sample, k2)
+    euler_angles = random.uniform(k3, (3,), minval=-pi, maxval=pi)
+    euler_angles = euler_angles.at[1].set(euler_angles[1] / 2)
+    q = from_euler_angles(euler_angles)
+    m0 = quaternion_rotation(m0, q)
+    return m0
+
+
+class MagParams(NamedTuple):
+    elm_params: Array
+    init_mag_key: Array
+
+
+def default_mag_elm(x):
+    gamma = 5.0
+    with jax.ensure_compile_time_eval():
+        c = asarray(PoissonDisk(3, radius=0.1, rng=42).fill_space() * 2 - 1)
+    return jnp.exp(-gamma * norm(x - c, axis=-1) ** 2)
+
+
+def mag_model(
+    x, params: MagParams, elm: ELM = default_mag_elm, sample_functions: list[Callable] = default_init_mags
+) -> Array:
+    m0 = init_mag(x, params.init_mag_key, sample_functions=sample_functions)
+    p = elm(x) @ params.elm_params
+    assert p.shape == (3,)
+    return cayley_rotation(p, m0)
+
+
+def draw_mag_params(key: Array, elm_size: int) -> MagParams:
+    k1, k2, k3 = random.split(key, 3)
+    p = random.normal(k1, (elm_size, 3))
+    scale = random.normal(k2, ()) * 0.5
+    return MagParams(p * scale, k3)
+
+
+@partial(jit, static_argnames=(
+    "n",
+    "elm",
+    "mag_params_sample_fn",
+    "init_mag_sample_functions"
+))
+def sample_magnetization_states(
+    n: int,
+    key: Array,
+    potential_solver: PotentialSolver,
+    elm: ELM = default_mag_elm,
+    mag_params_sample_fn: Callable = draw_mag_params,
+    init_mag_sample_functions: list[Callable] = default_init_mags,
+    tol: float = 5e-2,
+) -> tuple[MagParams, ElmPoissonSolution]:
+    with jax.ensure_compile_time_eval():
+        elm_size = elm(zeros((3,))).shape[0]
+
+    def _sample_mag(key) -> tuple[MagParams, ElmPoissonSolution]:
+        mag_params = mag_params_sample_fn(key, elm_size)
+        _mag = lambda x: mag_model(x, mag_params, elm=elm, sample_functions=init_mag_sample_functions)
+        poisson_solution = potential_solver.u1_solution(_mag)
+        return mag_params, poisson_solution
+
+    def _accept_mag(mag_sample, key):
+        _, poisson_solution = mag_sample
+        return poisson_solution.strong_residual < tol
+
+    mag_params, poisson_solution = rejection_sampling(key, _accept_mag, _sample_mag, n)
+    return mag_params, poisson_solution

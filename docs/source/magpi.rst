@@ -66,3 +66,26 @@ magpi.r_fun module
 .. automodule:: magpi.r_fun
    :members:
 
+magpi.magnetostatic module
+--------------------------
+
+.. automodule:: magpi.magnetostatic
+   :members:
+
+magpi.grain module
+------------------
+
+.. automodule:: magpi.grain
+   :members:
+
+magpi.mesh module
+-----------------
+
+.. automodule:: magpi.mesh
+   :members:
+
+magpi.slp module
+----------------
+
+.. automodule:: magpi.slp
+   :members:

@@ -1,6 +1,8 @@
+import socket
 from unittest import TestCase
 
 from magpi.prelude import *
+from magpi.mesh import NGSOLVE_INSTALLED
 
 
 class JaxTestCase(TestCase):
@@ -29,3 +31,16 @@ class JaxTestCase(TestCase):
         b_leaves = tree.leaves(b)
         all_equal = all([jnp.all(_a == _b) for _a, _b in zip(a_leaves, b_leaves)])
         self.assertTrue(all_equal, "Arrays are not equal")
+
+
+def has_internet(host="8.8.8.8", port=53, timeout=1.5):
+    try:
+        socket.setdefaulttimeout(timeout)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        return True
+    except socket.error:
+        return False
+    
+
+def ngsolve_installed():
+    return NGSOLVE_INSTALLED

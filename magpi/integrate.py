@@ -1,10 +1,13 @@
-from typing import Any, TypeAlias, TypeVar, Callable, Sequence
+import re
+from typing import Any, Callable, Sequence, TypeAlias, TypeVar
+from urllib.parse import urljoin
 
+import pandas as pd
+import requests
 from chex import ArrayTree
 from numpy.polynomial.legendre import leggauss
 
 from .prelude import *
-
 
 T = TypeVar("T", bound=ArrayTree, covariant=True)
 Integrand = Callable[..., T]
@@ -61,6 +64,54 @@ def gauss(degree: int) -> QuadRule:
         return vmap(weights_nodes)(domain[:-1], domain[1:])
 
     return quad
+
+
+def load_tet_quad_rule(degree: int):
+    """Loads a quadrature rule for a tetrahedral domain from 
+    https://github.com/OptimalDesignLab/SummationByParts.jl [2]_.
+
+    Parameters
+    ----------
+    degree : int
+        degree of the quadrature rule
+
+    Returns
+    -------
+    tuple[Weights, Nodes]
+    """
+    tet_rules_url = "https://api.github.com/repos/OptimalDesignLab/SummationByParts.jl/contents/pi_quadrature_data/tet/expanded/"
+    df = _load_quadrature(tet_rules_url, degree)
+    nodes = asarray(df.iloc[:, :3])
+    nodes = (nodes + 1) / 2
+    weights = asarray(df.iloc[:, 3]) / 8
+    return weights, nodes
+
+
+def load_tri_quad_rule(degree: int):
+    """Loads a quadrature rule for a triangular domain from 
+    https://github.com/OptimalDesignLab/SummationByParts.jl [2]_.
+
+    Parameters
+    ----------
+    degree : int
+        degree of the quadrature rule
+
+    Returns
+    -------
+    tuple[Weights, Nodes]
+    
+    Notes
+    -----
+    .. [2] Worku, Zelalem Arega, Jason E. Hicken, and David W. Zingg. 
+           "Very high-order symmetric positive-interior quadrature rules on triangles and tetrahedra." 
+           arXiv preprint arXiv:2409.02027 (2024).
+    """
+    tri_rules_url = "https://api.github.com/repos/OptimalDesignLab/SummationByParts.jl/contents/pi_quadrature_data/tri/expanded/"
+    df = _load_quadrature(tri_rules_url, degree)
+    nodes = asarray(df.iloc[:, :2])
+    nodes = (nodes + 1) / 2
+    weights = asarray(df.iloc[:, 2]) / 4
+    return weights, nodes
 
 
 def make_quad_rule(
@@ -337,3 +388,32 @@ def _meshgrid(*X):
         return jnp.stack(jnp.meshgrid(*M, indexing="ij"), axis=-1)
     
     return jnp.apply_along_axis(f, -1, indices)
+
+
+def _get_filename_from_degree(degree: int, filenames: list[str]) -> str:
+    pattern = re.compile(r"(tet|tri)_q(\d+)_n\d+_ext\.dat")
+    for fname in filenames:
+        match = pattern.fullmatch(fname)
+        if match and int(match.group(2)) == degree:
+            return fname
+    raise ValueError(f"No filename found for q = {degree}")
+
+
+def _load_quad_rules_files(url: str) -> list[str]:
+    response = requests.get(url)
+    response.raise_for_status()
+    data = response.json()
+    files = [item['name'] for item in data if item['type'] == 'file']
+    return files
+
+
+def _load_quadrature(url: str, degree: int) -> pd.DataFrame:
+    files = _load_quad_rules_files(url)
+    filename = _get_filename_from_degree(degree, files)
+    url = urljoin(url, filename)
+    response = requests.get(url)
+    response.raise_for_status()
+    data = response.json()
+    download_url = data.get("download_url")
+    df = pd.read_csv(download_url, skiprows=4, header=None, delimiter=r"\s+")
+    return df

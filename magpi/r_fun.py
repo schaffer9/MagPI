@@ -9,7 +9,7 @@ from .quaternions import (
 )
 
 
-Scalar = Array | float | int
+Scalar = Array | float
 Vec = Array | list[Scalar] | Scalar | tuple[Scalar, ...]
 Vec2d = Array | tuple[Scalar, Scalar]
 Vec3d = Array | tuple[Scalar, Scalar, Scalar]
@@ -22,7 +22,7 @@ the normal derivative has a magnitude of one everywhere on the
 boundary. Higher order normalization yields a function
 where higher order normal derivatives are zero.
 """
-ADF = Annotated[Callable[[Array | Scalar], Scalar], _annotation]
+ADF = Annotated[Callable[..., Scalar], _annotation]
 
 
 class RFun:
@@ -466,7 +466,7 @@ def rotate3d(
 ) -> ADF:
     """
     Rotates the 3d ADF by some angle around the rotation axis `rot_axis` or
-    if a three euler angles are provided around the point `o`.
+    if euler angles are provided around the point `o`.
 
     Parameters
     ----------

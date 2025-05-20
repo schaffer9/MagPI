@@ -1,28 +1,22 @@
-import operator
-from typing import NamedTuple, Sequence
+import dataclasses
+from typing import Sequence
 
 import numpy as np
 from scipy.spatial import HalfspaceIntersection, ConvexHull
 from scipy.optimize import linprog
-try:
-    from netgen.csg import CSGeometry, Pnt, Vec, Plane
-    from netgen.meshing import MeshingStep
-    NGSOLVE_INSTALLED = True
-except ImportError:
-    NGSOLVE_INSTALLED = False
+from jax.tree_util import register_pytree_node_class
+
 
 from .prelude import *
 from .integrate import Weights, Nodes
 from .elp import compute_elp, make_elp_quad_rule
 from .r_fun import hyperplane_intersection, r0
+from .mesh import Mesh, generate_convex_mesh
 
 
-class Mesh(NamedTuple):
-    nodes: Array
-    elements: Array
-
-
-class Grain(NamedTuple):
+@register_pytree_node_class
+@dataclasses.dataclass(frozen=True)
+class Grain:
     vertices: Array
     volume: Array
     equations: Array
@@ -30,35 +24,15 @@ class Grain(NamedTuple):
     upper_bound: Array
     mesh: Mesh | None = None
     quad_rule: tuple[Weights, Nodes] | None = None
+    material_parameters: dict[str, float] = dataclasses.field(default_factory=dict)
 
+    def tree_flatten(self):
+        children = dataclasses.astuple(self)
+        return (children, None)
 
-def _eq_to_plane(eq):
-    p, v = eq[:-1] * eq[-1], -eq[:-1]
-    return Plane(Pnt(*p), Vec(*v))
-
-
-def _padding_equation(eq):
-    n = eq[:-1]
-    return ~np.isclose(np.linalg.norm(n), 0.0)
-
-
-def generate_mesh(equations, *, maxh=0.25, volume=False, **kwargs):
-    if not NGSOLVE_INSTALLED:
-        raise ImportError("NGSolve is required for this function but it is not installed.")
-    geo = CSGeometry()
-    equations = filter(_padding_equation, equations)
-    planes = map(_eq_to_plane, equations)
-    grain = reduce(operator.mul, planes)
-    geo.Add(grain)
-    if volume:
-        mesh = geo.GenerateMesh(maxh=maxh, **kwargs)
-        nodes = np.array([p.p for p in mesh.Points()])
-        elements = np.array([[v.nr for v in e.vertices] for e in mesh.Elements3D()]) - 1
-    else:
-        mesh = geo.GenerateMesh(maxh=maxh, perfstepsend=MeshingStep.MESHSURFACE, **kwargs)
-        nodes = np.array([p.p for p in mesh.Points()])
-        elements = np.array([[v.nr for v in e.vertices] for e in mesh.Elements2D()]) - 1
-    return Mesh(asarray(nodes), asarray(elements))
+    @classmethod
+    def tree_unflatten(cls, aux_data, children):
+        return cls(*children)
 
 
 def polytope_intersection(vertices1, vertices2):
@@ -108,14 +82,15 @@ def sample_grain(
     elp_degree: int = 4,
     quad_rule_kwargs: dict | None = None,
     create_mesh: bool = False,
-    meshing_kwargs: dict | None = None
+    meshing_kwargs: dict | None = None,
+    material_parameters: dict | None = None,
 ):
     n = max(max_faces - bounds.shape[0], 0)
     dim = bounds.shape[-1] - 1
     equations = sample_planes(n, dim, rng=rng, min_offset=min_offset, max_offset=max_offset)
     equations = np.concatenate([bounds, equations])
     equations = np.pad(equations, [(0, max_faces - equations.shape[0]), (0, 0)])
-    
+
     return create_grain(
         equations,
         create_quad_rule=create_quad_rule,
@@ -123,7 +98,8 @@ def sample_grain(
         elp_degree=elp_degree,
         quad_rule_kwargs=quad_rule_kwargs,
         create_mesh=create_mesh,
-        meshing_kwargs=meshing_kwargs
+        meshing_kwargs=meshing_kwargs,
+        material_parameters=material_parameters,
     )
 
 
@@ -134,28 +110,34 @@ def create_grain(
     elp_degree: int = 4,
     quad_rule_kwargs: dict | None = None,
     create_mesh: bool = False,
-    meshing_kwargs: dict | None = None
-):
+    meshing_kwargs: dict | None = None,
+    material_parameters: dict | None = None,
+) -> Grain:
+    if material_parameters is None:
+        material_parameters = {}
+
     grain = _intersection(equations)
+    grain = dataclasses.replace(grain, material_parameters=material_parameters)
+
     if create_mesh:
         if meshing_kwargs is None:
             meshing_kwargs = {}
-        
+
         equations = np.asarray(grain.equations)
-        mesh = generate_mesh(equations, **meshing_kwargs)
-        grain = grain._replace(mesh=mesh)
-    
+        mesh = generate_convex_mesh(equations, **meshing_kwargs)
+        grain = dataclasses.replace(grain, mesh=mesh)
+
     if create_quad_rule:
         if quad_rule_kwargs is None:
             quad_rule_kwargs = {}
         if elp_domain is None:
             elp_domain = [array([lb, ub]) for lb, ub in zip(grain.lower_bound, grain.upper_bound)]
-        
+
         _eq = asarray(equations)
         elp = compute_elp(_adf, elp_domain, elp_degree, _eq, **quad_rule_kwargs)
         quad_rule = make_elp_quad_rule(elp)
-        grain = grain._replace(quad_rule=quad_rule)
-    
+        grain = dataclasses.replace(grain, quad_rule=quad_rule)
+
     grain = shift_grain(grain, -1, 1)
     return grain
 
@@ -163,15 +145,16 @@ def create_grain(
 def sample_planes(n, dim, rng=None, min_offset=0.4, max_offset=1.0):
     if rng is None:
         rng = np.random
-    
-    normal = rng.uniform(-1, 1, (n, dim,))
+
+    normal = rng.uniform(-1, 1, (n, dim))
     normal = normal / np.linalg.norm(normal, axis=-1, keepdims=True)
     offset = -rng.uniform(min_offset, max_offset, (n, 1))
     return np.concatenate([normal, offset], axis=-1)
 
 
 def _intersection(equations):
-    # compute interiour point (https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.HalfspaceIntersection.html#scipy.spatial.HalfspaceIntersection)
+    # compute interiour point
+    # (https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.HalfspaceIntersection.html#scipy.spatial.HalfspaceIntersection)
     norm_vector = np.reshape(np.linalg.norm(equations[:, :-1], axis=1), (equations.shape[0], 1))
     c = np.zeros((equations.shape[1],))
     c[-1] = -1
@@ -179,7 +162,7 @@ def _intersection(equations):
     b = -equations[:, -1:]
     res = linprog(c, A_ub=A, b_ub=b, bounds=(None, None))
     p = res.x[:-1]
-    
+
     intersection = HalfspaceIntersection(equations, p)
     vertices = intersection.intersections
     hull = ConvexHull(vertices, qhull_options="Q5")
@@ -190,7 +173,7 @@ def _intersection(equations):
         volume=asarray(vol),
         equations=asarray(equations),
         lower_bound=asarray(hull.min_bound),
-        upper_bound=asarray(hull.max_bound)
+        upper_bound=asarray(hull.max_bound),
     )
 
 
@@ -201,7 +184,7 @@ def _unique_equations(convex_hull):
     return eq
 
 
-def affine_transformation(x, A, b):
+def _affine(x, A, b):
     return x @ A.T + b
 
 
@@ -211,44 +194,45 @@ def _affine_transformation_equations(eq, A, b):
     n_new = n @ Ainv
     n_new = n_new / norm(n_new, axis=-1, keepdims=True)
     p = n * offset[:, None]
-    p_new = affine_transformation(p, A, -b)
+    p_new = _affine(p, A, -b)
     offset_new = jnp.sum(p_new * n_new, axis=-1)
     return jnp.concatenate([n_new, offset_new[:, None]], axis=-1)
 
 
-def affine_transformation_on_grain(grain, A, b):
+def affine_transformation_on_grain(grain: Grain, A: Array, b: Array) -> Grain:
     det_A = jnp.linalg.det(A)
     eq = _affine_transformation_equations(grain.equations, A, b)
     vol = grain.volume * det_A
-    lb = affine_transformation(grain.lower_bound, A, b)
-    ub = affine_transformation(grain.upper_bound, A, b)
-    vertices = affine_transformation(grain.vertices, A, b)
+    lb = _affine(grain.lower_bound, A, b)
+    ub = _affine(grain.upper_bound, A, b)
+    vertices = _affine(grain.vertices, A, b)
     if grain.mesh is not None:
-        nodes = affine_transformation(grain.mesh.nodes, A, b)
+        nodes = _affine(grain.mesh.nodes, A, b)
         mesh = grain.mesh._replace(nodes=nodes)
     else:
         mesh = None
-        
+
     if grain.quad_rule is not None:
         weights, nodes = grain.quad_rule
-        nodes = affine_transformation(nodes, A, b)
+        nodes = _affine(nodes, A, b)
         weights = weights * det_A
         quad_rule = (weights, nodes)
     else:
         quad_rule = None
-        
-    return grain._replace(
+
+    return dataclasses.replace(
+        grain,
         vertices=vertices,
         volume=vol,
         equations=eq,
         lower_bound=lb,
         upper_bound=ub,
         mesh=mesh,
-        quad_rule=quad_rule
+        quad_rule=quad_rule,
     )
 
 
-def shift_grain(grain, lb_new, ub_new):
+def shift_grain(grain: Grain, lb_new: float | Array, ub_new: float | Array) -> Grain:
     lb, ub = grain.lower_bound, grain.upper_bound
     k = (ub_new - lb_new) / (ub - lb)
     A = diag(k)
