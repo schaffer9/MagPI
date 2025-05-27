@@ -15,6 +15,8 @@ from .slp import (
 )
 from .mesh import Mesh
 from .r_fun import ADF
+from .integrate import integrate_quad_rule
+
 
 Weights = Array
 Nodes = Array
@@ -205,6 +207,9 @@ class Potential:
     
     
 class PotentialSolver(Protocol):
+    poisson_solver: ElmPoissonSolver
+    slp_solver: SlpSolver
+
     def solve(
         self,
         mag: Mag,
@@ -389,3 +394,21 @@ def elm_mag_model(elm):
         return cayley_rotation(p, _m0)
 
     return mag
+
+
+def exchange_energy(mag: Mag, A: float, quad_rule: QuadRule) -> Array:
+    W, X = quad_rule
+
+    def e_ex(x):
+        dm = jacfwd(mag)(x)
+        return A * jnp.sum(dm * dm)
+    
+    return integrate_quad_rule(e_ex, W, X)
+
+def ani_energy(m, Q: float, easy_axis: Array, quad_rule: QuadRule) -> Array:
+    W, X = quad_rule
+
+    def e_ani(x):
+        return Q * (1 - (m(x) @ easy_axis) ** 2)
+
+    return integrate_quad_rule(e_ani, W, X)

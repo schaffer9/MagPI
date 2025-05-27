@@ -3,7 +3,7 @@ from typing import Callable, NamedTuple, TypeVar
 from .prelude import *
 from scipy.stats.qmc import PoissonDisk
 from .quaternions import from_euler_angles, quaternion_rotation
-from .magnetostatic import cayley_rotation, PotentialSolver, ElmPoissonSolution
+from .magnetostatic import cayley_rotation, PotentialSolver, ElmPoissonSolution, exchange_energy
 
 
 Sample = TypeVar("Sample", covariant=True)
@@ -12,6 +12,7 @@ Accept_fn = Callable[[Sample, Key], Array]
 SampleFn = Callable[[Key], Sample]
 PDF = Callable[[Sample], float]
 ELM = Callable[..., Array]
+
 Errors = Array
 Scalar = float | Array
 
@@ -140,15 +141,23 @@ class MagParams(NamedTuple):
     init_mag_key: Array
 
 
-def default_mag_elm(x):
-    gamma = 5.0
+Mag = Callable[[Array, MagParams], Array]
+
+
+def default_mag_elm(x, gamma: float = 3, lb: Array = asarray(-0.6), ub: Array = asarray(0.6)):
     with jax.ensure_compile_time_eval():
-        c = asarray(PoissonDisk(3, radius=0.1, rng=42).fill_space() * 2 - 1)
+        c = asarray(PoissonDisk(3, radius=0.1, rng=42).fill_space())
+        c = c * (ub - lb) + lb
+
     return jnp.exp(-gamma * norm(x - c, axis=-1) ** 2)
 
 
-def mag_model(
-    x, params: MagParams, elm: ELM = default_mag_elm, sample_functions: list[Callable] = default_init_mags
+default_elm_size = default_mag_elm(zeros((3,))).shape[0]
+
+
+def default_mag_model(
+    x, params: MagParams, elm: ELM = default_mag_elm, 
+    sample_functions: list[Callable] = default_init_mags
 ) -> Array:
     m0 = init_mag(x, params.init_mag_key, sample_functions=sample_functions)
     p = elm(x) @ params.elm_params
@@ -156,7 +165,7 @@ def mag_model(
     return cayley_rotation(p, m0)
 
 
-def draw_mag_params(key: Array, elm_size: int) -> MagParams:
+def draw_mag_params(key: Array, elm_size: int=default_elm_size) -> MagParams:
     k1, k2, k3 = random.split(key, 3)
     p = random.normal(k1, (elm_size, 3))
     scale = random.normal(k2, ()) * 0.5
@@ -165,31 +174,28 @@ def draw_mag_params(key: Array, elm_size: int) -> MagParams:
 
 @partial(jit, static_argnames=(
     "n",
-    "elm",
+    "mag_model",
     "mag_params_sample_fn",
-    "init_mag_sample_functions"
 ))
 def sample_magnetization_states(
     n: int,
     key: Array,
     potential_solver: PotentialSolver,
-    elm: ELM = default_mag_elm,
+    mag_model: Mag = default_mag_model,
     mag_params_sample_fn: Callable = draw_mag_params,
-    init_mag_sample_functions: list[Callable] = default_init_mags,
+    max_exchange_energy=15,
     tol: float = 5e-2,
-) -> tuple[MagParams, ElmPoissonSolution]:
-    with jax.ensure_compile_time_eval():
-        elm_size = elm(zeros((3,))).shape[0]
-
-    def _sample_mag(key) -> tuple[MagParams, ElmPoissonSolution]:
-        mag_params = mag_params_sample_fn(key, elm_size)
-        _mag = lambda x: mag_model(x, mag_params, elm=elm, sample_functions=init_mag_sample_functions)
+) -> tuple[MagParams, ElmPoissonSolution, Array]:
+    def _sample_mag(key) -> tuple[MagParams, ElmPoissonSolution, Array]:
+        mag_params = mag_params_sample_fn(key)
+        _mag = lambda x: mag_model(x, mag_params)
         poisson_solution = potential_solver.u1_solution(_mag)
-        return mag_params, poisson_solution
+        e_ex = exchange_energy(_mag, 1.0, potential_solver.poisson_solver.quad_rule)
+        return mag_params, poisson_solution, e_ex
 
     def _accept_mag(mag_sample, key):
-        _, poisson_solution = mag_sample
-        return poisson_solution.strong_residual < tol
+        _, poisson_solution, e_ex = mag_sample
+        return (poisson_solution.strong_residual < tol) & (e_ex < max_exchange_energy)
 
-    mag_params, poisson_solution = rejection_sampling(key, _accept_mag, _sample_mag, n)
-    return mag_params, poisson_solution
+    return rejection_sampling(key, _accept_mag, _sample_mag, n)
+    

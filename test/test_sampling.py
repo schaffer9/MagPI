@@ -60,10 +60,10 @@ class TestSampleMagnetizationStates(JaxTestCase):
         
         key = random.key(42)
         tol = 5e-2
-        mags, poisson_solution = sampling.sample_magnetization_states(
+        mags, poisson_solution, _ = sampling.sample_magnetization_states(
             10, key, solver, tol=tol
         )
         self.assertTrue(jnp.all(poisson_solution.strong_residual < tol))
         m0 = tree.map(lambda t: t[0], mags)
-        m = sampling.mag_model(zeros((3,)), m0)
+        m = sampling.default_mag_model(zeros((3,)), m0)
         self.assertEqual(m.shape, (3,))
