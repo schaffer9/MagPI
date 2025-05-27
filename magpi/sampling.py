@@ -19,9 +19,9 @@ Scalar = float | Array
 
 def rejection_sampling(
     key: Key,
-    accept_fn: Accept_fn[Sample],
-    sample_fn: SampleFn[Sample],
     n: int,
+    sample_fn: SampleFn[Sample],
+    accept_fn: Accept_fn[Sample],
 ) -> Sample:
     """Draws `n` samples according to the given given sample function `sample_fn` and accepts the sample
     if `accept_fn` yields True.
@@ -56,12 +56,12 @@ def rejection_sampling(
     return vmap(draw_sample)(keys)
 
 
-def rejection_sampling_from_pdf(key, pdf: PDF, sample_fn: SampleFn, n, m):
+def rejection_sampling_from_pdf(key, n: int, pdf: PDF, sample_fn: SampleFn, m: int=2):
     def accept_fn(sample, key):
         p = random.uniform(key)
         return p < (pdf(sample) / m)
 
-    return rejection_sampling(key, accept_fn, sample_fn, n)
+    return rejection_sampling(key, n, sample_fn, accept_fn)
 
 
 uniform_state = lambda x: zeros_like(x).at[..., -1].set(0)
@@ -178,8 +178,8 @@ def draw_mag_params(key: Array, elm_size: int=default_elm_size) -> MagParams:
     "mag_params_sample_fn",
 ))
 def sample_magnetization_states(
-    n: int,
     key: Array,
+    n: int,
     potential_solver: PotentialSolver,
     mag_model: Mag = default_mag_model,
     mag_params_sample_fn: Callable = draw_mag_params,
@@ -197,5 +197,5 @@ def sample_magnetization_states(
         _, poisson_solution, e_ex = mag_sample
         return (poisson_solution.strong_residual < tol) & (e_ex < max_exchange_energy)
 
-    return rejection_sampling(key, _accept_mag, _sample_mag, n)
+    return rejection_sampling(key, n, _sample_mag, _accept_mag)
     

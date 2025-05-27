@@ -16,7 +16,7 @@ class TestSampling(JaxTestCase):
             return p < (pdf(sample) / 4)
         
         sample_fn = lambda key: random.uniform(key, (2, )) * 2 - 1
-        samples = sampling.rejection_sampling(random.PRNGKey(42), accept_fn, sample_fn, 1024)
+        samples = sampling.rejection_sampling(random.PRNGKey(42), 1024, sample_fn, accept_fn)
         self.assertTrue(all(norm(samples, axis=-1) <= 1.))
 
     def test_02_rejection_sample_as_pytree(self):
@@ -31,7 +31,7 @@ class TestSampling(JaxTestCase):
             sample = random.uniform(key, (2, )) * 2 - 1
             return sample[0], sample[1]
         
-        samples = sampling.rejection_sampling(random.PRNGKey(42), accept_fn, sample_fn, 1024)
+        samples = sampling.rejection_sampling(random.PRNGKey(42), 1024, sample_fn, accept_fn)
         self.assertTrue(all(vmap(_norm)(samples) <= 1.))
 
 
@@ -55,13 +55,13 @@ class TestSampleMagnetizationStates(JaxTestCase):
         
         solver = create_scalar_potential_solver(
             adf, h_elm, quad_rule, 
-            Mesh(array([]), array([]), array([])), tri_quad_rule
+            Mesh(array([]), array([]), array([]), 0, 0.0), tri_quad_rule
         )
         
         key = random.key(42)
         tol = 5e-2
         mags, poisson_solution, _ = sampling.sample_magnetization_states(
-            10, key, solver, tol=tol
+            key, 10, solver, tol=tol
         )
         self.assertTrue(jnp.all(poisson_solution.strong_residual < tol))
         m0 = tree.map(lambda t: t[0], mags)

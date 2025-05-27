@@ -131,11 +131,11 @@ class TestElp(JaxTestCase):
         self.assertIsclose(I, I_true, atol=1e-3)
         
     def test_003_integrate_grain(self):
-        rng = np.random.RandomState(42)
         domain = jnp.linspace(-1, 1, 6)
         domain = [domain, domain, domain]
+        key = random.key(2)
         grain = sample_grain(
-            12, rng=rng, create_quad_rule=True, elp_domain=domain, elp_degree=4,
+            key, 12, create_quad_rule=True, elp_domain=domain, elp_degree=4,
             quad_rule_kwargs={"max_depth": 4}
         )
         w, _ = grain.quad_rule

@@ -75,7 +75,7 @@ class TestSlpSolver(JaxTestCase):
             ]
         )
         tri_quad_rule = load_tri_quad_rule(30)
-        mesh = generate_convex_mesh(_box, maxh=0.2)
+        mesh = generate_convex_mesh(_box, maxh=0.2).to_jax()
         solver = create_slp_solver(mesh, tri_quad_rule, 2)
         z, dz = solver.compute_source(zeros((3,)))
         self.assertEqual(z.shape, (mesh.sur_elements.shape[0], 13))
