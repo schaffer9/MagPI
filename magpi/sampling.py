@@ -1,9 +1,12 @@
-from typing import Callable, NamedTuple, TypeVar
+from typing import Callable, NamedTuple, TypeVar, Any
+
+from scipy.stats.qmc import PoissonDisk
 
 from .prelude import *
-from scipy.stats.qmc import PoissonDisk
 from .quaternions import from_euler_angles, quaternion_rotation
 from .magnetostatic import cayley_rotation, PotentialSolver, ElmPoissonSolution, exchange_energy
+from .calc import laplace
+from .r_fun import ADF
 
 
 Sample = TypeVar("Sample", covariant=True)
@@ -23,16 +26,15 @@ def rejection_sampling(
     sample_fn: SampleFn[Sample],
     accept_fn: Accept_fn[Sample],
 ) -> Sample:
-    """Draws `n` samples according to the given given sample function `sample_fn` and accepts the sample
+    """Draws `n` samples according to the given sample function `sample_fn` and accepts the sample
     if `accept_fn` yields True.
 
     Parameters
     ----------
     key : Key
-    pdf : PDF
-    sample_fn : SampleFn
     n : int
-    m : int
+    sample_fn : SampleFn
+    accept_fn : Accept_fn
     """
 
     def draw_sample(key):
@@ -57,6 +59,16 @@ def rejection_sampling(
 
 
 def rejection_sampling_from_pdf(key, n: int, pdf: PDF, sample_fn: SampleFn, m: int=2):
+    """Draws `n` samples according to the given probability density function `pdf`.
+
+    Parameters
+    ----------
+    key : Key
+    n : int
+    pdf : PDF
+    sample_fn : SampleFn
+    m : int
+    """
     def accept_fn(sample, key):
         p = random.uniform(key)
         return p < (pdf(sample) / m)
@@ -144,7 +156,7 @@ class MagParams(NamedTuple):
 Mag = Callable[[Array, MagParams], Array]
 
 
-def default_mag_elm(x, gamma: float = 3, lb: Array = asarray(-0.6), ub: Array = asarray(0.6)):
+def default_mag_elm(x, gamma: float = 1.0, lb: Array = asarray(-1.1), ub: Array = asarray(1.1)):
     with jax.ensure_compile_time_eval():
         c = asarray(PoissonDisk(3, radius=0.1, rng=42).fill_space())
         c = c * (ub - lb) + lb
@@ -198,4 +210,79 @@ def sample_magnetization_states(
         return (poisson_solution.strong_residual < tol) & (e_ex < max_exchange_energy)
 
     return rejection_sampling(key, n, _sample_mag, _accept_mag)
+
+
+def sample_domain(
+        key: Array, 
+        n_samples: int, 
+        adf: ADF, 
+        *args: Any, 
+        dimension: int = 3,
+        lower_bound: Array = asarray(-1.0), 
+        upper_bound: Array = asarray(1.0),
+        eps: float = 0.0, 
+        curvature_threshold: float | None = 100.0, 
+        interior: bool = True, 
+        pdf: PDF | None=None, 
+    ) -> Array:
+    """Rejection sampling based on the given ADF. This function can sample
+    the interior of the domain, as well as the exteriour. Further, thresholds can be
+    applied to have a minimum distance from the boundary (`eps`) or to 
+    avoid sampling in regions with high curvature of the ADF (`curvature_threshold`).
+    Additionally, samples can be drawn with a specific probability by providing
+    the probability density function `pdf`.
+
+    Parameters
+    ----------
+    key : Array
+    n_samples : int
+    adf : ADF
+    lower_bound : Array, optional
+        lower bound of uniform distribution of the samples, by default -1
+    upper_bound : Array, optional
+        upper bound of uniform distribution of the samples, by default 1
+    eps : float, optional
+        minimum distance to the boundary - note that this is not a strict measure since it is measured
+        by the ADF, by default 0.0.
+    curvature_threshold : float | None, optional
+        reject samples with `laplace(adf) > curvature_threshold`, by default 100.0
+    interior : bool, optional
+        If `True`, the interiour is sampled, otherwise the exterior. 
+        `lower_bound` and `upper_bound` might need to be adjusted to sample 
+        the exterior, by default True
+    pdf : PDF | None, optional
+        Probability density function from which to draw the samples from. This is mainly
+        thought to sample the exterior with more samples close to the actual domain, by default None.
+
+    Returns
+    -------
+    Array
+        Samples
+    """
+    lower_bound, upper_bound = asarray(lower_bound), asarray(upper_bound)
+    def sample_fn(key):
+        sample = random.uniform(key, (dimension,), minval=lower_bound, maxval=upper_bound)
+        return sample
     
+    def accept_fn(sample, key):
+        if pdf is not None:
+            p = random.uniform(key)
+            if upper_bound.shape == () and lower_bound.shape == ():
+                pdf_scaling = (upper_bound - lower_bound) ** 3
+            else:
+                pdf_scaling = jnp.prod(upper_bound - lower_bound)
+            accept = p < (pdf(sample) * pdf_scaling)
+        else:
+            accept = True
+
+        l = adf(sample, *args)
+        valid = (jnp.abs(l) > eps)
+        if curvature_threshold is not None:
+            lap_l = laplace(adf)(sample, *args)
+            valid = valid & (jnp.abs(lap_l) < curvature_threshold)
+        if interior:
+            return accept & (l > 0) & valid
+        else:
+            return accept & (l <= 0) & valid 
+    _samples = rejection_sampling(key, n_samples, sample_fn, accept_fn)
+    return _samples

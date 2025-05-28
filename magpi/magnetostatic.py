@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Callable, Any, Protocol
+from typing import Callable, Any, Protocol, NamedTuple
 
 from jax.tree_util import register_pytree_node_class
 
@@ -32,16 +32,31 @@ ElmParams = Array
 @register_pytree_node_class
 @dataclasses.dataclass(frozen=True)
 class ElmPoissonSolution:
+    _adf: ADF
+    _elm: ELM
+    adf_args: tuple[Any]
     elm_params: Array
     strong_residual: Array
+    set_ext_domain_to_zero: bool = True
+    
+    def __call__(self, x):
+        l = jnp.maximum(self.adf(x), 0.0)
+        return l * self.elm(x)
+
+    def elm(self, x):
+        return self._elm(x) @ self.elm_params
+
+    def adf(self, x: Array) -> Scalar:
+        return self._adf(x, *self.adf_args)
     
     def tree_flatten(self):
         children = (self.elm_params, self.strong_residual)  # arrays / dynamic values
-        return (children, None)
+        aux = (self._adf, self._elm, self.adf_args)
+        return (children, aux)
 
     @classmethod
     def tree_unflatten(cls, aux_data, children):
-        return cls(*children)
+        return cls(*aux_data, *children)
 
 
 @register_pytree_node_class
@@ -54,6 +69,7 @@ class ElmPoissonSolver:
     Q: Array
     Pinv: Array
     condition_number: Array
+    set_ext_domain_to_zero: bool = True
 
     def solve(self, f: Callable[..., Array], *args, **kwargs) -> ElmPoissonSolution:
         W, X = self.quad_rule[0].reshape(-1), self.quad_rule[1].reshape(-1, 3)
@@ -66,7 +82,7 @@ class ElmPoissonSolver:
         if residuals.ndim > 1:
             residuals = norm(residuals, axis=tuple(range(1, residuals.ndim)))
         strong_residual = jnp.sqrt(jnp.sum(W * residuals ** 2))
-        return ElmPoissonSolution(elm_params, strong_residual)
+        return ElmPoissonSolution(self._adf, self.elm, self.adf_args, elm_params, strong_residual, self.set_ext_domain_to_zero)
 
     def adf(self, x: Array) -> Scalar:
         return self._adf(x, *self.adf_args)
@@ -89,7 +105,8 @@ def create_elm_poisson_solver(
     elm: ELM,
     quad_rule: QuadRule,
     *adf_args: Any,
-    eps: float = 1e-4
+    eps: float = 1e-4,
+    set_ext_domain_to_zero: bool = True
 ) -> ElmPoissonSolver:
     r"""Creates a solver for a Poisson problem
     with homogeneous boundary conditions
@@ -123,7 +140,7 @@ def create_elm_poisson_solver(
     condition_number = S[0] / jnp.maximum(S[-1], eps)
     Pinv = VT.T * Sinv @ U.T
     return ElmPoissonSolver(_adf=adf, adf_args=adf_args, elm=elm, quad_rule=quad_rule, 
-                            Q=Q, Pinv=Pinv, condition_number=condition_number)
+                            Q=Q, Pinv=Pinv, condition_number=condition_number, set_ext_domain_to_zero=set_ext_domain_to_zero)
 
 
 @register_pytree_node_class
@@ -271,9 +288,10 @@ class ScalarPotentialSolver:
 
         if u1_solution is None:
             u1_solution = self.u1_solution(_mag)
-        phi1 = lambda x: self.poisson_solver.u(x, u1_solution.elm_params)
+        phi1 = u1_solution
+        _phi1 = lambda x: self.poisson_solver.u(x, u1_solution.elm_params)
         phi1_x, h1_x = vmap(value_and_jacfwd(phi1))(X)
-        charges = self.slp_solver.scalar_potential_charge(_mag, phi1, normalized=False)
+        charges = self.slp_solver.scalar_potential_charge(_mag, _phi1, normalized=False)
         phi2_x = vmap(lambda z: self.slp_solver.slp(z, charges))(Z)
         h2_x = vmap(lambda dz: self.slp_solver.grad_slp(dz, charges))(dZ)
         return Potential(X, Z, dZ, phi1_x, phi2_x, -h1_x, -h2_x, u1_solution)
@@ -317,9 +335,10 @@ class VectorPotentialSolver:
         if u1_solution is None:
             u1_solution = self.u1_solution(_mag)
 
-        A1 = lambda x: self.poisson_solver.u(x, u1_solution.elm_params)
+        A1 = u1_solution
+        _A1 = lambda x: self.poisson_solver.u(x, u1_solution.elm_params)
         A1_x, b1_x = vmap(A1)(X), asarray(vmap(curl(A1))(X))
-        charges = self.slp_solver.vector_potential_charge(mag, A1, normalized=False)
+        charges = self.slp_solver.vector_potential_charge(mag, _A1, normalized=False)
         A2_x = vmap(lambda z: self.slp_solver.slp(z, charges))(Z)
         b2_x = vmap(lambda dz: self.slp_solver.curl_slp(dz, charges))(dZ)
         return Potential(X, Z, dZ, A1_x, A2_x, b1_x, b2_x, u1_solution)
@@ -339,8 +358,8 @@ class VectorPotentialSolver:
 
 
 def create_scalar_potential_solver(
-    adf: Callable,
-    elm: Callable,
+    adf: ADF,
+    elm: ELM,
     quad_rule: QuadRule,
     mesh: Mesh,
     tri_quad_rule: QuadRule,
@@ -354,8 +373,8 @@ def create_scalar_potential_solver(
 
 
 def create_vector_potential_solver(
-    adf: Callable,
-    elm: Callable,
+    adf: ADF,
+    elm: ELM,
     quad_rule: QuadRule,
     mesh: Mesh,
     tri_quad_rule: QuadRule,

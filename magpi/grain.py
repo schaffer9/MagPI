@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Sequence
+from typing import Sequence, NamedTuple, Callable, Any
 import warnings
 
 import numpy as np
@@ -7,12 +7,15 @@ from scipy.spatial import HalfspaceIntersection, ConvexHull
 from scipy.optimize import linprog
 from jax.tree_util import register_pytree_node_class
 from jax.experimental import io_callback
+from jax.scipy import stats
 
 from .prelude import *
-from .integrate import Weights, Nodes
+from .integrate import Weights, Nodes, QuadRule
 from .elp import compute_elp, make_elp_quad_rule
 from .r_fun import hyperplane_intersection, r0, ADF, RFun
 from .mesh import Mesh, generate_convex_mesh, empty_mesh
+from .magnetostatic import ELM, PotentialSolver, create_scalar_potential_solver, create_vector_potential_solver, ElmPoissonSolution, Potential
+from .sampling import sample_domain, sample_magnetization_states, Mag, default_mag_model, draw_mag_params, MagParams, PDF
 
 
 Equations = Array
@@ -44,6 +47,82 @@ class Grain:
         return cls(*children)
 
 
+class GrainSolver(NamedTuple):
+    grain: Grain
+    solver: PotentialSolver
+
+    def solve(
+        self,
+        mag: Mag,
+        X: Array | tuple[Array, Array, Array],
+        *args: Any,
+        u1_solution: ElmPoissonSolution | None = None,
+        **kwargs: Any,
+    ) -> Potential:
+        return self.solver.solve(mag, X, *args, u1_solution=u1_solution, **kwargs)
+
+
+def create_grain_solver(
+    grain: Grain, 
+    elm: ELM, 
+    quad_rule: QuadRule,
+    tri_quad_rule: QuadRule,
+    eps: float = 1e-4,
+    order: int = 2,
+    potential: str = "scalar"
+) -> GrainSolver:
+    if potential == "scalar":
+        solver = create_scalar_potential_solver(grain.adf, elm, quad_rule, grain.mesh, tri_quad_rule, eps=eps, order=order)
+    elif potential == "vector":
+        solver = create_vector_potential_solver(grain.adf, elm, quad_rule, grain.mesh, tri_quad_rule, eps=eps, order=order)
+    else:
+        raise ValueError("`potential` must either be 'scalar' or 'vector.")
+    return GrainSolver(grain, solver)
+
+
+def make_mc_quad_rule_for_grain(key: Array, collocation_points: int, grain: Grain, curvature_threshold: float = 100) -> QuadRule:
+    X_solver = sample_domain(key, collocation_points, grain.adf, lb=grain.lower_bound, ub=grain.upper_bound, curvature_threshold=curvature_threshold)
+    W_solver = ones((X_solver.shape[0],)) / X_solver.shape[0] * grain.volume
+    return (W_solver, X_solver)
+
+
+def sample_grain_domain(key: Array, n_samples: int, grain: Grain, eps: float = 1e-2, curvature_threshold: float = 50):
+    return sample_domain(key, n_samples, grain.adf, lb=grain.lower_bound, ub=grain.upper_bound, eps=eps, curvature_threshold=curvature_threshold)
+
+
+def default_pdf(x, mean=zeros((3,)), cov=jnp.identity(3) * 5):
+    return stats.multivariate_normal.pdf(x, mean, cov)
+
+
+def sample_grain_exterior(
+        key: Array, 
+        n_samples: int, 
+        grain: Grain, 
+        lower_bound: Array = asarray(-20),
+        upper_bound: Array = asarray(20),
+        eps: float = 1e-2,
+        curvature_threshold: float = 50,
+        pdf: PDF = default_pdf
+    ) -> Array:
+    return sample_domain(
+        key, n_samples, grain.adf, dimension=2,
+        lower_bound=lower_bound, upper_bound=upper_bound,
+        eps=eps, curvature_threshold=curvature_threshold, pdf=pdf
+    )
+
+
+def sample_mag_for_grain(
+    key: Array, 
+    n: int, 
+    grain_solver: GrainSolver, 
+    mag_model: Mag = default_mag_model,
+    mag_params_sample_fn: Callable = draw_mag_params,
+    max_exchange_energy=15,
+    tol: float = 5e-2,
+) -> tuple[MagParams, ElmPoissonSolution, Array]:
+    return sample_magnetization_states(key, n, grain_solver.solver, mag_model, mag_params_sample_fn, max_exchange_energy, tol)
+
+
 _box = np.array(  # face equations of a cube [-1, 1]^3
     [
         [-1.0, 0.0, 0.0, -1.0],
@@ -54,10 +133,6 @@ _box = np.array(  # face equations of a cube [-1, 1]^3
         [1.0, 0.0, 0.0, -1.0],
     ]
 )
-
-
-def _adf(x: Array, equations, r_system: RFun = r0, min_val: float = -1, max_val: float = 1):
-    return hyperplane_intersection(equations, r_system=r_system, min_val=min_val, max_val=max_val)(x)
 
 
 def sdf(x: Array, equations: Equations) -> Array:

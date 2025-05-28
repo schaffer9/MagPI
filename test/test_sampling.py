@@ -1,4 +1,7 @@
+from jax.scipy import stats
+
 from magpi import sampling
+from magpi.calc import laplace
 from magpi.magnetostatic import create_scalar_potential_solver
 from magpi.r_fun import cube
 from magpi.spline import basis
@@ -67,3 +70,34 @@ class TestSampleMagnetizationStates(JaxTestCase):
         m0 = tree.map(lambda t: t[0], mags)
         m = sampling.default_mag_model(zeros((3,)), m0)
         self.assertEqual(m.shape, (3,))
+
+
+class TestSampleDomain(JaxTestCase):
+    def test_001_sample_cube(self):
+        key = random.key(0)
+        adf = cube(2, centering=True)
+        samples = sampling.sample_domain(
+            key, 1000, adf, dimension=3,
+            lower_bound=-2, upper_bound=2, eps=1e-2, curvature_threshold=10,
+            interior=True
+        )
+        l = vmap(adf)(samples)
+        lap_l = vmap(laplace(adf))(samples)
+        self.assertTrue(jnp.all(l > 1e-2))
+        self.assertTrue(jnp.all(jnp.abs(lap_l) < 10))
+
+    def test_002_sample_cube_exterior(self):
+        key = random.key(0)
+        mu = array([0., 0., 0.])
+        cov = jnp.identity(3) * 5
+        pdf = lambda x: stats.multivariate_normal.pdf(x, mean=mu, cov=cov)
+        adf = cube(2, centering=True)
+        samples = sampling.sample_domain(
+            key, 1000, adf, dimension=3,
+            lower_bound=-10, upper_bound=10, eps=1e-2, curvature_threshold=10,
+            interior=False, pdf=pdf
+        )
+        l = vmap(adf)(samples)
+        lap_l = vmap(laplace(adf))(samples)
+        self.assertTrue(jnp.all(l < 1e-2))
+        self.assertTrue(jnp.all(jnp.abs(lap_l) < 10))
