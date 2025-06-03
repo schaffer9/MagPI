@@ -1,7 +1,7 @@
 import dataclasses
-from typing import Callable, Any, Protocol, NamedTuple
+from typing import Callable, Any, Protocol
 
-from jax.tree_util import register_pytree_node_class
+from jax.tree_util import register_dataclass
 
 from .prelude import *
 from .calc import laplace, divergence, curl, value_and_jacfwd
@@ -29,38 +29,35 @@ ELM = Callable[[Array], Array]
 ElmParams = Array
 
 
-@register_pytree_node_class
-@dataclasses.dataclass(frozen=True)
+@partial(register_dataclass, data_fields=["adf_args", "elm_params", "strong_residual"], meta_fields=["_adf", "_elm"])
+@dataclasses.dataclass
 class ElmPoissonSolution:
     _adf: ADF
     _elm: ELM
     adf_args: tuple[Any]
     elm_params: Array
     strong_residual: Array
-    set_ext_domain_to_zero: bool = True
-    
-    def __call__(self, x):
-        l = jnp.maximum(self.adf(x), 0.0)
-        return l * self.elm(x)
+
+    def __call__(self, x: Array, set_ext_domain_to_zero: bool = True) -> Array:
+        if set_ext_domain_to_zero:
+            _l = jnp.maximum(self.adf(x), 0.0)
+        else:
+            _l = self.adf(x)
+        return _l * self.elm(x)
 
     def elm(self, x):
         return self._elm(x) @ self.elm_params
 
     def adf(self, x: Array) -> Scalar:
         return self._adf(x, *self.adf_args)
-    
-    def tree_flatten(self):
-        children = (self.elm_params, self.strong_residual)  # arrays / dynamic values
-        aux = (self._adf, self._elm, self.adf_args)
-        return (children, aux)
-
-    @classmethod
-    def tree_unflatten(cls, aux_data, children):
-        return cls(*aux_data, *children)
 
 
-@register_pytree_node_class
-@dataclasses.dataclass(frozen=True)
+@partial(
+    register_dataclass,
+    data_fields=["adf_args", "quad_rule", "Q", "Pinv", "condition_number"],
+    meta_fields=["_adf", "elm"],
+)
+@dataclasses.dataclass
 class ElmPoissonSolver:
     _adf: ADF
     adf_args: tuple[Any]
@@ -69,7 +66,6 @@ class ElmPoissonSolver:
     Q: Array
     Pinv: Array
     condition_number: Array
-    set_ext_domain_to_zero: bool = True
 
     def solve(self, f: Callable[..., Array], *args, **kwargs) -> ElmPoissonSolution:
         W, X = self.quad_rule[0].reshape(-1), self.quad_rule[1].reshape(-1, 3)
@@ -78,26 +74,14 @@ class ElmPoissonSolver:
         _b = sqrt(W)[:, *[None for _ in b.shape[1:]]] * b
         elm_params = self.Pinv @ _b
         lap_phi1 = -(self.Q @ elm_params)
-        residuals = (lap_phi1 + b)
+        residuals = lap_phi1 + b
         if residuals.ndim > 1:
             residuals = norm(residuals, axis=tuple(range(1, residuals.ndim)))
-        strong_residual = jnp.sqrt(jnp.sum(W * residuals ** 2))
-        return ElmPoissonSolution(self._adf, self.elm, self.adf_args, elm_params, strong_residual, self.set_ext_domain_to_zero)
+        strong_residual = jnp.sqrt(jnp.sum(W * residuals**2))
+        return ElmPoissonSolution(self._adf, self.elm, self.adf_args, elm_params, strong_residual)
 
     def adf(self, x: Array) -> Scalar:
         return self._adf(x, *self.adf_args)
-    
-    def u(self, x: Array, elm_params: ElmParams) -> Array:
-        return self.adf(x) * self.elm(x) @ elm_params
-    
-    def tree_flatten(self):
-        children = (self.adf_args, self.quad_rule, self.Q, self.Pinv, self.condition_number)
-        aux_data = (self._adf, self.elm)
-        return (children, aux_data)
-
-    @classmethod
-    def tree_unflatten(cls, aux_data, children):
-        return cls(aux_data[0], children[0], aux_data[1], children[1], children[2], children[3], children[4])
 
 
 def create_elm_poisson_solver(
@@ -106,7 +90,6 @@ def create_elm_poisson_solver(
     quad_rule: QuadRule,
     *adf_args: Any,
     eps: float = 1e-4,
-    set_ext_domain_to_zero: bool = True
 ) -> ElmPoissonSolver:
     r"""Creates a solver for a Poisson problem
     with homogeneous boundary conditions
@@ -139,12 +122,13 @@ def create_elm_poisson_solver(
     Sinv = jnp.where(S > eps, 1 / jnp.where(S > eps, S, jnp.inf), 0.0)
     condition_number = S[0] / jnp.maximum(S[-1], eps)
     Pinv = VT.T * Sinv @ U.T
-    return ElmPoissonSolver(_adf=adf, adf_args=adf_args, elm=elm, quad_rule=quad_rule, 
-                            Q=Q, Pinv=Pinv, condition_number=condition_number, set_ext_domain_to_zero=set_ext_domain_to_zero)
+    return ElmPoissonSolver(
+        _adf=adf, adf_args=adf_args, elm=elm, quad_rule=quad_rule, Q=Q, Pinv=Pinv, condition_number=condition_number
+    )
 
 
-@register_pytree_node_class
-@dataclasses.dataclass(frozen=True)
+@partial(register_dataclass, data_fields=["mesh", "tri_quad_rule"], meta_fields=["order"])
+@dataclasses.dataclass
 class SlpSolver:
     mesh: Mesh
     tri_quad_rule: QuadRule
@@ -179,22 +163,13 @@ class SlpSolver:
         _curl_slp = curl_single_layer_potential(d_source, charges)
         assert _curl_slp.shape == (3,)
         return _curl_slp
-    
-    def tree_flatten(self):
-        children = (self.mesh, self.tri_quad_rule)  # arrays / dynamic values
-        aux_data = self.order
-        return (children, aux_data)
-
-    @classmethod
-    def tree_unflatten(cls, aux_data, children):
-        return cls(children[0], children[1], aux_data)
 
 
 def create_slp_solver(mesh: Mesh, tri_quad_rule: QuadRule, order: int = 2):
     return SlpSolver(mesh=mesh, tri_quad_rule=tri_quad_rule, order=order)
 
 
-@register_pytree_node_class
+@partial(register_dataclass, data_fields=["X", "Z", "dZ", "u1", "u2", "field1", "field2"], meta_fields=[])
 @dataclasses.dataclass
 class Potential:
     X: Array  # evaluation points
@@ -204,7 +179,6 @@ class Potential:
     u2: Array  # second part of potential at x given by slp
     field1: Array  # first part of magnetostatic field at X
     field2: Array  # second part of magnetostatic field at X
-    u1_solution: ElmPoissonSolution  # ELM solution for first part of potential
 
     @property
     def field(self) -> Array:
@@ -214,15 +188,7 @@ class Potential:
     def potential(self) -> Array:
         return self.u1 + self.u2
 
-    def tree_flatten(self):
-        children = (self.X, self.Z, self.dZ, self.u1, self.u2, self.field1, self.field2, self.u1_solution)
-        return (children, None)
 
-    @classmethod
-    def tree_unflatten(cls, aux_data, children):
-        return cls(*children)
-    
-    
 class PotentialSolver(Protocol):
     poisson_solver: ElmPoissonSolver
     slp_solver: SlpSolver
@@ -230,7 +196,7 @@ class PotentialSolver(Protocol):
     def solve(
         self,
         mag: Mag,
-        X: Array | tuple[Array, Array, Array],
+        sources: Array | tuple[Array, Array, Array],
         *args: Any,
         u1_solution: ElmPoissonSolution | None = None,
         **kwargs: Any,
@@ -249,7 +215,7 @@ class PotentialSolver(Protocol):
         Potential
         """
         ...
-        
+
     def u1_solution(self, mag: Mag, *args: Any, **kwargs: Any) -> ElmPoissonSolution:
         """Solution of the first part of the potential.
 
@@ -264,8 +230,8 @@ class PotentialSolver(Protocol):
         ...
 
 
-@register_pytree_node_class
-@dataclasses.dataclass(frozen=True)
+@partial(register_dataclass, data_fields=["poisson_solver", "slp_solver"], meta_fields=[])
+@dataclasses.dataclass
 class ScalarPotentialSolver:
     poisson_solver: ElmPoissonSolver
     slp_solver: SlpSolver
@@ -288,30 +254,22 @@ class ScalarPotentialSolver:
 
         if u1_solution is None:
             u1_solution = self.u1_solution(_mag)
-        phi1 = u1_solution
-        _phi1 = lambda x: self.poisson_solver.u(x, u1_solution.elm_params)
+        phi1 = lambda x: u1_solution(x, set_ext_domain_to_zero=True)
+        _phi1 = lambda x: u1_solution(x, set_ext_domain_to_zero=False)
         phi1_x, h1_x = vmap(value_and_jacfwd(phi1))(X)
         charges = self.slp_solver.scalar_potential_charge(_mag, _phi1, normalized=False)
         phi2_x = vmap(lambda z: self.slp_solver.slp(z, charges))(Z)
         h2_x = vmap(lambda dz: self.slp_solver.grad_slp(dz, charges))(dZ)
-        return Potential(X, Z, dZ, phi1_x, phi2_x, -h1_x, -h2_x, u1_solution)
+        return Potential(X, Z, dZ, phi1_x, phi2_x, -h1_x, -h2_x)
 
     def u1_solution(self, mag: Mag, *args: Any, **kwargs: Any) -> ElmPoissonSolution:
         _mag = lambda x: mag(x, *args, **kwargs)
         u1_solution = self.poisson_solver.solve(lambda x: -asarray(divergence(_mag)(x)))
         return u1_solution
 
-    def tree_flatten(self):
-        children = (self.poisson_solver, self.slp_solver)
-        return (children, None)
 
-    @classmethod
-    def tree_unflatten(cls, aux_data, children):
-        return cls(*children)
-
-
-@register_pytree_node_class
-@dataclasses.dataclass(frozen=True)
+@partial(register_dataclass, data_fields=["poisson_solver", "slp_solver"], meta_fields=[])
+@dataclasses.dataclass
 class VectorPotentialSolver:
     poisson_solver: ElmPoissonSolver
     slp_solver: SlpSolver
@@ -335,26 +293,18 @@ class VectorPotentialSolver:
         if u1_solution is None:
             u1_solution = self.u1_solution(_mag)
 
-        A1 = u1_solution
-        _A1 = lambda x: self.poisson_solver.u(x, u1_solution.elm_params)
+        A1 = lambda x: u1_solution(x, set_ext_domain_to_zero=True)
+        _A1 = lambda x: u1_solution(x, set_ext_domain_to_zero=False)
         A1_x, b1_x = vmap(A1)(X), asarray(vmap(curl(A1))(X))
         charges = self.slp_solver.vector_potential_charge(mag, _A1, normalized=False)
         A2_x = vmap(lambda z: self.slp_solver.slp(z, charges))(Z)
         b2_x = vmap(lambda dz: self.slp_solver.curl_slp(dz, charges))(dZ)
-        return Potential(X, Z, dZ, A1_x, A2_x, b1_x, b2_x, u1_solution)
+        return Potential(X, Z, dZ, A1_x, A2_x, b1_x, b2_x)
 
     def u1_solution(self, mag: Mag, *args: Any, **kwargs: Any) -> ElmPoissonSolution:
         _mag = lambda x: mag(x, *args, **kwargs)
         u1_solution = self.poisson_solver.solve(lambda x: asarray(curl(_mag)(x)))
         return u1_solution
-    
-    def tree_flatten(self):
-        children = (self.poisson_solver, self.slp_solver)
-        return (children, None)
-
-    @classmethod
-    def tree_unflatten(cls, aux_data, children):
-        return cls(*children)
 
 
 def create_scalar_potential_solver(
@@ -396,11 +346,14 @@ def to_skew_simmetric_matrix(x):
     return S
 
 
-def cayley_rotation(p, x):
-    assert p.shape[0] == 3, f"{p.shape}"
+def cayley_transform(p):
     Q = to_skew_simmetric_matrix(p)
     I = jnp.eye(3)
-    return jnp.linalg.inv(I - Q) @ (I + Q) @ x
+    return jnp.linalg.inv(I - Q) @ (I + Q)
+
+
+def cayley_rotation(p, x):
+    return cayley_transform(p) @ x
 
 
 def elm_mag_model(elm):
@@ -421,8 +374,9 @@ def exchange_energy(mag: Mag, A: float, quad_rule: QuadRule) -> Array:
     def e_ex(x):
         dm = jacfwd(mag)(x)
         return A * jnp.sum(dm * dm)
-    
+
     return integrate_quad_rule(e_ex, W, X)
+
 
 def ani_energy(m, Q: float, easy_axis: Array, quad_rule: QuadRule) -> Array:
     W, X = quad_rule

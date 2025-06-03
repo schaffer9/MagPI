@@ -131,7 +131,7 @@ class TestElp(JaxTestCase):
         self.assertIsclose(I, I_true, atol=1e-3)
         
     def test_003_integrate_grain(self):
-        domain = jnp.linspace(-1, 1, 6)
+        domain = jnp.linspace(-0.5, 0.5, 6)
         domain = [domain, domain, domain]
         key = random.key(2)
         grain = sample_grain(

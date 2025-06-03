@@ -1,8 +1,10 @@
 import operator
-from typing import NamedTuple, Any, Callable
-import warnings
+from typing import Any, Self
+import dataclasses
 
 import numpy as np
+from jax.tree_util import register_dataclass
+
 
 try:
     from netgen.csg import CSGeometry, Pnt, Vec, Plane
@@ -16,31 +18,29 @@ except ImportError:
 from .prelude import *
 
 
-class Mesh(NamedTuple):
+@partial(register_dataclass, 
+         data_fields=["nodes", "vol_elements", "sur_elements", "num_elements", "maxh"],
+         meta_fields=[])
+@dataclasses.dataclass
+class Mesh:
     nodes: Array | np.ndarray
     vol_elements: Array | np.ndarray
     sur_elements: Array | np.ndarray
-    num_elements: int
-    maxh: float
+    num_elements: Array | np.ndarray | int
+    maxh: Array | np.ndarray | float
 
-    def to_jax(self):
-        return Mesh(
-            nodes=asarray(self.nodes),
-            vol_elements=asarray(self.vol_elements),
-            sur_elements=asarray(self.sur_elements),
-            num_elements=self.num_elements,
-            maxh=self.maxh
-        )
-
+    def to_jax(self) -> Self:
+        return tree.map(asarray, self)
+        
 
 def generate_convex_mesh(
-        equations: Array | np.ndarray, 
-        *, 
-        maxh: float = 0.2, 
-        max_elements: int | None = None,
-        surface_mesh: bool = False,
-        **kwargs: Any
-    ) -> Mesh:
+    equations: Array | np.ndarray,
+    *,
+    maxh: float = 0.2,
+    max_elements: int | None = None,
+    surface_mesh: bool = False,
+    **kwargs: Any
+) -> Mesh:
     """Generate a mesh of a convex body with netget
 
     Parameters
@@ -84,10 +84,10 @@ def generate_convex_mesh(
         sur_elements = np.array([[v.nr for v in e.vertices] for e in mesh.Elements2D()]) - 1
         num_elements = max(vol_elements.shape[0], sur_elements.shape[0])
         if max_elements is None:
-            return Mesh(nodes, vol_elements, sur_elements, num_elements, maxh)
+            return Mesh(nodes, vol_elements, sur_elements, np.asarray(num_elements), np.asarray(maxh))
         
         if num_elements < max_elements:
-            mesh = Mesh(nodes, vol_elements, sur_elements, num_elements, maxh)
+            mesh = Mesh(nodes, vol_elements, sur_elements, np.asarray(num_elements), np.asarray(maxh))
             mesh = pad_mesh(mesh, max_elements)
             return mesh
         else:
@@ -130,7 +130,6 @@ def draw_mesh(mesh: Mesh, *args: Any, show: bool = True, **kwargs: Any) -> WebGL
     return Draw(ngmesh, *args, show=show, **kwargs)
 
 
-
 def _padding_equation(eq):
     n = eq[:-1]
     return ~np.isclose(np.linalg.norm(n), 0.0)
@@ -143,9 +142,9 @@ def _eq_to_plane(eq):
 
 def pad_mesh(mesh: Mesh, max_elements: int):
     mesh = Mesh(
-        nodes=_pad(mesh.nodes, max_elements),
-        vol_elements=_pad(mesh.vol_elements, max_elements),
-        sur_elements=_pad(mesh.sur_elements, max_elements),
+        nodes=_pad(np.asarray(mesh.nodes), max_elements),
+        vol_elements=_pad(np.asarray(mesh.vol_elements), max_elements),
+        sur_elements=_pad(np.asarray(mesh.sur_elements), max_elements),
         num_elements=mesh.num_elements,
         maxh=mesh.maxh
     )
@@ -174,7 +173,6 @@ def empty_mesh(max_elements: int, dim: int, surface_mesh: bool) -> Mesh:
         maxh=asarray(0.0),
     )
     
-
 
 def _pad(a: np.ndarray, max_length: int):
     if a.shape == () or a.shape == (0,):

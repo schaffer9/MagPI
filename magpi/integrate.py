@@ -66,7 +66,7 @@ def gauss(degree: int) -> QuadRule:
     return quad
 
 
-def load_tet_quad_rule(degree: int):
+def load_tet_quad_rule(degree: int) -> tuple[Array, Array]:
     """Loads a quadrature rule for a tetrahedral domain from 
     https://github.com/OptimalDesignLab/SummationByParts.jl [2]_.
 
@@ -87,7 +87,7 @@ def load_tet_quad_rule(degree: int):
     return weights, nodes
 
 
-def load_tri_quad_rule(degree: int):
+def load_tri_quad_rule(degree: int) -> tuple[Array, Array]:
     """Loads a quadrature rule for a triangular domain from 
     https://github.com/OptimalDesignLab/SummationByParts.jl [2]_.
 
@@ -100,7 +100,7 @@ def load_tri_quad_rule(degree: int):
     -------
     tuple[Weights, Nodes]
     
-    Notes
+    Notes1
     -----
     .. [2] Worku, Zelalem Arega, Jason E. Hicken, and David W. Zingg. 
            "Very high-order symmetric positive-interior quadrature rules on triangles and tetrahedra." 
@@ -241,10 +241,10 @@ def integrate_quad_rule(
     """
     W, X = weights, nodes
     F = _apply_along_last_axis(lambda x: fn(x, *args, **kwargs), X)
-    return tree.map(lambda y: _weigthed_product(W, y, axis), F)
+    return tree.map(lambda y: _weigthed_sum(W, y, axis), F)
 
 
-def _weigthed_product(W, F, axis):
+def _weigthed_sum(W, F, axis):
     _W = W[(...,) + (None,) * (F.ndim - W.ndim)]  # extend axis
     if axis is None:
         axis = list(range(len(W.shape)))

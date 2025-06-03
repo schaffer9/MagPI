@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Self
 
-from jax.tree_util import register_pytree_node_class
+from jax.tree_util import register_dataclass
 
 from .prelude import *
 
@@ -9,8 +9,8 @@ Scalar = Array | float | int
 Vec = Array | tuple[Scalar, Scalar, Scalar]
 
 
-@register_pytree_node_class
-@dataclass(frozen=True, slots=True, weakref_slot=True)
+@partial(register_dataclass, data_fields=["_a", "_q"], meta_fields=[])
+@dataclass
 class Quaternion:
     _a: Array
     _q: Array
@@ -101,14 +101,6 @@ class Quaternion:
 
     def conj(self) -> Self:
         return self.__class__(self.real, -self.imag)
-
-    def tree_flatten(self):
-        children = (self._a, self._q)  # arrays / dynamic values
-        return (children, None)
-
-    @classmethod
-    def tree_unflatten(cls, aux_data, children):
-        return cls(children[0], children[1])
 
 
 def quaternion_right_div(q1: Quaternion, q2: Quaternion) -> Quaternion:

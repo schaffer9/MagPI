@@ -11,7 +11,7 @@ Notes
 from typing import Any, TypeAlias, Sequence, Callable
 from dataclasses import dataclass
 
-from jax.tree_util import register_pytree_node_class
+from jax.tree_util import register_dataclass
 
 from .prelude import *
 from .r_fun import ADF
@@ -25,22 +25,14 @@ Scalar: TypeAlias = Array
 _Moments: TypeAlias = Array
 
 
-@register_pytree_node_class
-@dataclass(frozen=True, slots=True, weakref_slot=True)
+@partial(register_dataclass, data_fields=["domain", "coefs"], meta_fields=[])
+@dataclass
 class ELP:
     domain: Domain
     coefs: LegendreCoefs
 
     def __call__(self, x: Array) -> Array:
         return _elp(x, self.coefs, self.domain)
-
-    def tree_flatten(self):
-        children = (self.domain, self.coefs)  # arrays / dynamic values
-        return (children, None)
-
-    @classmethod
-    def tree_unflatten(cls, aux_data, children):
-        return cls(children[0], children[1])
 
 
 @partial(jit, static_argnames="n")

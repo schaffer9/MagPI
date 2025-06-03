@@ -20,7 +20,14 @@ Sources = Array
 Charges = Array
 NormalVec = Array
 
+# def cb(name, value):
+#     isnan = jnp.any(asarray(tree.leaves(tree.map(lambda t: jnp.any(jnp.isnan(t)), value))))
+#     if isnan:
+#         print(f"Found NaN in {name}")
 
+# def check_for_nan(name: str, value):
+#     jax.debug.callback(cb, name, value, ordered=True)
+    
 @overload
 def source_tensor_for_mesh(
     x: PhySpace,
@@ -51,7 +58,7 @@ def source_tensor_for_mesh(
     x: PhySpace, mesh: Mesh, weights: TriWeights, nodes: TriNodes, *, order: int = 2, compute_jacfwd: bool = True
 ):
     def source_for_element(i):
-        element = mesh.nodes[i]
+        element = asarray(mesh.nodes[i])
         z = source_tensor(x, element, weights, nodes, order=order, compute_jacfwd=compute_jacfwd)
         return z
 
@@ -66,7 +73,7 @@ def source_tensor_for_mesh(
 
 def charge_tensor_for_mesh(f: Callable[..., Array], mesh: Mesh, *args: Any, order: int = 2, **kwargs: Any) -> Charges:
     def inner(i):
-        element = mesh.nodes[i]
+        element = asarray(mesh.nodes[i])
         c = taylor_coeffs(f, element, *args, order=order, **kwargs)
         return c
 
@@ -101,7 +108,7 @@ def center(element: TriElement) -> PhySpace:
     return from_ref_element(array([1 / 3, 1 / 3]), element)
 
 
-@partial(jit, static_argnames=("order", "compute_jacfwd"))
+# @partial(jit, static_argnames=("order", "compute_jacfwd"))
 def source_tensor(
     x: PhySpace,
     element: TriElement,
@@ -117,9 +124,11 @@ def source_tensor(
         return _source_tensor(x, element, weights, nodes, order=order)
 
 
-@partial(jit, static_argnames=("f", "order"))
 def taylor_coeffs(f: Callable[..., Array], element: TriElement, *args: Any, order: int = 2, **kwargs: Any) -> Array:
     n = triangle_normal(element)
+    length = jnp.linalg.norm(n)
+    padding = length == 0
+    
     _f = lambda x: f(x, n, *args, **kwargs)
     assert order >= 0
 
@@ -137,9 +146,10 @@ def taylor_coeffs(f: Callable[..., Array], element: TriElement, *args: Any, orde
         coefs = jnp.concatenate(F, axis=-1)
         return coefs.swapaxes(-1, 0)
 
-    c = center(element)
-    F = jnp.apply_along_axis(charge, -1, c)
-    return F
+    c = charge(center(element))
+    c = jnp.nan_to_num(c)
+    # we set the charge for padding elements to zero
+    return where(padding, zeros_like(c), c)  
 
 
 def triangle_normal(element: TriElement) -> NormalVec:
@@ -147,12 +157,12 @@ def triangle_normal(element: TriElement) -> NormalVec:
     v1 = p1 - p0
     v2 = p2 - p0
     n = jnp.cross(v1, v2)
-    norm = jnp.linalg.norm(n)
+    length = jnp.linalg.norm(n)
 
     # Use lax.cond to safely normalize, returning zero if norm is zero
     return lax.cond(
-        norm > 0,
-        lambda: n / norm,
+        length > 0,
+        lambda: n / length,
         lambda: jnp.zeros_like(n),
     )
 
