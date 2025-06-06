@@ -13,27 +13,23 @@ Model = Callable[..., Array]
 
 class MLP(nn.Module):
     layers: Sequence[int]
-    activation: Activation | None= None
+    activation: Activation = nn.gelu
+    last_layer_activation: Activation | None = nn.gelu
+    last_layer_bias: bool = True
 
     @nn.compact
     def __call__(self, x):
-        if self.activation is None:
-            activation = tanh
-        else:
-            activation = self.activation
-
         for i, layer in enumerate(self.layers[:-1]):
-            x = activation(nn.Dense(layer, name=f"layers_{i}")(x))
+            x = self.activation(nn.Dense(layer)(x))
 
         output_neurons = self.layers[-1]
-        x = nn.Dense(output_neurons, name="output_layer")(x)
-        if output_neurons == 1:
-            return x[..., 0]
-        else:
-            return x
+        x = nn.Dense(output_neurons, use_bias=self.last_layer_bias)(x)
+        if self.last_layer_activation is not None:
+            x = self.last_layer_activation(x)
+        return x
 
 
-def mlp(key: Array, layers: Sequence[int], activation: Activation | None = None) -> tuple[MLP, Params]:
+def mlp(key: Array, layers: Sequence[int], activation: Activation = nn.gelu) -> tuple[MLP, Params]:
     """Creates a Multi Layer Perceptron with the given layers and activation function.
 
     Examples

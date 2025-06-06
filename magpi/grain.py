@@ -100,7 +100,7 @@ def create_grain_solver(
 
 
 def make_mc_quad_rule_for_grain(
-    key: Array, collocation_points: int, grain: Grain, curvature_threshold: float = 100
+    key: Array, collocation_points: int, grain: Grain, eps: float = 0.0, curvature_threshold: float = 100
 ) -> QuadRule:
     X_solver = sample_domain(
         key,
@@ -108,6 +108,7 @@ def make_mc_quad_rule_for_grain(
         grain.adf,
         lower_bound=grain.lower_bound,
         upper_bound=grain.upper_bound,
+        eps=eps,
         curvature_threshold=curvature_threshold,
     )
     W_solver = ones((X_solver.shape[0],)) / X_solver.shape[0] * grain.volume
@@ -238,7 +239,6 @@ def sample_grain(
         #rot_matrix = cayley_transform(p)
         #equations = _affine_transformation_equations(equations, rot_matrix, zeros((3,)))
         # grain = create_grain(equations)
-        # grain = center_grain(grain, keep_aspect_ratio=keep_aspect_ratio)
         # equations = grain.equations
         
         grain = create_grain(
@@ -255,6 +255,7 @@ def sample_grain(
             meshing_kwargs=meshing_kwargs,
             material_parameters=material_parameters,
         )
+        grain = center_grain(grain, keep_aspect_ratio=keep_aspect_ratio)
         return grain
     
     def _accept_grain(grain, key):

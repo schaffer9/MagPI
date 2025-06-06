@@ -82,7 +82,7 @@ def rejection_sampling_from_pdf(key, n: int, pdf: PDF, sample_fn: SampleFn, m: i
     return rejection_sampling(key, n, sample_fn, accept_fn)
 
 
-uniform_state = lambda x: zeros_like(x).at[..., -1].set(0)
+uniform_state = lambda x: zeros_like(x).at[..., -1].set(1.0)
 
 unit_vec = lambda x: x / norm(x, keepdims=True)
 
