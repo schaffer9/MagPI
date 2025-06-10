@@ -225,8 +225,9 @@ def sample_grain(
     def _sample_grain(key):
         k1, k2, k3, k4 = random.split(key, 4)
         n = max(max_faces - bounds.shape[0], 0)
-        i = random.randint(k1, (), minval=0, maxval=n)
-        mask = random.choice(k2, array([True, False]), (n,), p=array([i / n, 1 - i / n]))
+        #i = random.randint(k1, (), minval=0, maxval=n)
+        # mask = random.choice(k2, array([True, False]), (n,), p=array([i / n, 1 - i / n]))
+        mask = random.choice(k2, array([True, False]), (n,))
         mask = jnp.sort(mask, descending=True)
         dim = bounds.shape[-1] - 1
         a, b = jnp.sort(random.uniform(k3, (2,), minval=min_offset, maxval=max_offset))  # offsets

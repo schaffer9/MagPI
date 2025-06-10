@@ -187,7 +187,7 @@ def default_mag_model(
 def draw_mag_params(key: Array, elm_size: int = default_elm_size) -> MagParams:
     k1, k2, k3 = random.split(key, 3)
     p = random.normal(k1, (elm_size, 3))
-    scale = random.normal(k2, ())
+    scale = random.normal(k2, ()) * 0.1
     return MagParams(p * scale, k3)
 
 

@@ -1,6 +1,16 @@
+import jaxkd
 import jraph
 
-from magpi.graph import nearest_neighbors, grid_neighbors, make_grid_graph, make_neighbors_graph, GNNLayer, GNNIntegrationLayer
+from magpi.graph import (
+    nearest_neighbors, 
+    grid_neighbors,
+    make_grid_graph,
+    nearest_neighbors_graph_for_node,
+    make_neighbors_graph,
+    GNNLayer,
+    GNNIntegrationLayer,
+    pool_nearest_neighbors
+)
 
 from . import *
 
@@ -8,7 +18,8 @@ from . import *
 class TestNearestNeighbors(JaxTestCase):
     def test_000_nearest_neighbors(self):
         X = array([1,2,3])
-        neighbors, padding = nearest_neighbors(X, 1)
+        neighbors, padding = nearest_neighbors(X, 2)
+        neighbors, padding = neighbors[:, 1:], padding[:, 1:]
         true_neighbors = array([[1,0,1]]).T
         true_padding = array([[True, True, True]]).T
         self.assertIsclose(neighbors, true_neighbors)
@@ -16,7 +27,8 @@ class TestNearestNeighbors(JaxTestCase):
 
     def test_001_nearest_neighbors_with_radius(self):
         X = array([1,2,3.1])
-        neighbors, padding = nearest_neighbors(X, 1, radius=1)
+        neighbors, padding = nearest_neighbors(X, 2, radius=1)
+        neighbors, padding = neighbors[:, 1:], padding[:, 1:]
         true_neighbors = array([[1,0,-1]]).T
         true_padding = array([[True, True, False]]).T
         self.assertIsclose(neighbors, true_neighbors)
@@ -60,7 +72,7 @@ class TestMakeGraph(JaxTestCase):
         self.assertEqual(jraph.get_number_of_padding_with_graphs_edges(graph), 2)
         self.assertEqual(jraph.get_number_of_padding_with_graphs_graphs(graph), 1)
 
-
+        
 class TestGraphIntegrationLayer(JaxTestCase):
     def test_000_graph_integration_layer(self):
         nodes = array([0, 1, 2, 3])
@@ -137,3 +149,39 @@ class TestGraphLayer(JaxTestCase):
         self.assertNotEqual(graph.edges[0, 0], 0)
         self.assertPytreeEqual(graph.edges[-1], zeros((2,)))  # test if last padding edge is zero
         self.assertIsNone(graph.globals)
+        
+        
+class TestPoolTree(JaxTestCase):
+    def test_000_pool_tree(self):
+        X = array([1, 2, 3])
+        Y = array([0.9, 1.1, 1.9, 2.1, 2.9, 3.1])
+        V = array([1, 1, 2, 2, 3, 3])
+        
+        pooled_values = pool_nearest_neighbors(
+            X, (Y, V), 4, 
+            aggregate_fn=jraph.segment_sum, radius=0.5)
+        result = asarray([2, 4, 6])
+        self.assertPytreeEqual(pooled_values, result)
+        
+    def test_001_pool_tree(self):
+        X = array([1, 2, 3])[:, None]
+        Y = array([0.9, 1.1, 1.9, 2.1, 2.9, 3.1])[:, None]
+        V = array([1, 1, 2, 2, 3, 3])[:, None]
+        
+        pooled_values = pool_nearest_neighbors(
+            X, (Y, V), 4, 
+            aggregate_fn=jraph.segment_sum, radius=0.5)
+        result = asarray([2, 4, 6])[:, None]
+        self.assertPytreeEqual(pooled_values, result)
+        
+    def test_001_pass_tree(self):
+        X = array([1, 2, 3])[:, None]
+        Y = array([0.9, 1.1, 1.9, 2.1, 2.9, 3.1])[:, None]
+        kdtree = jaxkd.build_tree(Y)
+        V = array([1, 1, 2, 2, 3, 3])[:, None]
+        
+        pooled_values = pool_nearest_neighbors(
+            X, (Y, V), 4, kdtree=kdtree,
+            aggregate_fn=jraph.segment_sum, radius=0.5)
+        result = asarray([2, 4, 6])[:, None]
+        self.assertPytreeEqual(pooled_values, result)

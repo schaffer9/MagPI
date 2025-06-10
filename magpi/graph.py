@@ -3,6 +3,7 @@ from typing import Callable
 import itertools
 
 import jraph
+import jaxkd
 from jaxkd import build_tree, query_neighbors
 
 from .prelude import *
@@ -18,7 +19,7 @@ class GNNIntegrationLayer(nn.Module):
     
     """
     globals_mlp: list[int]
-    activation: Callable = nn.gelu
+    activation: Callable = nn.tanh
 
     @nn.compact
     def __call__(self, graph: jraph.GraphsTuple) -> jraph.GraphsTuple:
@@ -48,7 +49,7 @@ class GNNIntegrationLayer(nn.Module):
             else:
                 x = integrated_node_features
             
-            x = MLP(self.globals_mlp, self.activation)(x)
+            x = MLP(self.globals_mlp, self.activation, lambda x: x)(x)
             return x
         
         network = jraph.GraphNetwork(
@@ -66,11 +67,11 @@ class GNNIntegrationLayer(nn.Module):
 class GNNLayer(nn.Module):
     update_edge_mlp: list[int]
     update_node_mlp: list[int]
-    activation: Callable = nn.gelu
+    activation: Callable = nn.tanh
 
     @nn.compact
     def __call__(self, graph: jraph.GraphsTuple) -> jraph.GraphsTuple:
-        nodes = graph.nodes
+        
         node_mask = jraph.get_node_padding_mask(graph)
         edge_mask = jraph.get_edge_padding_mask(graph)
         if not isinstance(graph.nodes, Array):
@@ -78,15 +79,26 @@ class GNNLayer(nn.Module):
             weights, nodes = graph.nodes
             graph = graph._replace(nodes=nodes)
         else:
+            nodes = graph.nodes
             weights = None
-
-        @jraph.concatenated_args
-        def update_edge_fn(features):
-            return MLP(self.update_edge_mlp, self.activation)(features)
+        
+        edges = MLP(self.update_edge_mlp, self.activation)(graph.edges)
+        nodes = MLP(self.update_node_mlp, self.activation)(nodes)
+        graph = graph._replace(nodes=nodes, edges=edges)
         
         @jraph.concatenated_args
-        def update_node_fn(features):
-            return MLP(self.update_node_mlp, self.activation)(features)
+        def update_edge_fn(features):
+            return MLP(self.update_edge_mlp, self.activation, lambda x: x)(features)
+        
+        #@jraph.concatenated_args
+        def update_node_fn(
+            node_features,
+            aggregated_sender_edge_features,
+            aggregated_receiver_edge_features,
+            globals_):
+            #if globals is not None:
+            features = jnp.concatenate([node_features, aggregated_sender_edge_features], axis=-1)
+            return MLP(self.update_node_mlp, self.activation, lambda x: x)(features)
         
         def update_global_fn(aggregated_node_features, aggregated_edge_features, globals_):
             return globals_
@@ -95,8 +107,9 @@ class GNNLayer(nn.Module):
             update_edge_fn=update_edge_fn,
             update_node_fn=update_node_fn,
             update_global_fn=update_global_fn,
-            aggregate_edges_for_nodes_fn=jraph.segment_mean
+            #aggregate_edges_for_nodes_fn=jraph.segment_mean
         )(graph)
+        graph = graph._replace(nodes=graph.nodes + nodes, edges=graph.edges + edges)
         if weights is not None:
             graph = graph._replace(nodes=(weights, graph.nodes))
 
@@ -106,10 +119,135 @@ class GNNLayer(nn.Module):
         return graph
 
 
+class GNOLayer(nn.Module):
+    kernel_mlp: list[int]
+    activation: Callable = nn.gelu
+    
+    @nn.compact
+    def __call__(self, graph: jraph.GraphsTuple) -> jraph.GraphsTuple:
+        node_mask = jraph.get_node_padding_mask(graph)
+        edge_mask = jraph.get_edge_padding_mask(graph)
+        graph_mask = jraph.get_graph_padding_mask(graph)
+        
+        def update_edge_fn(edges, sent_attributes, received_attributes, global_edge_attributes):
+            X, _ = received_attributes
+            Y, V = sent_attributes
+            n = V.shape[-1]
+            if edges is not None:
+                S = jnp.concatenate([X, Y, edges], axis=-1)
+            else:
+                S = jnp.concatenate([X, Y], axis=-1)
+            K = MLP(self.kernel_mlp, self.activation)(S)
+            K = nn.Dense(n * n)(K)
+            K = K.reshape(-1, n, n)
+            V = vmap(lambda k, v: k @ v)(K, V)
+            return V
+        
+        def update_node_fn(nodes, sent_attributes, received_attributes, global_attributes):
+            X, V = nodes
+            n = V.shape[-1]
+            V = nn.Dense(n, use_bias=False)(V)
+            return X, self.activation(V + sent_attributes)
+    
+        new_graph = jraph.GraphNetwork(
+            update_edge_fn=update_edge_fn,
+            update_node_fn=update_node_fn,
+            update_global_fn=None,
+            aggregate_edges_for_nodes_fn=jraph.segment_mean
+        )(graph)
+        
+        new_graph = new_graph._replace(edges=graph.edges)
+        new_graph = new_graph._replace(
+            nodes=tree.map(lambda t: where(node_mask[:, None], t, 0), new_graph.nodes),
+            edges=tree.map(lambda t: where(edge_mask[:, None], t, 0), new_graph.edges),
+            globals=tree.map(lambda t: where(graph_mask[:, None], t, 0), new_graph.globals),
+        )
+        return new_graph
+    
+    
+# class GraphInterpLayer(nn.Module):
+#     kernel_mlp: list[int]
+#     max_neighbors: int
+#     radius: float
+#     activation: Callable = nn.gelu
+    
+#     @nn.compact
+#     def __call__(self, x, graph: jraph.GraphsTuple, kdtree: jaxkd.tree.tree_type) -> jraph.GraphsTuple:        
+#         if x.ndim < 2:
+#             x = x.reshape(1, -1)
+            
+#         Y, V = graph.nodes
+#         neighbors, padding = nearest_neighbors(x, self.max_neighbors, kdtree, self.radius)
+#         neighbors = jnp.where(neighbors != -1, neighbors, kdtree.points.shape[0] - 1)
+#         jraph.get_fully_connected_graph()
+#         Y = jnp.where(padding, Y[neighbors], 0.0)
+#         V = jnp.where(padding, V[neighbors], 0.0)
+        
+#         def update_edge_fn(Y, V):
+#             X = jnp.broadcast_to(x[None, :], Y.shape)
+#             n = V.shape[-1]
+#             S = jnp.concatenate([X, Y])
+#             K = MLP(self.kernel_mlp, self.activation)(S)
+#             K = nn.Dense(n * n)(K)
+#             K = K.reshape(-1, n, n)
+#             V = vmap(lambda k, v: k @ v)(K, V)
+#             return V
+        
+#         edges = update_edge_fn(Y, V)
+        
+        
+#         def update_node_fn(nodes, sent_attributes, received_attributes, global_attributes):
+#             X, V = nodes
+#             n = V.shape[-1]
+#             V = nn.Dense(n, use_bias=False)(V)
+#             return X, self.activation(V + sent_attributes)
+    
+#         new_graph = jraph.GraphNetwork(
+#             update_edge_fn=update_edge_fn,
+#             update_node_fn=update_node_fn,
+#             update_global_fn=None,
+#             aggregate_edges_for_nodes_fn=jraph.segment_mean
+#         )(graph)
+        
+#         new_graph = new_graph._replace(edges=graph.edges)
+#         return new_graph
+    
+        
+        
+def pool_nearest_neighbors(
+    query: Array,
+    nodes: tuple[Array, Array],
+    max_neighbors: int, 
+    kdtree: jaxkd.tree.tree_type | None = None,
+    radius: float | None = None,
+    aggregate_fn: Callable = jraph.segment_mean
+):
+    X, V = nodes
+    if X.ndim == 1:
+        X = X[:, None]
+    
+    if query.ndim == 1:
+        query = query[:, None]
+    
+    if kdtree is None:
+        kdtree = jaxkd.build_tree(X)
+    neighbors, padding = nearest_neighbors(query, max_neighbors, kdtree, radius)
+    
+    def pool(neighbors, padding):    
+        idx = jnp.where(neighbors != -1, neighbors, V.shape[0] - 1)
+        values = V[idx]
+        V_pooled = aggregate_fn(values, (~padding).astype(jnp.int32), num_segments=2, indices_are_sorted=True)[0]
+        return V_pooled
+    
+    return vmap(pool)(neighbors, padding)
+    
+
 def nearest_neighbors(
-        nodes: Array,
-        max_neighbors: int,
-        radius: float | None = None) -> tuple[Array, Array]:
+    nodes: Array,
+    max_neighbors: int,
+    kdtree: jaxkd.tree.tree_type | None = None,
+    radius: float | None = None
+) -> tuple[Array, Array]:
     """Finds nearest neighbors with an optional constraint on the distance.
 
     Parameters
@@ -128,9 +266,10 @@ def nearest_neighbors(
     """
     if nodes.ndim == 1:
         nodes = nodes[:, None]
-    kdtree = build_tree(nodes)
-    neighbors, distances = query_neighbors(kdtree, nodes, k=max_neighbors + 1)
-    neighbors, distances = neighbors[:, 1:], distances[:, 1:]  # remove self connections
+    
+    if kdtree is None:
+        kdtree = build_tree(nodes)
+    neighbors, distances = query_neighbors(kdtree, nodes, k=max_neighbors)
     padding = jnp.full(neighbors.shape, True)
     if radius is None:
         return neighbors, padding
@@ -210,14 +349,19 @@ def _make_graph(nodes: Array, senders: Array, receivers: Array, padding: Array) 
     return graph
 
 
-def make_neighbors_graph(nodes: Array | tuple[Array, Array], max_neighbors: int, radius: float | None = None):
+def make_neighbors_graph(
+    nodes: Array | tuple[Array, Array], 
+    max_neighbors: int, 
+    radius: float | None = None
+):
     if isinstance(nodes, tuple):
         weights, nodes = nodes
     else:
         weights = None
     if nodes.ndim == 1:
         nodes = nodes[:, None]
-    senders, padding = nearest_neighbors(nodes, max_neighbors, radius)
+    senders, padding = nearest_neighbors(nodes, max_neighbors + 1, None, radius)
+    senders, padding = senders[:, 1:], padding[:, 1:]
     receivers = jnp.repeat(
         jnp.arange(0, nodes.shape[0])[:, None], senders.shape[-1], axis=-1
     )
@@ -226,6 +370,7 @@ def make_neighbors_graph(nodes: Array | tuple[Array, Array], max_neighbors: int,
         weights = jnp.append(weights, zeros((1,)), axis=0)
         graph = graph._replace(nodes=(weights, graph.nodes))
     return graph
+
 
 def make_grid_graph(grid: Array | tuple[Array, Array], dilation: int = 1):
     if isinstance(grid, tuple):

@@ -14,7 +14,7 @@ Model = Callable[..., Array]
 class MLP(nn.Module):
     layers: Sequence[int]
     activation: Activation = nn.gelu
-    last_layer_activation: Activation | None = nn.gelu
+    last_layer_activation: Activation = nn.gelu
     last_layer_bias: bool = True
 
     @nn.compact
