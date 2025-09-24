@@ -97,37 +97,38 @@ def generate_convex_mesh(
         raise ValueError(f"Could not generate mesh with less than {max_elements} elements.")
 
 
-def draw_mesh(mesh: Mesh, *args: Any, show: bool = True, **kwargs: Any) -> WebGLScene | None:
-    """Draws a mesh using WebGLScene
+if NGSOLVE_INSTALLED:
+    def draw_mesh(mesh: Mesh, *args: Any, show: bool = True, **kwargs: Any) -> WebGLScene | None:
+        """Draws a mesh using WebGLScene
 
-    Parameters
-    ----------
-    mesh : Mesh
-    show : bool, optional
-        by default True
+        Parameters
+        ----------
+        mesh : Mesh
+        show : bool, optional
+            by default True
 
-    Returns
-    -------
-    WebGLScene | None
-    
-    Raises
-    ------
-    ImportError
-        is raised if NGSolve is not installed
-    """
-    if not NGSOLVE_INSTALLED:
-        raise ImportError("NGSolve is required for this function but it is not installed.")
-    # regenerate surface mesh
-    ngmesh = NGMesh(3)
-    ngmesh.Add(FaceDescriptor(surfnr=1, domin=1, bc=1))
-    pnums = []
-    for pnt in mesh.nodes:
-        pnums.append(ngmesh.Add(MeshPoint(Pnt(*pnt))))
+        Returns
+        -------
+        WebGLScene | None
+        
+        Raises
+        ------
+        ImportError
+            is raised if NGSolve is not installed
+        """
+        if not NGSOLVE_INSTALLED:
+            raise ImportError("NGSolve is required for this function but it is not installed.")
+        # regenerate surface mesh
+        ngmesh = NGMesh(3)
+        ngmesh.Add(FaceDescriptor(surfnr=1, domin=1, bc=1))
+        pnums = []
+        for pnt in mesh.nodes:
+            pnums.append(ngmesh.Add(MeshPoint(Pnt(*pnt))))
 
-    for e2d in mesh.sur_elements:
-        ngmesh.Add(Element2D(1, [pnums[i] for i in e2d]))
+        for e2d in mesh.sur_elements:
+            ngmesh.Add(Element2D(1, [pnums[i] for i in e2d]))
 
-    return Draw(ngmesh, *args, show=show, **kwargs)
+        return Draw(ngmesh, *args, show=show, **kwargs)
 
 
 def _padding_equation(eq):
